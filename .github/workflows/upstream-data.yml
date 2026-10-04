@@ -34,5 +34,6 @@ jobs:
       - run: npm run data:vendor:bsb
       - run: npm run data:validate:vendored
       - run: npm run data:build:crossrefs
+      - run: npm run data:verify:research
       - run: npm run data:build:search
       - run: npm run build:site
