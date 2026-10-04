@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const dataRoot = process.env.SELAH_BSB_OUTPUT ?? join(root, '.generated/data/bsb');
 const { BOOKS } = await import('../../dist/src/domain/references/books.js');
+const presence=JSON.parse(await readFile(join(dataRoot,'verse-presence.json'),'utf8'));
+const maxVerses=JSON.parse(await readFile(join(dataRoot,'max-verses.json'),'utf8'));
 let chapters = 0;
 let verses = 0;
 for (const book of BOOKS) {
@@ -15,8 +17,15 @@ for (const book of BOOKS) {
     await access(research);
     const text = await readFile(display, 'utf8');
     const parsed = JSON.parse(text);
-    const verseCount = Object.keys(parsed.eng ?? {}).length;
+    const verseNumbers=Object.keys(parsed.eng ?? {}).map(Number).sort((a,b)=>a-b);
+    const verseCount = verseNumbers.length;
     if (!verseCount) throw new Error(`Empty display data: ${book.id} ${chapter}`);
+    const expectedPresence=presence?.[book.id]?.[String(chapter)];
+    if(!Array.isArray(expectedPresence)||JSON.stringify(expectedPresence)!==JSON.stringify(verseNumbers)){
+      throw new Error(`Verse-presence map mismatch: ${book.id} ${chapter}`);
+    }
+    const expectedMax=maxVerses?.[book.id]?.[String(chapter)];
+    if(Number(expectedMax)!==Math.max(...verseNumbers))throw new Error(`Max-verse map mismatch: ${book.id} ${chapter}`);
     chapters += 1;
     verses += verseCount;
   }
