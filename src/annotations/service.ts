@@ -65,6 +65,38 @@ export class AnnotationService {
   }
 
 
+  async createRangeTextNote(input: {
+    translationId: string;
+    passage: PassageRef;
+    startTokenId: string;
+    endTokenId: string;
+    quotedText: string;
+    body: string;
+    studyId?: StudyId;
+  }): Promise<Annotation> {
+    const timestamp = this.#now();
+    const annotation: Annotation = {
+      id: this.#idFactory(),
+      kind: 'note',
+      anchor: {
+        type: 'text-range',
+        translationId: input.translationId,
+        passage: structuredClone(input.passage),
+        startTokenId: input.startTokenId,
+        endTokenId: input.endTokenId,
+        quotedText: input.quotedText,
+      },
+      body: input.body,
+      tags: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      ...(input.studyId ? { studyId: input.studyId } : {}),
+    };
+    await this.repository.putAnnotation(annotation);
+    return annotation;
+  }
+
+
   async createHighlight(input: {
     translationId: string;
     verse: VerseRef;
@@ -82,6 +114,39 @@ export class AnnotationService {
         type: 'text',
         translationId: input.translationId,
         verse: structuredClone(input.verse),
+        startTokenId: input.startTokenId,
+        endTokenId: input.endTokenId,
+        quotedText: input.quotedText,
+      },
+      highlightStyle: input.highlightStyle ?? 'default',
+      tags: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      ...(input.studyId ? { studyId: input.studyId } : {}),
+    };
+    await this.repository.putAnnotation(annotation);
+    return annotation;
+  }
+
+
+
+  async createRangeHighlight(input: {
+    translationId: string;
+    passage: PassageRef;
+    startTokenId: string;
+    endTokenId: string;
+    quotedText: string;
+    highlightStyle?: string;
+    studyId?: StudyId;
+  }): Promise<Annotation> {
+    const timestamp = this.#now();
+    const annotation: Annotation = {
+      id: this.#idFactory(),
+      kind: 'highlight',
+      anchor: {
+        type: 'text-range',
+        translationId: input.translationId,
+        passage: structuredClone(input.passage),
         startTokenId: input.startTokenId,
         endTokenId: input.endTokenId,
         quotedText: input.quotedText,
