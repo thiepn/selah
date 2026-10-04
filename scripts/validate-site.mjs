@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const site=join(root,'site');
-for(const file of ['index.html','app.js','styles.css','sw.js','manifest.webmanifest','core/domain/references/index.js','core/persistence/index.js','data/bsb/display/PHP/PHP2.jsonl']) await access(join(site,file));
+for(const file of ['index.html','app.js','styles.css','sw.js','manifest.webmanifest','core/domain/references/index.js','core/persistence/index.js']) await access(join(site,file));
+try { await access(join(site,'data/bsb/display/PHP/PHP2.json')); } catch { await access(join(site,'data/bsb/display/PHP/PHP2.jsonl')); }
 const html=await readFile(join(site,'index.html'),'utf8');
 const app=await readFile(join(site,'app.js'),'utf8');
 if(/\bToday\b|dashboard|streak/i.test(html)) throw new Error('Study UI regressed toward dashboard/productivity concepts');
