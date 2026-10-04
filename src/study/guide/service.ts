@@ -15,6 +15,7 @@ export interface PassageGuide {
   sections: PassageGuideSection[];
   annotations: Annotation[];
   crossReferences: CrossReference[];
+  backlinks: CrossReference[];
   patterns: TextPattern[];
   importantLexicalKeys: string[];
   resources: Array<{ resource: ExternalStudyResource; url: string }>;
@@ -24,9 +25,10 @@ export class PassageGuideService {
   constructor(private readonly annotations: AnnotationService, private readonly crossReferences: CrossReferenceProvider) {}
 
   async build(scripture: ScripturePassage): Promise<PassageGuide> {
-    const [annotations, crossReferences] = await Promise.all([
+    const [annotations, crossReferences, backlinks] = await Promise.all([
       this.annotations.forPassage(scripture.passage, scripture.translationId),
       this.crossReferences.forPassage(scripture.passage),
+      this.crossReferences.backlinksForPassage?.(scripture.passage) ?? Promise.resolve([]),
     ]);
     const lexicalFrequency = new Map<string, number>();
     for (const token of scripture.verses.flatMap((v)=>v.tokens)) if (token.strongs) lexicalFrequency.set(token.strongs, (lexicalFrequency.get(token.strongs) ?? 0) + 1);
@@ -39,6 +41,7 @@ export class PassageGuideService {
       sections,
       annotations,
       crossReferences,
+      backlinks,
       patterns: analyzePatterns(scripture),
       importantLexicalKeys,
       resources: EXTERNAL_RESOURCES.map((resource)=>({resource,url:resource.buildUrl(scripture.passage)})),
