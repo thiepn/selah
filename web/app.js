@@ -89,6 +89,27 @@ function setSaving(saving) {
 
 function samePassage(a,b) { return canonicalPassageId(a) === canonicalPassageId(b); }
 
+function studyDraftKey(passage) {
+  return `selah.study-document-draft.${canonicalPassageId(passage)}`;
+}
+
+function readStudyDraft(passage) {
+  try {
+    const raw=localStorage.getItem(studyDraftKey(passage));
+    if(!raw)return undefined;
+    const parsed=JSON.parse(raw);
+    return typeof parsed?.value==='string'&&Number.isFinite(parsed?.updatedAt)?parsed:undefined;
+  } catch { return undefined; }
+}
+
+function writeStudyDraft(passage,value) {
+  try { localStorage.setItem(studyDraftKey(passage),JSON.stringify({value,updatedAt:Date.now()})); } catch {}
+}
+
+function clearStudyDraft(passage) {
+  try { localStorage.removeItem(studyDraftKey(passage)); } catch {}
+}
+
 async function loadVerseBounds() {
   verseBoundsPromise ??= fetch('./data/bsb/max-verses.json').then(async(response)=>{if(!response.ok)return undefined;return new VerseBoundsIndex(await response.json());}).catch(()=>undefined);
   return verseBoundsPromise;
@@ -354,7 +375,10 @@ function resourceLinkHtml(resource,url) { return `<a class="resource-link" href=
 async function renderNotes() {
   const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
   const document = currentStudy ? await repo.getStudyDocument(currentStudy.id) : undefined;
-  const documentText=document?.plainText??'';
+  const draft=readStudyDraft(currentScripture.passage);
+  const recoveredDraft=Boolean(draft&&draft.updatedAt>(document?.updatedAt??0));
+  const documentText=recoveredDraft?draft.value:(document?.plainText??'');
+  if(recoveredDraft)elements.saveState.textContent='recovered unsaved draft';
   const links=extractStudyDocumentScriptureLinks(documentText);
   const linkedHtml=links.length?`<section class="panel-section linked-scripture"><h3>Linked Scripture</h3><div class="metric-row">${links.map((link)=>`<button class="metric" type="button" data-reference="${escapeHtml(formatPassage(link.passage))}">${escapeHtml(link.label)}</button>`).join('')}</div><p class="quiet">Type references as <code>[[Romans 8:1-4]]</code>. Links remain ordinary plaintext and open as Peeks.</p></section>`:'';
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Write synthesis here; keep verse-specific observations anchored directly to Scripture.</p>
@@ -397,11 +421,32 @@ function wireAnnotationActions() {
 }
 
 function scheduleDocumentSave(value) {
-  setSaving(true); clearTimeout(noteSaveTimer);
+  if(!currentScripture)return;
+  const passage=structuredClone(currentScripture.passage);
+  const studyIdAtEdit=currentStudy?.id;
+  writeStudyDraft(passage,value);
+  setSaving(true);
+  clearTimeout(noteSaveTimer);
   noteSaveTimer=setTimeout(async()=>{
-    const study=await ensureStudy();
-    await repo.putStudyDocument({studyId:study.id,format:'plaintext',document:null,plainText:value,updatedAt:Date.now()});
-    await studyService.touch(study.id); setSaving(false);
+    try {
+      let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await getStudyForPassage(passage);
+      if(!study)study=await studyService.create(passage);
+      const updatedAt=Date.now();
+      await repo.putStudyDocument({studyId:study.id,format:'plaintext',document:null,plainText:value,updatedAt});
+      await studyService.touch(study.id);
+      clearStudyDraft(passage);
+      if(currentScripture&&samePassage(currentScripture.passage,passage)){
+        currentStudy=study;
+        if(workspace&&workspace.studyId!==study.id){
+          workspace={...workspace,studyId:study.id,updatedAt};
+          await repo.putWorkspace(workspace);
+          await workspaceService.markLastOpened(workspace);
+        }
+        setSaving(false);
+      }
+    } catch {
+      if(currentScripture&&samePassage(currentScripture.passage,passage))elements.saveState.textContent='unsaved draft preserved';
+    }
   },300);
 }
 
