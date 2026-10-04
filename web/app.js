@@ -119,7 +119,10 @@ function clearStudyDraft(passage,revision) {
 }
 
 async function loadVerseBounds() {
-  verseBoundsPromise ??= fetch('./data/bsb/max-verses.json').then(async(response)=>{if(!response.ok)return undefined;return new VerseBoundsIndex(await response.json());}).catch(()=>undefined);
+  verseBoundsPromise ??= Promise.all([
+    fetch('./data/bsb/max-verses.json').then(async(response)=>response.ok?response.json():undefined),
+    fetch('./data/bsb/verse-presence.json').then(async(response)=>response.ok?response.json():undefined).catch(()=>undefined),
+  ]).then(([bounds,presence])=>bounds?new VerseBoundsIndex(bounds,presence):undefined).catch(()=>undefined);
   return verseBoundsPromise;
 }
 
