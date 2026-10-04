@@ -4,6 +4,7 @@ import type { PassageRef } from '../../domain/references/types.js';
 import type { Annotation } from '../../domain/studies/types.js';
 import type { AnnotationService } from '../../annotations/service.js';
 import type { CrossReference, CrossReferenceProvider } from '../../research/cross-references/types.js';
+import type { LexiconEntry, LexiconProvider } from '../../research/lexicon/types.js';
 import { EXTERNAL_RESOURCES, type ExternalStudyResource } from '../../resources/external.js';
 
 export interface PassageGuideSection {
@@ -17,6 +18,12 @@ export interface PassageGuideContextSection {
   passage: PassageRef;
 }
 
+export interface PassageGuideLexicalItem {
+  strongs: string;
+  count: number;
+  entry?: LexiconEntry;
+}
+
 export interface PassageGuide {
   scripture: ScripturePassage;
   sections: PassageGuideSection[];
@@ -27,6 +34,7 @@ export interface PassageGuide {
   patterns: TextPattern[];
   structuralMarkers: StructuralMarker[];
   importantLexicalKeys: string[];
+  importantLexicalItems: PassageGuideLexicalItem[];
   resources: Array<{ resource: ExternalStudyResource; url: string }>;
 }
 
@@ -35,6 +43,7 @@ export class PassageGuideService {
     private readonly annotations: AnnotationService,
     private readonly crossReferences: CrossReferenceProvider,
     private readonly scriptureProvider?: ScriptureProvider,
+    private readonly lexicon?: LexiconProvider,
   ) {}
 
   async #literaryContext(scripture: ScripturePassage): Promise<PassageGuideContextSection[]> {
@@ -78,7 +87,10 @@ export class PassageGuideService {
     ]);
     const lexicalFrequency = new Map<string, number>();
     for (const token of scripture.verses.flatMap((v)=>v.tokens)) if (token.strongs) lexicalFrequency.set(token.strongs, (lexicalFrequency.get(token.strongs) ?? 0) + 1);
-    const importantLexicalKeys = [...lexicalFrequency.entries()].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,8).map(([key])=>key);
+    const importantLexicalPairs = [...lexicalFrequency.entries()].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,8);
+    const importantLexicalKeys = importantLexicalPairs.map(([key])=>key);
+    const lexicalEntries = new Map((await this.lexicon?.getMany(importantLexicalKeys) ?? []).map((entry)=>[entry.strongs,entry]));
+    const importantLexicalItems = importantLexicalPairs.map(([strongs,count])=>({ strongs, count, ...(lexicalEntries.has(strongs)?{entry:lexicalEntries.get(strongs)}:{}) }));
     const sections = scripture.verses
       .filter((verse) => Boolean(verse.heading))
       .map((verse) => ({ verse: verse.ref.verse, heading: verse.heading! }));
@@ -92,6 +104,7 @@ export class PassageGuideService {
       patterns: analyzePatterns(scripture),
       structuralMarkers: analyzeStructuralMarkers(scripture),
       importantLexicalKeys,
+      importantLexicalItems,
       resources: EXTERNAL_RESOURCES.map((resource)=>({resource,url:resource.buildUrl(scripture.passage)})),
     };
   }
