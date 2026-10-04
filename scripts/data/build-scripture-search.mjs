@@ -9,7 +9,7 @@ const root=fileURLToPath(new URL('../../',import.meta.url));
 const dataRoot=process.env.SELAH_BSB_OUTPUT??join(root,'.generated/data/bsb');
 const output=join(root,'.generated/data/selah/scripture-search.json');
 const index=new ScriptureSearchIndex();
-for(const book of BOOKS){for(let chapter=1;chapter<=book.chapters;chapter+=1){const text=await readFile(join(dataRoot,`display/${book.id}/${book.id}${chapter}.jsonl`),'utf8');for(const verse of parseBsbDisplayJsonl(text,book.id,chapter))index.add(verse);}}
+for(const book of BOOKS){for(let chapter=1;chapter<=book.chapters;chapter+=1){let text; try{text=await readFile(join(dataRoot,`display/${book.id}/${book.id}${chapter}.json`),'utf8');}catch{text=await readFile(join(dataRoot,`display/${book.id}/${book.id}${chapter}.jsonl`),'utf8');}for(const verse of parseBsbDisplayJsonl(text,book.id,chapter))index.add(verse);}}
 await mkdir(dirname(output),{recursive:true});
 await writeFile(output,JSON.stringify(index.serialize()));
 console.log(`Built Scripture search index at ${output}`);
