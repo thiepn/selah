@@ -233,3 +233,10 @@ button:disabled{cursor:default;opacity:.38}
 .study-book-group>header{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
 .study-book-group>header strong{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .study-book-group>header span{font-size:10px;color:var(--muted)}
+
+body.launcher-mode .workspace{grid-template-columns:1fr}
+body.launcher-mode .divider,
+body.launcher-mode .study-pane{display:none}
+body.launcher-mode .passage-meta{visibility:hidden}
+body.launcher-mode .scripture{width:min(760px,calc(100% - 40px));padding-top:0}
+body.launcher-mode .study-bar .study-actions{display:none}
