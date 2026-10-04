@@ -1,4 +1,5 @@
 import type { VerseRef } from '../../domain/references/types.js';
+import type { ChapterIndexContext } from '../cross-references/bsb-index-provider.js';
 import type { MorphologyEntry, MorphologyProvider, VerseMorphology } from './types.js';
 
 type RawMorphologyLine = {
@@ -11,16 +12,26 @@ type RawMorphologyLine = {
 
 const key = (ref: VerseRef) => `${ref.book}.${ref.chapter}.${ref.verse}`;
 
+function inferredRef(parsed: RawMorphologyLine, index: number, context?: ChapterIndexContext): VerseRef | undefined {
+  if (parsed.b && Number.isInteger(parsed.c) && Number.isInteger(parsed.v)) {
+    return { book: parsed.b, chapter: parsed.c!, verse: parsed.v! };
+  }
+  if (parsed.id) {
+    const match=/^([^.]+)\.(\d+)\.(\d+)$/.exec(parsed.id);
+    if (match) return { book:match[1]!, chapter:Number(match[2]), verse:Number(match[3]) };
+  }
+  return context ? { book:context.book, chapter:context.chapter, verse:index+1 } : undefined;
+}
+
 export class BsbMorphologyProvider implements MorphologyProvider {
   #byVerse = new Map<string, VerseMorphology>();
 
-  constructor(jsonl: string) {
-    for (const raw of jsonl.split(/\r?\n/)) {
-      const line = raw.trim();
-      if (!line) continue;
+  constructor(jsonl: string, context?: ChapterIndexContext) {
+    const lines=jsonl.split(/\r?\n/).map((x)=>x.trim()).filter(Boolean);
+    lines.forEach((line,index)=>{
       const parsed = JSON.parse(line) as RawMorphologyLine;
-      if (!parsed.b || !Number.isInteger(parsed.c) || !Number.isInteger(parsed.v)) continue;
-      const ref: VerseRef = { book: parsed.b, chapter: parsed.c!, verse: parsed.v! };
+      const ref=inferredRef(parsed,index,context);
+      if(!ref)return;
       const entries: MorphologyEntry[] = [];
       for (const item of parsed.m ?? []) {
         if (!item.s) continue;
@@ -31,7 +42,7 @@ export class BsbMorphologyProvider implements MorphologyProvider {
         entries.push(entry);
       }
       this.#byVerse.set(key(ref), { ref, entries });
-    }
+    });
   }
 
   async forVerse(ref: VerseRef): Promise<VerseMorphology | undefined> {
