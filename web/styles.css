@@ -223,3 +223,13 @@ body.reading-focus .scripture { width: min(760px, calc(100% - 52px)); }
 .study-empty p{font-size:13px;line-height:1.65;margin:10px 0 16px}
 .study-empty strong{color:var(--ink);font-weight:600}
 button:disabled{cursor:default;opacity:.38}
+
+
+.study-filter-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.study-filter-row input{min-width:0}
+#archivedStudiesBtn[aria-pressed="true"]{background:var(--surface-2);color:var(--ink)}
+.study-book-group{margin-top:18px}
+.study-book-group:first-child{margin-top:6px}
+.study-book-group>header{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.study-book-group>header strong{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.study-book-group>header span{font-size:10px;color:var(--muted)}
