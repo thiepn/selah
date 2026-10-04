@@ -1,6 +1,7 @@
 import type { PassageRef, VerseRef } from '../../domain/references/types.js';
 import type { CrossReference, CrossReferenceProvider } from '../../research/cross-references/types.js';
 import { BsbPdCrossReferenceProvider } from '../../research/cross-references/bsb-index-provider.js';
+import { BsbReverseCrossReferenceProvider } from '../../research/cross-references/bsb-reverse-provider.js';
 import type { ConcordanceProvider } from '../../research/concordance/types.js';
 import { BsbConcordanceProvider } from '../../research/concordance/bsb-provider.js';
 import type { LexiconEntry, LexiconProvider } from '../../research/lexicon/types.js';
@@ -18,6 +19,7 @@ export class BsbResearchProvider implements CrossReferenceProvider, MorphologyPr
   #chapterCache = new Map<string, Promise<ChapterResearch>>();
   #lexicon?: Promise<BsbLexiconProvider>;
   #concordance?: Promise<BsbConcordanceProvider>;
+  #reverseCrossReferences?: Promise<BsbReverseCrossReferenceProvider | undefined>;
 
   constructor(private readonly loader: TextAssetLoader) {}
 
@@ -44,6 +46,13 @@ export class BsbResearchProvider implements CrossReferenceProvider, MorphologyPr
     return this.#concordance;
   }
 
+  async #getReverseCrossReferences(): Promise<BsbReverseCrossReferenceProvider | undefined> {
+    this.#reverseCrossReferences ??= this.loader.load('crossrefs/reverse.json')
+      .then((data) => new BsbReverseCrossReferenceProvider(data))
+      .catch(() => undefined);
+    return this.#reverseCrossReferences;
+  }
+
   async forPassage(passage: PassageRef): Promise<CrossReference[]> {
     if (passage.start.book !== passage.end.book) throw new Error('Cross-book research passages are not supported');
     const output: CrossReference[] = [];
@@ -51,6 +60,11 @@ export class BsbResearchProvider implements CrossReferenceProvider, MorphologyPr
       output.push(...await (await this.#chapter(passage.start.book, chapter)).crossReferences.forPassage(passage));
     }
     return output;
+  }
+
+  async backlinksForPassage(passage: PassageRef): Promise<CrossReference[]> {
+    const provider = await this.#getReverseCrossReferences();
+    return provider ? provider.backlinksForPassage(passage) : [];
   }
 
   async forVerse(ref: VerseRef): Promise<VerseMorphology | undefined> {
