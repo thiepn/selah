@@ -1,6 +1,15 @@
 name: Verify Bible Data Upstream
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/data/**'
+      - 'src/data/bsb/**'
+      - 'src/research/cross-references/**'
+      - 'fixtures/bsb/**'
+      - 'package.json'
+      - '.github/workflows/upstream-data.yml'
   schedule:
     - cron: '23 4 * * 1'
   workflow_dispatch:
