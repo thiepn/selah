@@ -46,7 +46,6 @@ test('phrasing can indent and outdent nested units without changing token ids', 
   assert.deepEqual(flat[1].tokenIds,['2']);
 });
 
-
 test('phrasing splits and recombines leaf units without duplicating Scripture tokens', () => {
   const nodes=[{id:'a',tokenIds:['1','2','3','4'],label:'clause',children:[]}];
   const split=splitPhraseNode(nodes,'a','2','b');
@@ -56,7 +55,6 @@ test('phrasing splits and recombines leaf units without duplicating Scripture to
   const merged=mergePhraseWithPrevious(split,'b');
   assert.deepEqual(merged.map((x)=>x.tokenIds),[['1','2','3','4']]);
 });
-
 
 test('guide exposes structural headings already present in Scripture data', async () => {
   const repo = new MemorySelahRepository();
@@ -70,4 +68,5 @@ test('guide exposes structural headings already present in Scripture data', asyn
   ]};
   const result=await guide.build(scripture);
   assert.deepEqual(result.sections,[{verse:5,heading:'The Mind of Christ'}]);
+  assert.deepEqual(result.backlinks,[]);
 });
