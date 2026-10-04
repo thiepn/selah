@@ -9,7 +9,10 @@ function parseCanonicalVerse(value: string): VerseRef {
   const match = /^([^.]+)\.(\d+)\.(\d+)$/.exec(value);
   if (!match) throw new Error(`Invalid canonical verse: ${value}`);
   const book = BOOK_BY_OSIS.get(match[1]!.toLowerCase());
-  if (!book) return { book: match[1]!, chapter: Number(match[2]), verse: Number(match[3]) };
+  if (!book) {
+    // BSB output commonly uses three-letter IDs rather than OSIS names.
+    return { book: match[1]!, chapter: Number(match[2]), verse: Number(match[3]) };
+  }
   return { book: book.id, chapter: Number(match[2]), verse: Number(match[3]) };
 }
 
