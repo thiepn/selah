@@ -28,8 +28,8 @@ export class BsbResearchProvider implements CrossReferenceProvider, MorphologyPr
     let pending = this.#chapterCache.get(key);
     if (!pending) {
       pending = this.loader.load(`index-cc-by/${book}/${book}${chapter}.jsonl`).then((jsonl) => ({
-        crossReferences: new BsbPdCrossReferenceProvider(jsonl),
-        morphology: new BsbMorphologyProvider(jsonl),
+        crossReferences: new BsbPdCrossReferenceProvider(jsonl, { book, chapter }),
+        morphology: new BsbMorphologyProvider(jsonl, { book, chapter }),
       }));
       this.#chapterCache.set(key, pending);
     }
