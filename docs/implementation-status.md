@@ -48,6 +48,7 @@
 - generated exact verse bounds
 - generated Scripture search index
 - vendored-data integrity validation
+- semantic full-data research smoke across seven biblical genres, original-language tokens, Hebrew morphology, lexicon/concordance, and bidirectional references
 - development fixture isolated from generated production data
 - Vercel production-build command
 - generated reverse cross-reference index
