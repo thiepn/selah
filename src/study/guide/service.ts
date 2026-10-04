@@ -86,7 +86,20 @@ export class PassageGuideService {
       this.#literaryContext(scripture),
     ]);
     const lexicalFrequency = new Map<string, number>();
-    for (const token of scripture.verses.flatMap((v)=>v.tokens)) if (token.strongs) lexicalFrequency.set(token.strongs, (lexicalFrequency.get(token.strongs) ?? 0) + 1);
+    if (this.scriptureProvider?.getOriginalVerse) {
+      for (const verse of scripture.verses) {
+        for (const token of await this.scriptureProvider.getOriginalVerse(verse.ref)) {
+          if (token.strongs) lexicalFrequency.set(token.strongs, (lexicalFrequency.get(token.strongs) ?? 0) + 1);
+        }
+      }
+    }
+    // Development fixtures and providers without original-language data may
+    // still expose conservative Strong's alignment on English tokens.
+    if (!lexicalFrequency.size) {
+      for (const token of scripture.verses.flatMap((v)=>v.tokens)) {
+        if (token.strongs) lexicalFrequency.set(token.strongs, (lexicalFrequency.get(token.strongs) ?? 0) + 1);
+      }
+    }
     const importantLexicalPairs = [...lexicalFrequency.entries()].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,8);
     const importantLexicalKeys = importantLexicalPairs.map(([key])=>key);
     const lexicalEntries = new Map((await this.lexicon?.getMany(importantLexicalKeys) ?? []).map((entry)=>[entry.strongs,entry]));
