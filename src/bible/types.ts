@@ -39,5 +39,6 @@ export interface ScriptureProvider {
   getVerse(ref: VerseRef): Promise<ScriptureVerse>;
   getPassage(ref: PassageRef): Promise<ScripturePassage>;
   getChapter?(book: string, chapter: number): Promise<ScriptureVerse[]>;
+  getOriginalVerse?(ref: VerseRef): Promise<ScriptureToken[]>;
   hasPassage(ref: PassageRef): Promise<boolean>;
 }
