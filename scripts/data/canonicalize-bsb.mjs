@@ -135,14 +135,30 @@ for(const book of BOOKS){
 }
 
 const expectedVersification=JSON.parse(await readFile(join(dataRoot,'versification/eng.json'),'utf8'));
-const expectedTotal=Object.values(expectedVersification.max_verses??{}).flat().reduce((sum,value)=>sum+Number(value),0);
-if(canonicalVerses!==expectedTotal)throw new Error(`Official BSB USJ verse count ${canonicalVerses} does not match English versification ${expectedTotal}`);
+let expectedNumberedSlots=0;
+for(const book of BOOKS){
+  const chapterMaxima=expectedVersification.max_verses?.[book.id];
+  if(!Array.isArray(chapterMaxima)||chapterMaxima.length!==book.chapters){
+    throw new Error(`English versification chapter metadata is incomplete for ${book.id}`);
+  }
+  for(let chapter=1;chapter<=book.chapters;chapter+=1){
+    const expectedMax=Number(chapterMaxima[chapter-1]);
+    const officialMax=Number(maxVerses[book.id][chapter]);
+    if(officialMax!==expectedMax){
+      throw new Error(`Official BSB USJ max verse ${book.id} ${chapter}:${officialMax} does not match English versification max ${expectedMax}`);
+    }
+    expectedNumberedSlots+=expectedMax;
+  }
+}
+const omittedVerseNumbers=expectedNumberedSlots-canonicalVerses;
+if(omittedVerseNumbers<0)throw new Error(`Official BSB USJ has more verse records (${canonicalVerses}) than numbered English versification slots (${expectedNumberedSlots})`);
 
 await writeFile(join(dataRoot,'max-verses.json'),JSON.stringify(maxVerses));
 await writeFile(join(dataRoot,'canonicalization-report.json'),JSON.stringify({
   source:usjUrl,
   canonicalVerses,
-  expectedVersificationVerses:expectedTotal,
+  expectedNumberedSlots,
+  omittedVerseNumbers,
   alignedVerses,
   fallbackVerses,
   missingDerivedVerses,
