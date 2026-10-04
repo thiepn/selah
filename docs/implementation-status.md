@@ -16,6 +16,7 @@
 - durable annotation anchors
 - Study / Study Document / Workspace separation
 - Research Trail back/forward behavior and reference Peek
+- explicit previous/next Bible chapter navigation
 
 ### P10–P18 — close reading and research
 
@@ -58,15 +59,17 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite (38 tests currently passing)
+- automated Node test suite (40 tests currently passing)
 - static application build/integrity validation
 - bundle-size budgets for deployable JS/CSS
 - backup corruption and future-schema rejection
 - local HTTP serving smoke check
+- full upstream BSB qualification: 1,189 chapters / 30,969 verses
+- reverse Scripture-reference index: 430,204 edges / 30,034 target verses
+- semantic production-data smoke across seven biblical genres
 
 ## Open qualification work
 
-- full production data workflow must pass against the current upstream BSB dataset
 - browser rendering automation is blocked by administrator browser policy in this environment
 - full real-device mobile study qualification
 - full screen-reader certification (keyboard-resizable panes and semantic toggle state are implemented)
