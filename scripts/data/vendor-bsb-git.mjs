@@ -21,10 +21,11 @@ await mkdir(outputRoot,{recursive:true});
 for(const path of ['base/display','base/index-cc-by','base/concordance','base/lexicon']) await cp(join(cache,path),join(outputRoot,path.replace(/^base\//,'')),{recursive:true});
 for(const file of ['VERSION.json','ATTRIBUTION.md','LICENSE-CC0.md','LICENSE-CC-BY.md']) await cp(join(cache,file),join(outputRoot,file));
 
-const maxVerses={}; let verses=0; let bytes=0;
+const maxVerses={}; let verses=0; let bytes=0; let chapters=0;
 for(const book of BOOKS){
   maxVerses[book.id]={};
   for(let chapter=1;chapter<=book.chapters;chapter+=1){
+    chapters+=1;
     const path=join(outputRoot,`display/${book.id}/${book.id}${chapter}.jsonl`);
     const text=await readFile(path,'utf8'); bytes+=Buffer.byteLength(text); let max=0;
     for(const line of text.split(/\r?\n/)){if(!line.trim())continue;const parsed=JSON.parse(line);for(const key of Object.keys(parsed.eng??{})){max=Math.max(max,Number(key));verses+=1;}}
@@ -32,6 +33,6 @@ for(const book of BOOKS){
   }
 }
 await writeFile(join(outputRoot,'max-verses.json'),JSON.stringify(maxVerses));
-await writeFile(join(outputRoot,'selah-data-manifest.json'),JSON.stringify({generatedAt:new Date().toISOString(),source:repo,verses,displayBytes:bytes,licenses:{display:'CC0',concordance:'CC0',indexCcBy:'CC-BY-4.0',lexicon:'CC-BY-4.0'}},null,2));
+await writeFile(join(outputRoot,'selah-data-manifest.json'),JSON.stringify({generatedAt:new Date().toISOString(),source:repo,assets:chapters*2+4,chapters,verses,displayBytes:bytes,licenses:{display:'CC0',concordance:'CC0',indexCcBy:'CC-BY-4.0',lexicon:'CC-BY-4.0'}},null,2));
 await rm(cache,{recursive:true,force:true});
 console.log(`Vendored full BSB research dataset (${verses} verses).`);
