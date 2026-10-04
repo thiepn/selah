@@ -1,5 +1,5 @@
 import type { ScripturePassage, ScriptureProvider } from '../../bible/types.js';
-import { analyzePatterns, type TextPattern } from '../../bible/patterns/analyzer.js';
+import { analyzePatterns, analyzeStructuralMarkers, type StructuralMarker, type TextPattern } from '../../bible/patterns/analyzer.js';
 import type { PassageRef } from '../../domain/references/types.js';
 import type { Annotation } from '../../domain/studies/types.js';
 import type { AnnotationService } from '../../annotations/service.js';
@@ -25,6 +25,7 @@ export interface PassageGuide {
   crossReferences: CrossReference[];
   backlinks: CrossReference[];
   patterns: TextPattern[];
+  structuralMarkers: StructuralMarker[];
   importantLexicalKeys: string[];
   resources: Array<{ resource: ExternalStudyResource; url: string }>;
 }
@@ -89,6 +90,7 @@ export class PassageGuideService {
       crossReferences,
       backlinks,
       patterns: analyzePatterns(scripture),
+      structuralMarkers: analyzeStructuralMarkers(scripture),
       importantLexicalKeys,
       resources: EXTERNAL_RESOURCES.map((resource)=>({resource,url:resource.buildUrl(scripture.passage)})),
     };
