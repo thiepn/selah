@@ -61,6 +61,7 @@ let phrasingDocument;
 let phrasingSplitNodeId;
 let noteSaveTimer;
 let pendingAnnotationKind='note';
+let showArchivedStudies=false;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
@@ -539,12 +540,64 @@ async function openAdjacentChapter(direction){
 
 async function renderStudies(filter='') {
   const q=filter.trim().toLowerCase();
-  const studies=(await repo.listStudies()).filter((s)=>!s.archived&&(s.title??formatPassage(s.primaryPassage)).toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
-  elements.studiesList.innerHTML=studies.length?studies.map((study)=>`<article class="study-row" data-study-id="${study.id}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button><div class="study-actions"><button type="button" data-study-action="rename">Rename</button><button type="button" data-study-action="archive">Archive</button></div></article>`).join(''):'<p class="quiet">No saved studies yet. Selah creates one when you first write or annotate.</p>';
-  $$('.study-open').forEach((button)=>button.addEventListener('click',async()=>{const row=button.closest('[data-study-id]');const study=await repo.getStudy(row.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));elements.studiesDrawer.hidden=true;}));
-  $$('[data-study-action]').forEach((button)=>button.addEventListener('click',async()=>{const row=button.closest('[data-study-id]');const id=row?.dataset.studyId;if(!id)return;if(button.dataset.studyAction==='rename'){const study=await repo.getStudy(id);if(!study)return;const next=prompt('Rename study',study.title??formatPassage(study.primaryPassage));if(next===null)return;try{const updated=await studyService.rename(id,next);if(currentStudy?.id===id)currentStudy=updated;await renderStudies(elements.studySearch.value);toast('Study renamed.');}catch(error){toast(error instanceof Error?error.message:'Unable to rename study');}}if(button.dataset.studyAction==='archive'){await studyService.setArchived(id,true);if(currentStudy?.id===id)currentStudy=undefined;await renderStudies(elements.studySearch.value);toast('Study archived.');}}));
+  const studies=(await repo.listStudies())
+    .filter((study)=>study.archived===showArchivedStudies)
+    .filter((study)=>(study.title??formatPassage(study.primaryPassage)).toLowerCase().includes(q));
+  const studyRow=(study)=>`<article class="study-row" data-study-id="${study.id}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button><div class="study-actions"><button type="button" data-study-action="rename">Rename</button><button type="button" data-study-action="archive-toggle">${showArchivedStudies?'Restore':'Archive'}</button></div></article>`;
+  let html='';
+  if(studies.length && q) {
+    html=studies.sort((a,b)=>b.updatedAt-a.updatedAt).map(studyRow).join('');
+  } else if(studies.length) {
+    const groups=new Map();
+    for(const study of studies) {
+      const bookId=study.primaryPassage.start.book;
+      const list=groups.get(bookId)??[];
+      list.push(study);
+      groups.set(bookId,list);
+    }
+    html=BOOKS.filter((book)=>groups.has(book.id)).map((book)=>{
+      const items=groups.get(book.id).sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)||compareVerseRefs(a.primaryPassage.end,b.primaryPassage.end));
+      return `<section class="study-book-group"><header><strong>${escapeHtml(book.name)}</strong><span>${items.length}</span></header>${items.map(studyRow).join('')}</section>`;
+    }).join('');
+  } else {
+    html=`<p class="quiet">${showArchivedStudies?'No archived studies.':'No saved studies yet. Selah creates one when you first write or annotate.'}</p>`;
+  }
+  elements.studiesList.innerHTML=html;
+  $$('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
+    const row=button.closest('[data-study-id]');
+    const study=await repo.getStudy(row.dataset.studyId);
+    if(!study)return;
+    currentStudy=study;
+    const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);
+    workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);
+    await workspaceService.markLastOpened(workspace);
+    await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
+    elements.studiesDrawer.hidden=true;
+  }));
+  $$('[data-study-action]').forEach((button)=>button.addEventListener('click',async()=>{
+    const row=button.closest('[data-study-id]');
+    const id=row?.dataset.studyId;
+    if(!id)return;
+    if(button.dataset.studyAction==='rename'){
+      const study=await repo.getStudy(id);
+      if(!study)return;
+      const next=prompt('Rename study',study.title??formatPassage(study.primaryPassage));
+      if(next===null)return;
+      try{
+        const updated=await studyService.rename(id,next);
+        if(currentStudy?.id===id)currentStudy=updated;
+        await renderStudies(elements.studySearch.value);
+        toast('Study renamed.');
+      }catch(error){toast(error instanceof Error?error.message:'Unable to rename study');}
+    }
+    if(button.dataset.studyAction==='archive-toggle'){
+      await studyService.setArchived(id,!showArchivedStudies);
+      if(!showArchivedStudies&&currentStudy?.id===id)currentStudy=undefined;
+      await renderStudies(elements.studySearch.value);
+      toast(showArchivedStudies?'Study restored.':'Study archived.');
+    }
+  }));
 }
-
 function downloadTextFile(name,text,type='application/json') {
   const blob=new Blob([text],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
@@ -609,6 +662,13 @@ $('#themeBtn').addEventListener('click',async()=>{const settings=await repo.getS
 $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
 $('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
+$('#archivedStudiesBtn').addEventListener('click',async(event)=>{
+  showArchivedStudies=!showArchivedStudies;
+  event.currentTarget.setAttribute('aria-pressed',String(showArchivedStudies));
+  event.currentTarget.classList.toggle('active',showArchivedStudies);
+  elements.studySearch.value='';
+  await renderStudies();
+});
 $('#backupBtn').addEventListener('click',async()=>{const envelope=createBackup(await repo.exportSnapshot());downloadTextFile(`selah-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(envelope,null,2));toast('Backup exported.');});
 $('#restoreBtn').addEventListener('click',()=>$('#restoreInput').click());
 $('#restoreInput').addEventListener('change',async(event)=>{const file=event.target.files?.[0];if(!file)return;try{const backup=parseBackup(await file.text());await repo.importSnapshot(backup.snapshot,'replace');toast('Backup restored. Reloading…');setTimeout(()=>location.reload(),500);}catch(error){toast(error instanceof Error?error.message:'Invalid backup');}finally{event.target.value='';}});
