@@ -23,7 +23,7 @@
 - token-preserving Phrasing tree model, clause splitting/merging, indentation, labels, and persistence
 - bidirectional cross-reference engine (outgoing references + incoming backlinks)
 - contextual Lens
-- Guide aggregator over shared services
+- Guide aggregator over shared services, including previous/current/next literary section context
 - lexicon provider
 - morphology provider
 - Strong's concordance provider
@@ -56,7 +56,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite (36 tests currently passing)
+- automated Node test suite (37 tests currently passing)
 - static application build/integrity validation
 - bundle-size budgets for deployable JS/CSS
 - backup corruption and future-schema rejection
