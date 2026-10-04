@@ -1,7 +1,0 @@
-').classList.remove('open');});
-
-const settings=await repo.getSettings();
-const preferredTheme=settings.theme==='system'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):settings.theme;
-document.documentElement.dataset.theme=preferredTheme;
-await loadInitial();
-if('serviceWorker'in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
