@@ -32,7 +32,9 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - run: npm run data:vendor:bsb
+      - run: npm run data:canonicalize:bsb
       - run: npm run data:validate:vendored
+      - run: npm run data:build:concordance
       - run: npm run data:build:crossrefs
       - run: npm run data:verify:research
       - run: npm run data:build:search
