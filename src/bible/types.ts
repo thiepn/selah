@@ -38,5 +38,6 @@ export interface ScriptureProvider {
   readonly translation: TranslationMetadata;
   getVerse(ref: VerseRef): Promise<ScriptureVerse>;
   getPassage(ref: PassageRef): Promise<ScripturePassage>;
+  getChapter?(book: string, chapter: number): Promise<ScriptureVerse[]>;
   hasPassage(ref: PassageRef): Promise<boolean>;
 }
