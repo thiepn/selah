@@ -32,15 +32,13 @@ const MARKERS: ReadonlyArray<{ phrase: string[]; category: StructuralMarker['cat
   { phrase:['for','this','reason'], category:'inference' },
   { phrase:['therefore'], category:'inference' },
   { phrase:['thus'], category:'inference' },
+  { phrase:['although'], category:'contrast' },
+  { phrase:['though'], category:'contrast' },
   { phrase:['however'], category:'contrast' },
   { phrase:['but'], category:'contrast' },
   { phrase:['yet'], category:'contrast' },
   { phrase:['because'], category:'reason' },
-  { phrase:['since'], category:'reason' },
-  { phrase:['for'], category:'reason' },
   { phrase:['if'], category:'condition' },
-  { phrase:['then'], category:'sequence' },
-  { phrase:['now'], category:'sequence' },
 ];
 
 function occurrence(token: ScriptureToken, verse: number): PatternOccurrence {
