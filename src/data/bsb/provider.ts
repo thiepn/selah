@@ -35,7 +35,8 @@ export class BsbScriptureProvider implements ScriptureProvider {
     const key = `${book}.${chapter}`;
     let pending = this.#chapterTextCache.get(key);
     if (!pending) {
-      pending = this.loader.load(`display/${book}/${book}${chapter}.jsonl`);
+      pending = this.loader.load(`display/${book}/${book}${chapter}.json`)
+        .catch(() => this.loader.load(`display/${book}/${book}${chapter}.jsonl`));
       this.#chapterTextCache.set(key, pending);
     }
     return pending;
