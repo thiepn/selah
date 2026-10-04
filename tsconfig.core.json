@@ -3,7 +3,10 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -13,5 +16,20 @@
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["src/domain/**/*.ts","src/bible/**/*.ts","src/persistence/**/*.ts","src/data/**/*.ts","src/search/**/*.ts","src/annotations/**/*.ts","src/study/**/*.ts","src/research/**/*.ts","src/bible/patterns/**/*.ts","src/bible/phrasing/**/*.ts","src/study/lens/**/*.ts","src/study/guide/**/*.ts","src/resources/**/*.ts","src/export/**/*.ts"]
+  "include": [
+    "src/domain/**/*.ts",
+    "src/bible/**/*.ts",
+    "src/persistence/**/*.ts",
+    "src/data/**/*.ts",
+    "src/search/**/*.ts",
+    "src/annotations/**/*.ts",
+    "src/study/**/*.ts",
+    "src/research/**/*.ts",
+    "src/bible/patterns/**/*.ts",
+    "src/bible/phrasing/**/*.ts",
+    "src/study/lens/**/*.ts",
+    "src/study/guide/**/*.ts",
+    "src/resources/**/*.ts",
+    "src/export/**/*.ts"
+  ]
 }
