@@ -34,7 +34,7 @@ const researchProvider = new BsbResearchProvider(loader);
 const annotationService = new AnnotationService(repo);
 const studyService = new StudyService(repo);
 const workspaceService = new WorkspaceService(repo);
-const guideService = new PassageGuideService(annotationService, researchProvider, scriptureProvider);
+const guideService = new PassageGuideService(annotationService, researchProvider, scriptureProvider, researchProvider);
 const lensService = new LensService(annotationService, researchProvider);
 const originalLanguage = new OriginalLanguageService(scriptureProvider, researchProvider, researchProvider, researchProvider);
 const translations = new TranslationRegistry([scriptureProvider]);
@@ -253,7 +253,7 @@ async function renderGuide() {
       <section class="panel-section"><h3>Discourse markers</h3><div class="metric-row">${guide.structuralMarkers.slice(0,12).map((marker)=>`<span class="metric">${escapeHtml(marker.label)} · ${escapeHtml(marker.category.replace('purpose-result','purpose/result'))}</span>`).join('')||'<span class="quiet">No explicit discourse markers detected in this selection.</span>'}</div><p class="quiet">These are textual signals in the English translation, not automatic interpretations of the argument.</p></section>
       <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section>
       <section class="panel-section"><h3>Referenced by</h3><div>${guide.backlinks.slice(0,8).map(backlinkButtonHtml).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section>
-      <section class="panel-section"><h3>Important lexical keys</h3><div class="metric-row">${guide.importantLexicalKeys.map((key)=>`<button class="metric lexical-key" data-strongs="${escapeHtml(key)}">${escapeHtml(key)}</button>`).join('')||'<span class="quiet">Lexical alignment is unavailable in this installed fixture.</span>'}</div></section>
+      <section class="panel-section"><h3>Important words</h3><div class="lexical-guide-list">${guide.importantLexicalItems.map((item)=>{const entry=item.entry;const title=entry?.lemma||item.strongs;const detail=[entry?.transliteration,entry?.gloss,item.strongs,`× ${item.count}`].filter(Boolean).join(' · ');return `<button class="reference-card lexical-key" type="button" data-strongs="${escapeHtml(item.strongs)}"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></button>`;}).join('')||'<p class="quiet">Lexical alignment is unavailable in this installed fixture.</p>'}</div></section>
       <section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}</section>
     </section>`;
     wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
