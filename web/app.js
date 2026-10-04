@@ -58,10 +58,12 @@ let scriptureSearchRequestId=0;
 const scriptureSearchPending=new Map();
 let verseBoundsPromise;
 
-const defaultPassage = parseReference('Phil 2:5-11').passage;
+const contextSeedPassage = parseReference('Phil 2:5-11').passage;
 workspace = await workspaceService.restoreLast();
-if (!workspace) workspace = await workspaceService.create(defaultPassage);
-const context = new PassageContextStore({ primaryPassage: workspace.primaryPassage, translationId: workspace.translationId });
+const context = new PassageContextStore({
+  primaryPassage: workspace?.primaryPassage ?? contextSeedPassage,
+  translationId: workspace?.translationId ?? 'BSB',
+});
 
 function toast(message) {
   elements.toast.textContent = message;
@@ -157,11 +159,14 @@ async function switchPrimaryPassage(scripture) {
   if (workspaces.length) {
     workspace = workspaces.sort((a,b)=>b.updatedAt-a.updatedAt)[0];
     workspace = { ...workspace, primaryPassage: structuredClone(scripture.passage), researchTrail:createResearchTrail({passage:scripture.passage}), updatedAt:Date.now() };
+    await repo.putWorkspace(workspace);
+  } else if (!workspace) {
+    workspace = await workspaceService.create(scripture.passage, scripture.translationId, currentStudy?.id);
   } else {
     workspace = { ...workspace, primaryPassage: structuredClone(scripture.passage), studyId: currentStudy?.id, researchTrail:createResearchTrail({passage:scripture.passage}), updatedAt:Date.now() };
     if (!currentStudy) delete workspace.studyId;
+    await repo.putWorkspace(workspace);
   }
-  await repo.putWorkspace(workspace);
   await workspaceService.markLastOpened(workspace);
   await setCurrentScripture(scripture);
 }
@@ -176,24 +181,46 @@ async function setCurrentScripture(scripture) {
   elements.referenceInput.value = formatPassage(scripture.passage);
   elements.passageStatus.textContent = formatPassage(scripture.passage);
   document.title = `${formatPassage(scripture.passage)} — Selah`;
+  $('#patternsBtn').disabled=false;
   await renderScripture();
   await renderActiveTab();
   updateHistoryButtons();
   updateChapterButtons();
 }
 
+function renderPassageLauncher(message='Enter a Bible reference above to begin.') {
+  currentScripture=undefined;
+  currentStudy=undefined;
+  selectedToken=undefined;
+  selectedRangeInfo=undefined;
+  patternTokenIds.clear();
+  elements.referenceInput.value='';
+  elements.passageStatus.textContent='No passage open';
+  document.title='Selah';
+  elements.scripture.innerHTML=`<div class="passage-launcher"><span class="launcher-wordmark">SELAH</span><h1>What are you studying?</h1><p>${escapeHtml(message)}</p><button class="primary-button" id="launcherReference" type="button">Choose a passage</button></div>`;
+  elements.studyContent.innerHTML=`<section class="study-empty"><span class="eyebrow">STUDY WORKSPACE</span><p>Study tools follow the passage you open. Your saved studies remain available under <strong>Studies</strong>.</p><button class="text-button" id="launcherStudies" type="button">Open saved studies</button></section>`;
+  $('#backBtn').disabled=true;
+  $('#forwardBtn').disabled=true;
+  $('#prevChapterBtn').disabled=true;
+  $('#nextChapterBtn').disabled=true;
+  $('#patternsBtn').disabled=true;
+  $('#launcherReference')?.addEventListener('click',()=>{elements.referenceInput.focus();});
+  $('#launcherStudies')?.addEventListener('click',()=>$('#studiesBtn').click());
+  requestAnimationFrame(()=>elements.referenceInput.focus());
+}
+
 async function loadInitial() {
+  if (!workspace) {
+    renderPassageLauncher();
+    return;
+  }
   try {
     const scripture = await scriptureProvider.getPassage(workspace.primaryPassage);
     currentStudy = workspace.studyId ? await repo.getStudy(workspace.studyId) : await getStudyForPassage(scripture.passage);
     await setCurrentScripture(scripture);
   } catch (error) {
-    workspace = { ...workspace, primaryPassage:defaultPassage, researchTrail:createResearchTrail({passage:defaultPassage}), updatedAt:Date.now() };
-    await repo.putWorkspace(workspace);
-    const scripture = await scriptureProvider.getPassage(defaultPassage);
-    currentStudy = await getStudyForPassage(defaultPassage);
-    await setCurrentScripture(scripture);
-    toast('Restored the development passage because the previous Scripture data is not installed.');
+    workspace=undefined;
+    renderPassageLauncher('The previous passage is not available in this installed Scripture data. Choose another passage or open a saved study.');
   }
 }
 
@@ -478,7 +505,7 @@ async function navigateResearch(passage) {
   catch(error){toast(error instanceof Error?error.message:'Unable to open passage');}
 }
 
-function updateHistoryButtons(){ $('#backBtn').disabled=workspace.researchTrail.index<=0; $('#forwardBtn').disabled=workspace.researchTrail.index>=workspace.researchTrail.entries.length-1; }
+function updateHistoryButtons(){ if(!workspace){$('#backBtn').disabled=true;$('#forwardBtn').disabled=true;return;} $('#backBtn').disabled=workspace.researchTrail.index<=0; $('#forwardBtn').disabled=workspace.researchTrail.index>=workspace.researchTrail.entries.length-1; }
 
 function adjacentChapter(direction) {
   if (!currentScripture) return undefined;
