@@ -180,10 +180,17 @@ async function renderScripture() {
     }
   }
   let previousHeading;
+  let previousChapter;
   const html = [];
   const book = BOOK_BY_ID.get(currentScripture.passage.start.book);
-  html.push(`<h1>${escapeHtml(book?.name ?? currentScripture.passage.start.book)} ${currentScripture.passage.start.chapter}</h1>`);
   for (const verse of currentScripture.verses) {
+    if (verse.ref.chapter !== previousChapter) {
+      html.push(previousChapter===undefined
+        ? `<h1>${escapeHtml(book?.name ?? currentScripture.passage.start.book)} ${verse.ref.chapter}</h1>`
+        : `<h2 class="chapter-heading">${escapeHtml(book?.name ?? currentScripture.passage.start.book)} ${verse.ref.chapter}</h2>`);
+      previousChapter = verse.ref.chapter;
+      previousHeading = undefined;
+    }
     if (verse.heading && verse.heading !== previousHeading) {
       html.push(`<p class="section-heading">${escapeHtml(verse.heading)}</p>`);
       previousHeading = verse.heading;
@@ -198,9 +205,11 @@ async function renderScripture() {
 }
 
 function applyAnnotationHighlights(annotations) {
+  const tokenEls = $('.token');
   for (const annotation of annotations) {
-    if (annotation.kind !== 'highlight' || annotation.anchor.type !== 'text' || annotation.anchor.translationId !== currentScripture.translationId) continue;
-    const tokenEls = $$('.token');
+    if (annotation.kind !== 'highlight') continue;
+    if (annotation.anchor.type !== 'text' && annotation.anchor.type !== 'text-range') continue;
+    if (annotation.anchor.translationId !== currentScripture.translationId) continue;
     const start = tokenEls.findIndex((el)=>el.dataset.tokenId===annotation.anchor.startTokenId);
     const end = tokenEls.findIndex((el)=>el.dataset.tokenId===annotation.anchor.endTokenId);
     if (start < 0 || end < 0) continue;
@@ -284,7 +293,7 @@ async function renderNotes() {
 }
 
 function annotationHtml(annotation) {
-  const anchor = annotation.anchor.type==='reference' ? formatPassage(annotation.anchor.passage) : annotation.anchor.type==='text' ? annotation.anchor.quotedText : 'original-language token';
+  const anchor = annotation.anchor.type==='reference' ? formatPassage(annotation.anchor.passage) : (annotation.anchor.type==='text'||annotation.anchor.type==='text-range') ? annotation.anchor.quotedText : 'original-language token';
   const body = annotation.body || (annotation.kind==='highlight' ? `Highlight (${annotation.highlightStyle??'default'})` : '');
   const editable=annotation.kind!=='highlight' && annotation.body;
   return `<article class="annotation-item" data-annotation-id="${escapeHtml(annotation.id)}"><div class="annotation-heading"><div><span class="annotation-kind">${escapeHtml(annotation.kind)}</span><span class="annotation-anchor">${escapeHtml(anchor)}</span></div><div class="annotation-actions">${editable?'<button type="button" data-annotation-action="edit">Edit</button>':''}<button type="button" data-annotation-action="delete">Delete</button></div></div>${body?`<p>${escapeHtml(body)}</p>`:''}</article>`;
@@ -483,13 +492,19 @@ async function createAnnotationFromSelection(body) {
   if(!selectedRangeInfo)return; const study=await ensureStudy(); setSaving(true);
   if(pendingAnnotationKind==='question') await annotationService.createQuestion(selectedRangeInfo.passage,body,study.id);
   else if(selectedRangeInfo.sameVerse) await annotationService.createTextNote({translationId:currentScripture.translationId,verse:selectedRangeInfo.passage.start,startTokenId:selectedRangeInfo.startTokenId,endTokenId:selectedRangeInfo.endTokenId,quotedText:selectedRangeInfo.quotedText,body,studyId:study.id});
-  else await annotationService.createReferenceNote(selectedRangeInfo.passage,body,study.id);
+  else await annotationService.createRangeTextNote({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,startTokenId:selectedRangeInfo.startTokenId,endTokenId:selectedRangeInfo.endTokenId,quotedText:selectedRangeInfo.quotedText,body,studyId:study.id});
   await studyService.touch(study.id);setSaving(false);await renderScripture();if(activeTab==='notes'||activeTab==='guide')await renderActiveTab();
 }
 
 async function highlightSelection() {
-  if(!selectedRangeInfo?.sameVerse){toast('Multi-verse highlights are not enabled yet; use a passage note instead.');return;}
-  const study=await ensureStudy(); await annotationService.createHighlight({translationId:currentScripture.translationId,verse:selectedRangeInfo.passage.start,startTokenId:selectedRangeInfo.startTokenId,endTokenId:selectedRangeInfo.endTokenId,quotedText:selectedRangeInfo.quotedText,studyId:study.id}); await studyService.touch(study.id); await renderScripture();
+  if(!selectedRangeInfo)return;
+  const study=await ensureStudy();
+  if(selectedRangeInfo.sameVerse) {
+    await annotationService.createHighlight({translationId:currentScripture.translationId,verse:selectedRangeInfo.passage.start,startTokenId:selectedRangeInfo.startTokenId,endTokenId:selectedRangeInfo.endTokenId,quotedText:selectedRangeInfo.quotedText,studyId:study.id});
+  } else {
+    await annotationService.createRangeHighlight({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,startTokenId:selectedRangeInfo.startTokenId,endTokenId:selectedRangeInfo.endTokenId,quotedText:selectedRangeInfo.quotedText,studyId:study.id});
+  }
+  await studyService.touch(study.id); await renderScripture();
 }
 
 $('#referenceForm').addEventListener('submit',async(event)=>{event.preventDefault();const query=elements.referenceInput.value.trim();try{const scripture=await resolveReferenceInput(query);await switchPrimaryPassage(scripture);}catch(error){if(/Unknown Bible book|Could not parse reference|Reference is empty/.test(error instanceof Error?error.message:'')){await renderSearchResults(query);return;}toast(error instanceof Error?error.message:'Unable to open passage');}});
