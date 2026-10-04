@@ -45,3 +45,23 @@ test('cross-chapter reference annotations remain visible on both sides of the bo
   assert.equal((await service.forPassage(p('Rom 8:39'), 'BSB')).length,1);
   assert.equal((await service.forPassage(p('Rom 9:1'), 'BSB')).length,1);
 });
+
+
+test('multi-verse text anchors preserve exact selection and translation scope', async () => {
+  const repo = new MemorySelahRepository();
+  const ids=(()=>{let n=0;return()=>`range-${++n}`;})();
+  const service = new AnnotationService(repo,{idFactory:ids,now:()=>7});
+  const passage=p('Rom 8:39-9:1');
+  const note=await service.createRangeTextNote({
+    translationId:'BSB',passage,startTokenId:'BSB:ROM.8.39:en:003',endTokenId:'BSB:ROM.9.1:en:004',
+    quotedText:'nor anything else ... I am speaking the truth',body:'cross-chapter observation',studyId:'s1'
+  });
+  const highlight=await service.createRangeHighlight({
+    translationId:'BSB',passage,startTokenId:'BSB:ROM.8.39:en:003',endTokenId:'BSB:ROM.9.1:en:004',
+    quotedText:'nor anything else ... I am speaking the truth',studyId:'s1'
+  });
+  assert.equal(note.anchor.type,'text-range');
+  assert.equal(highlight.anchor.type,'text-range');
+  assert.equal((await service.forPassage(p('Rom 9:1'),'BSB','s1')).length,2);
+  assert.equal((await service.forPassage(p('Rom 9:1'),'OTHER','s1')).length,0);
+});
