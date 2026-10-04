@@ -103,11 +103,19 @@ function readStudyDraft(passage) {
 }
 
 function writeStudyDraft(passage,value) {
-  try { localStorage.setItem(studyDraftKey(passage),JSON.stringify({value,updatedAt:Date.now()})); } catch {}
+  const revision=crypto.randomUUID();
+  try { localStorage.setItem(studyDraftKey(passage),JSON.stringify({value,updatedAt:Date.now(),revision})); } catch {}
+  return revision;
 }
 
-function clearStudyDraft(passage) {
-  try { localStorage.removeItem(studyDraftKey(passage)); } catch {}
+function clearStudyDraft(passage,revision) {
+  try {
+    const key=studyDraftKey(passage);
+    const raw=localStorage.getItem(key);
+    if(!raw)return;
+    const current=JSON.parse(raw);
+    if(current?.revision===revision)localStorage.removeItem(key);
+  } catch {}
 }
 
 async function loadVerseBounds() {
@@ -424,7 +432,7 @@ function scheduleDocumentSave(value) {
   if(!currentScripture)return;
   const passage=structuredClone(currentScripture.passage);
   const studyIdAtEdit=currentStudy?.id;
-  writeStudyDraft(passage,value);
+  const draftRevision=writeStudyDraft(passage,value);
   setSaving(true);
   clearTimeout(noteSaveTimer);
   noteSaveTimer=setTimeout(async()=>{
@@ -434,7 +442,7 @@ function scheduleDocumentSave(value) {
       const updatedAt=Date.now();
       await repo.putStudyDocument({studyId:study.id,format:'plaintext',document:null,plainText:value,updatedAt});
       await studyService.touch(study.id);
-      clearStudyDraft(passage);
+      clearStudyDraft(passage,draftRevision);
       if(currentScripture&&samePassage(currentScripture.passage,passage)){
         currentStudy=study;
         if(workspace&&workspace.studyId!==study.id){
