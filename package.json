@@ -1,0 +1,25 @@
+{
+  "name": "selah",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first, passage-centered Bible study workspace",
+  "type": "module",
+  "scripts": {
+    "typecheck:core": "tsc -p tsconfig.core.json --noEmit",
+    "build:core": "tsc -p tsconfig.core.json",
+    "test:core": "npm run build:core && node --test tests/*.test.mjs",
+    "validate:data": "node scripts/data/validate-manifest.mjs",
+    "check": "npm run typecheck:core && npm run validate:data && npm run test:core",
+    "data:fetch:bsb": "npm run build:core && node scripts/data/fetch-bsb.mjs",
+    "data:validate:vendored": "node scripts/data/validate-vendored-bsb.mjs",
+    "build:site": "npm run build:core && node scripts/build-site.mjs && node scripts/validate-site.mjs && npm run check:bundle",
+    "build": "npm run check && npm run build:site",
+    "serve": "node scripts/serve-site.mjs",
+    "data:build:search": "npm run build:core && node scripts/data/build-scripture-search.mjs",
+    "data:vendor:bsb": "npm run build:core && node scripts/data/vendor-bsb-git.mjs",
+    "build:production": "npm run data:vendor:bsb && npm run data:validate:vendored && npm run data:build:search && npm run build",
+    "check:bundle": "node scripts/check-bundle-size.mjs"
+  },
+  "engines": {"node": ">=22"},
+  "devDependencies": {"typescript": "5.8.3"}
+}
