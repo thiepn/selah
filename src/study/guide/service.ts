@@ -1,5 +1,6 @@
-import type { ScripturePassage } from '../../bible/types.js';
+import type { ScripturePassage, ScriptureProvider } from '../../bible/types.js';
 import { analyzePatterns, type TextPattern } from '../../bible/patterns/analyzer.js';
+import type { PassageRef } from '../../domain/references/types.js';
 import type { Annotation } from '../../domain/studies/types.js';
 import type { AnnotationService } from '../../annotations/service.js';
 import type { CrossReference, CrossReferenceProvider } from '../../research/cross-references/types.js';
@@ -10,9 +11,16 @@ export interface PassageGuideSection {
   heading: string;
 }
 
+export interface PassageGuideContextSection {
+  role: 'previous' | 'current' | 'next';
+  heading: string;
+  passage: PassageRef;
+}
+
 export interface PassageGuide {
   scripture: ScripturePassage;
   sections: PassageGuideSection[];
+  literaryContext: PassageGuideContextSection[];
   annotations: Annotation[];
   crossReferences: CrossReference[];
   backlinks: CrossReference[];
@@ -22,13 +30,50 @@ export interface PassageGuide {
 }
 
 export class PassageGuideService {
-  constructor(private readonly annotations: AnnotationService, private readonly crossReferences: CrossReferenceProvider) {}
+  constructor(
+    private readonly annotations: AnnotationService,
+    private readonly crossReferences: CrossReferenceProvider,
+    private readonly scriptureProvider?: ScriptureProvider,
+  ) {}
+
+  async #literaryContext(scripture: ScripturePassage): Promise<PassageGuideContextSection[]> {
+    if (!this.scriptureProvider?.getChapter) return [];
+    if (scripture.passage.start.book !== scripture.passage.end.book || scripture.passage.start.chapter !== scripture.passage.end.chapter) return [];
+    const { book, chapter } = scripture.passage.start;
+    const verses = await this.scriptureProvider.getChapter(book, chapter);
+    if (!verses.length) return [];
+    const headingStarts = verses.filter((verse) => Boolean(verse.heading));
+    if (!headingStarts.length) return [];
+    const lastVerse = verses.at(-1)!.ref.verse;
+    const sections = headingStarts.map((verse, index) => {
+      const next = headingStarts[index + 1];
+      return {
+        heading: verse.heading!,
+        passage: {
+          start: structuredClone(verse.ref),
+          end: { book, chapter, verse: next ? next.ref.verse - 1 : lastVerse },
+        },
+      };
+    });
+    const overlaps = sections.map((section, index) => ({ section, index })).filter(({ section }) =>
+      section.passage.end.verse >= scripture.passage.start.verse && section.passage.start.verse <= scripture.passage.end.verse,
+    );
+    if (!overlaps.length) return [];
+    const first = overlaps[0]!.index;
+    const last = overlaps.at(-1)!.index;
+    const output: PassageGuideContextSection[] = [];
+    if (first > 0) output.push({ role:'previous', ...sections[first - 1]! });
+    for (const { section } of overlaps) output.push({ role:'current', ...section });
+    if (last < sections.length - 1) output.push({ role:'next', ...sections[last + 1]! });
+    return output;
+  }
 
   async build(scripture: ScripturePassage): Promise<PassageGuide> {
-    const [annotations, crossReferences, backlinks] = await Promise.all([
+    const [annotations, crossReferences, backlinks, literaryContext] = await Promise.all([
       this.annotations.forPassage(scripture.passage, scripture.translationId),
       this.crossReferences.forPassage(scripture.passage),
       this.crossReferences.backlinksForPassage?.(scripture.passage) ?? Promise.resolve([]),
+      this.#literaryContext(scripture),
     ]);
     const lexicalFrequency = new Map<string, number>();
     for (const token of scripture.verses.flatMap((v)=>v.tokens)) if (token.strongs) lexicalFrequency.set(token.strongs, (lexicalFrequency.get(token.strongs) ?? 0) + 1);
@@ -39,6 +84,7 @@ export class PassageGuideService {
     return {
       scripture,
       sections,
+      literaryContext,
       annotations,
       crossReferences,
       backlinks,
