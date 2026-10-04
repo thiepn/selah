@@ -643,7 +643,7 @@ $('#nextChapterBtn').addEventListener('click',()=>openAdjacentChapter(1));
 $('#forwardBtn').addEventListener('click',async()=>{workspace=await workspaceService.forward(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
 $('#studyTabs').addEventListener('click',async(event)=>{const tab=event.target.closest('[data-tab]');if(!tab)return;activeTab=tab.dataset.tab;await renderActiveTab();if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');});
 $('#studyTabs').addEventListener('keydown',(event)=>{
-  const tabs=$('#studyTabs [role="tab"]');
+  const tabs=$('#studyTabs [role="tab"]:not([hidden])');
   const current=tabs.indexOf(document.activeElement);
   if(current<0)return;
   let next=current;
