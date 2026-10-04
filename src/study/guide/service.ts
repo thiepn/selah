@@ -90,7 +90,7 @@ export class PassageGuideService {
     const importantLexicalPairs = [...lexicalFrequency.entries()].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,8);
     const importantLexicalKeys = importantLexicalPairs.map(([key])=>key);
     const lexicalEntries = new Map((await this.lexicon?.getMany(importantLexicalKeys) ?? []).map((entry)=>[entry.strongs,entry]));
-    const importantLexicalItems = importantLexicalPairs.map(([strongs,count])=>({ strongs, count, ...(lexicalEntries.has(strongs)?{entry:lexicalEntries.get(strongs)}:{}) }));
+    const importantLexicalItems = importantLexicalPairs.map(([strongs,count])=>{ const entry=lexicalEntries.get(strongs); return entry ? { strongs, count, entry } : { strongs, count }; });
     const sections = scripture.verses
       .filter((verse) => Boolean(verse.heading))
       .map((verse) => ({ verse: verse.ref.verse, heading: verse.heading! }));
