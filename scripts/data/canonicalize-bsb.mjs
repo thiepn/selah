@@ -172,4 +172,7 @@ await writeFile(join(dataRoot,'canonicalization-report.json'),JSON.stringify({
 },null,2));
 
 await rm(cacheRoot,{recursive:true,force:true});
-console.log(`Canonicalized ${canonicalVerses} BSB verses: ${alignedVerses} retained aligned tokens, ${fallbackVerses} canonical fallbacks (${missingDerivedVerses} missing derived, ${mismatchedDerivedVerses} mismatched).`);\nif(versificationDifferences.length)console.log(`Recorded ${versificationDifferences.length} official-BSB vs generic-English chapter versification difference(s).`);
+console.log(`Canonicalized ${canonicalVerses} BSB verses: ${alignedVerses} retained aligned tokens, ${fallbackVerses} canonical fallbacks (${missingDerivedVerses} missing derived, ${mismatchedDerivedVerses} mismatched).`);
+if (versificationDifferences.length) {
+  console.log(`Recorded ${versificationDifferences.length} official-BSB vs generic-English chapter versification difference(s).`);
+}
