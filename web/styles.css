@@ -207,3 +207,8 @@ body.reading-focus .scripture { width: min(760px, calc(100% - 52px)); }
 .context-section > small { opacity: .58; }
 .context-section.current { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .context-section:hover { background: var(--surface-2); }
+
+.chapter-nav { border: 0; background: transparent; color: var(--muted); width: 24px; height: 28px; padding: 0; font-size: 20px; line-height: 1; cursor: pointer; }
+.chapter-nav:hover:not(:disabled) { color: var(--text); }
+.chapter-nav:disabled { opacity: .25; cursor: default; }
+#nextChapterBtn { margin-left: auto; }
