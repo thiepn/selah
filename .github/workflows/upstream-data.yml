@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/data/**'
+      - 'scripts/validate-site.mjs'
       - 'src/data/bsb/**'
       - 'src/research/cross-references/**'
       - 'fixtures/bsb/**'
@@ -13,6 +14,10 @@ on:
   schedule:
     - cron: '23 4 * * 1'
   workflow_dispatch:
+
+concurrency:
+  group: selah-upstream-data-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
