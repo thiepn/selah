@@ -27,10 +27,18 @@ export class BsbResearchProvider implements CrossReferenceProvider, MorphologyPr
     const key = `${book}.${chapter}`;
     let pending = this.#chapterCache.get(key);
     if (!pending) {
-      pending = this.loader.load(`index-cc-by/${book}/${book}${chapter}.jsonl`).then((jsonl) => ({
-        crossReferences: new BsbPdCrossReferenceProvider(jsonl, { book, chapter }),
-        morphology: new BsbMorphologyProvider(jsonl, { book, chapter }),
-      }));
+      pending = Promise.all([
+        this.loader.load(`index-cc-by/${book}/${book}${chapter}.jsonl`),
+        this.loader.load(`research-verse-map/${book}/${book}${chapter}.json`).catch(() => '[]'),
+      ]).then(([jsonl, verseMap]) => {
+        const parsed=JSON.parse(verseMap);
+        const verseNumbers=Array.isArray(parsed)&&parsed.every((value)=>Number.isInteger(value))?parsed:undefined;
+        const context={ book, chapter, ...(verseNumbers?.length?{verseNumbers}: {}) };
+        return {
+          crossReferences: new BsbPdCrossReferenceProvider(jsonl, context),
+          morphology: new BsbMorphologyProvider(jsonl, context),
+        };
+      });
       this.#chapterCache.set(key, pending);
     }
     return pending;
