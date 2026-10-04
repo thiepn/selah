@@ -12,17 +12,17 @@ let outgoingEdges=0;
 for(const book of BOOKS){
   for(let chapter=1;chapter<=book.chapters;chapter+=1){
     const text=await readFile(join(dataRoot,`index-cc-by/${book.id}/${book.id}${chapter}.jsonl`),'utf8');
-    for(const raw of text.split(/\r?\n/)){
-      if(!raw.trim())continue;
+    const lines=text.split(/\r?\n/).map((x)=>x.trim()).filter(Boolean);
+    lines.forEach((raw,index)=>{
       const line=JSON.parse(raw);
-      const source=line.id??`${line.b}.${line.c}.${line.v}`;
+      const source=line.id??(line.b&&line.c&&line.v?`${line.b}.${line.c}.${line.v}`:`${book.id}.${chapter}.${index+1}`);
       for(const target of line.x??[]){
         const sources=incoming.get(target)??new Set();
         sources.add(source);
         incoming.set(target,sources);
         outgoingEdges+=1;
       }
-    }
+    });
   }
 }
 
