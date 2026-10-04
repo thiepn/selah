@@ -44,19 +44,20 @@
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
+- current BSB chapter JSON + historical JSONL display compatibility
 - generated exact verse bounds
 - generated Scripture search index
 - vendored-data integrity validation
 - development fixture isolated from generated production data
 - Vercel production-build command
 - generated reverse cross-reference index
-- weekly upstream compatibility workflow
+- path-scoped + weekly upstream compatibility workflow
 
 ## Verification currently passing
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite (37 tests currently passing)
+- automated Node test suite (38 tests currently passing)
 - static application build/integrity validation
 - bundle-size budgets for deployable JS/CSS
 - backup corruption and future-schema rejection
@@ -64,7 +65,7 @@
 
 ## Open qualification work
 
-- full production data vendoring cannot be executed in the current network-restricted container
+- full production data workflow must pass against the current upstream BSB dataset
 - browser rendering automation is blocked by administrator browser policy in this environment
 - full real-device mobile study qualification
 - full screen-reader certification (keyboard-resizable panes and semantic toggle state are implemented)
