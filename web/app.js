@@ -212,6 +212,7 @@ async function switchPrimaryPassage(scripture) {
 }
 
 async function setCurrentScripture(scripture) {
+  document.body.classList.remove('launcher-mode');
   currentScripture = scripture;
   selectedToken = undefined;
   selectedRangeInfo = undefined;
@@ -229,6 +230,7 @@ async function setCurrentScripture(scripture) {
 }
 
 function renderPassageLauncher(message='Enter a Bible reference above to begin.') {
+  document.body.classList.add('launcher-mode');
   currentScripture=undefined;
   currentStudy=undefined;
   selectedToken=undefined;
