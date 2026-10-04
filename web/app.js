@@ -15,7 +15,8 @@ import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
 
 const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
+const $ = (selector) => [...document.querySelectorAll(selector)];
+const queryAll = (selector) => [...document.querySelectorAll(selector)];
 const escapeHtml = (value='') => value.replace(/[&<>'"]/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[c]));
 const sleep = (ms) => new Promise((resolve)=>setTimeout(resolve,ms));
 
@@ -276,7 +277,7 @@ async function renderScripture() {
 }
 
 function applyAnnotationHighlights(annotations) {
-  const tokenEls = $('.token');
+  const tokenEls = queryAll('.token');
   for (const annotation of annotations) {
     if (annotation.kind !== 'highlight') continue;
     if (annotation.anchor.type !== 'text' && annotation.anchor.type !== 'text-range') continue;
@@ -643,7 +644,7 @@ $('#nextChapterBtn').addEventListener('click',()=>openAdjacentChapter(1));
 $('#forwardBtn').addEventListener('click',async()=>{workspace=await workspaceService.forward(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
 $('#studyTabs').addEventListener('click',async(event)=>{const tab=event.target.closest('[data-tab]');if(!tab)return;activeTab=tab.dataset.tab;await renderActiveTab();if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');});
 $('#studyTabs').addEventListener('keydown',(event)=>{
-  const tabs=$('#studyTabs [role="tab"]:not([hidden])');
+  const tabs=queryAll('#studyTabs [role="tab"]:not([hidden])');
   const current=tabs.indexOf(document.activeElement);
   if(current<0)return;
   let next=current;
