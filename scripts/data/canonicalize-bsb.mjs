@@ -134,31 +134,36 @@ for(const book of BOOKS){
   }
 }
 
-const expectedVersification=JSON.parse(await readFile(join(dataRoot,'versification/eng.json'),'utf8'));
-let expectedNumberedSlots=0;
+const genericVersification=JSON.parse(await readFile(join(dataRoot,'versification/eng.json'),'utf8'));
+let genericNumberedSlots=0;
+const versificationDifferences=[];
 for(const book of BOOKS){
-  const chapterMaxima=expectedVersification.max_verses?.[book.id];
+  const chapterMaxima=genericVersification.max_verses?.[book.id];
   if(!Array.isArray(chapterMaxima)||chapterMaxima.length!==book.chapters){
     throw new Error(`English versification chapter metadata is incomplete for ${book.id}`);
   }
   for(let chapter=1;chapter<=book.chapters;chapter+=1){
-    const expectedMax=Number(chapterMaxima[chapter-1]);
+    const genericMax=Number(chapterMaxima[chapter-1]);
     const officialMax=Number(maxVerses[book.id][chapter]);
-    if(officialMax!==expectedMax){
-      throw new Error(`Official BSB USJ max verse ${book.id} ${chapter}:${officialMax} does not match English versification max ${expectedMax}`);
+    genericNumberedSlots+=genericMax;
+    if(officialMax!==genericMax){
+      versificationDifferences.push({book:book.id,chapter,officialBsbMax:officialMax,genericEnglishMax:genericMax});
     }
-    expectedNumberedSlots+=expectedMax;
   }
 }
-const omittedVerseNumbers=expectedNumberedSlots-canonicalVerses;
-if(omittedVerseNumbers<0)throw new Error(`Official BSB USJ has more verse records (${canonicalVerses}) than numbered English versification slots (${expectedNumberedSlots})`);
+
+const vendoredManifest=JSON.parse(await readFile(join(dataRoot,'selah-data-manifest.json'),'utf8'));
+if(Number(vendoredManifest.verses)!==canonicalVerses){
+  throw new Error(`Official BSB USJ verse-record count ${canonicalVerses} does not match vendored BSB verse-record count ${vendoredManifest.verses}`);
+}
 
 await writeFile(join(dataRoot,'max-verses.json'),JSON.stringify(maxVerses));
 await writeFile(join(dataRoot,'canonicalization-report.json'),JSON.stringify({
   source:usjUrl,
   canonicalVerses,
-  expectedNumberedSlots,
-  omittedVerseNumbers,
+  vendoredVerseRecords:Number(vendoredManifest.verses),
+  genericNumberedSlots,
+  genericVersificationDifferences:versificationDifferences,
   alignedVerses,
   fallbackVerses,
   missingDerivedVerses,
@@ -167,4 +172,4 @@ await writeFile(join(dataRoot,'canonicalization-report.json'),JSON.stringify({
 },null,2));
 
 await rm(cacheRoot,{recursive:true,force:true});
-console.log(`Canonicalized ${canonicalVerses} BSB verses: ${alignedVerses} retained aligned tokens, ${fallbackVerses} canonical fallbacks (${missingDerivedVerses} missing derived, ${mismatchedDerivedVerses} mismatched).`);
+console.log(`Canonicalized ${canonicalVerses} BSB verses: ${alignedVerses} retained aligned tokens, ${fallbackVerses} canonical fallbacks (${missingDerivedVerses} missing derived, ${mismatchedDerivedVerses} mismatched).`);\nif(versificationDifferences.length)console.log(`Recorded ${versificationDifferences.length} official-BSB vs generic-English chapter versification difference(s).`);
