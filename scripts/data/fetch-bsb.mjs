@@ -78,6 +78,7 @@ if (failures.length) {
   throw new Error(`${failures.length} BSB assets failed to download; see fetch-failures.json`);
 }
 
+// Derive exact English verse maxima from the vendored public-domain display files.
 const maxVerses = {};
 for (const book of BOOKS) {
   maxVerses[book.id] = {};
