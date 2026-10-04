@@ -5,7 +5,7 @@ import type { CrossReference, CrossReferenceProvider } from './types.js';
 
 interface PdIndexLine { id?: string; b?: string; c?: number; v?: number; x?: string[]; }
 
-export interface ChapterIndexContext { book: string; chapter: number; }
+export interface ChapterIndexContext { book: string; chapter: number; verseNumbers?: number[]; }
 
 function parseCanonicalVerse(value: string): VerseRef {
   const match = /^([^.]+)\.(\d+)\.(\d+)$/.exec(value);
@@ -20,7 +20,10 @@ function sourceRef(line: PdIndexLine, index: number, context?: ChapterIndexConte
     return { book: line.b, chapter: line.c!, verse: line.v! };
   }
   if (line.id) return parseCanonicalVerse(line.id);
-  if (context) return { book: context.book, chapter: context.chapter, verse: index + 1 };
+  if (context) {
+    const verse = context.verseNumbers?.[index] ?? index + 1;
+    return { book: context.book, chapter: context.chapter, verse };
+  }
   return undefined;
 }
 
