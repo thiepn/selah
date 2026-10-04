@@ -9,6 +9,7 @@ const passageText = (scripture: ScripturePassage) => scripture.verses
 const annotationLabel = (annotation: Annotation): string => {
   if (annotation.anchor.type === 'reference') return formatPassage(annotation.anchor.passage);
   if (annotation.anchor.type === 'text') return `${annotation.anchor.verse.book} ${annotation.anchor.verse.chapter}:${annotation.anchor.verse.verse} — “${annotation.anchor.quotedText}”`;
+  if (annotation.anchor.type === 'text-range') return `${formatPassage(annotation.anchor.passage)} — “${annotation.anchor.quotedText}”`;
   return `Original-language token (${annotation.anchor.tokenIds.join(', ')})`;
 };
 
