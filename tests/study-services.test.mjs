@@ -22,6 +22,7 @@ test('study and workspace services preserve durable work and research navigation
   assert.equal((await workspaceService.restoreLast()).id, 'w1');
 });
 
+
 test('studies can be renamed and archived without changing their primary passage', async () => {
   const repo = new MemorySelahRepository();
   const clock=(()=>{let n=20;return()=>++n;})();
