@@ -36,6 +36,7 @@ test('older backups migrate missing phrasing state forward safely', () => {
   assert.equal(parsed.snapshot.metadata.appSchemaVersion,2);
 });
 
+
 test('backup parser rejects corrupt and future-schema data before destructive import', () => {
   assert.throws(()=>parseBackup('{broken'),/not valid JSON/);
   const future={
