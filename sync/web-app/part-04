@@ -1,0 +1,37 @@
+he bundled development fixture does not include Strong’s alignment. Run the full BSB data vendoring command to activate this layer.</p></section>`;
+    return;
+  }
+  elements.studyContent.innerHTML='<div class="loading">Loading original-language data…</div>';
+  try {
+    const passageAnalyses=(await Promise.all(currentScripture.verses.map((verse)=>originalLanguage.analyzeVerse(verse.ref)))).flat();
+    const analyses=passageAnalyses.filter((x)=>x.token.strongs===strongs);
+    const lex=await researchProvider.get(strongs);
+    const first=analyses[0];
+    const heading=selectedToken?.text.trim() || lex?.lemma || strongs;
+    const occurrences=first?.occurrences ?? await researchProvider.versesForStrongs(strongs);
+    const occurrenceHtml=occurrences.length
+      ? occurrences.slice(0,24).map((ref)=>`<button class="metric occurrence-ref" type="button" data-reference="${escapeHtml(formatPassage({start:ref,end:ref}))}">${escapeHtml(formatPassage({start:ref,end:ref}))}</button>`).join('')
+      : '<span class="quiet">No concordance occurrences are installed.</span>';
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY · ${escapeHtml(strongs)}</span><h2>${escapeHtml(heading)}</h2><p class="panel-lede">Original-language evidence connected to this passage.</p>${analyses.map((a)=>`<section class="panel-section"><div class="word-lemma">${escapeHtml(a.morphology?.lemma||a.lexicon?.lemma||a.token.text)}</div><div class="word-translit">${escapeHtml(a.lexicon?.transliteration||'')} ${escapeHtml(a.morphology?.partOfSpeech||'')}</div><div class="metric-row">${a.morphology?.morphology?`<span class="metric">${escapeHtml(a.morphology.morphology)}</span>`:''}${a.occurrenceCount!==undefined?`<span class="metric">${a.occurrenceCount} verse occurrences</span>`:''}<span class="metric">${escapeHtml(formatPassage({start:a.ref,end:a.ref}))}</span></div></section>`).join('')||'<p class="quiet">This key is present in the research index but has no aligned token in the current passage.</p>'}${lex?`<section class="panel-section"><h3>Lexicon</h3><p class="word-definition"><strong>${escapeHtml(lex.gloss||'')}</strong>${lex.definition?` — ${escapeHtml(lex.definition)}`:''}</p></section>`:''}<section class="panel-section"><h3>Occurrences</h3><div class="metric-row occurrence-list">${occurrenceHtml}</div>${occurrences.length>24?`<p class="quiet">Showing the first 24 of ${occurrences.length} verse occurrences.</p>`:''}</section><p class="warning">Lexical data describes possible usage. Meaning is determined by this sentence, argument, genre, and broader context—not by a dictionary gloss alone.</p></section>`;
+    wireReferenceButtons();
+  } catch(error){ renderToolError('Word study unavailable',error); }
+}
+
+async function renderCompare() {
+  const result=await translations.compare(currentScripture.passage,translations.list().map((x)=>x.id));
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">COMPARE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Selah only displays translations whose redistribution rights are configured. BSB is the built-in public-domain translation.</p><div class="compare-grid">${result.translations.map(({metadata,scripture})=>`<section class="translation-block"><h3>${escapeHtml(metadata.abbreviation)}</h3><p>${scripture.verses.map((v)=>`<sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}`).join(' ')}</p></section>`).join('')}</div></section>`;
+}
+
+function defaultPhrasingDocument(study) {
+  return { id:crypto.randomUUID(),studyId:study.id,passage:structuredClone(currentScripture.passage),roots:currentScripture.verses.map((verse)=>({id:crypto.randomUUID(),tokenIds:verse.tokens.map((t)=>t.id),label:`v.${verse.ref.verse}`,children:[]})),updatedAt:Date.now() };
+}
+function phraseText(node){return node.tokenIds.map((id)=>tokenById(id)?.text??'').join('');}
+function phraseSplitHtml(node){
+  if(phrasingSplitNodeId!==node.id || node.children.length || node.tokenIds.length<2) return `<div class="phrase-text">${escapeHtml(phraseText(node))}</div>`;
+  return `<div class="phrase-text phrase-split-mode">${node.tokenIds.map((id,index)=>{const token=tokenById(id);const marker=index<node.tokenIds.length-1?`<button class="phrase-split-marker" data-phrase-action="split-after" data-id="${node.id}" data-token-id="${escapeHtml(id)}" type="button" title="Split here" aria-label="Split phrase after ${escapeHtml(token?.text??'token')}">│</button>`:'';return `<span>${escapeHtml(token?.text??'')}</span>${marker}`;}).join('')}</div>`;
+}
+function phraseNodeHtml(node,depth=0){return `<div class="phrase-node" style="margin-left:${Math.min(depth,5)*14}px" data-phrase-id="${node.id}"><input class="phrase-label" data-label-id="${node.id}" value="${escapeHtml(node.label??'')}" placeholder="Label">${phraseSplitHtml(node)}<div class="phrase-toolbar"><button data-phrase-action="split-mode" data-id="${node.id}" type="button">${phrasingSplitNodeId===node.id?'Cancel split':'Split'}</button><button data-phrase-action="merge-prev" data-id="${node.id}" type="button">Merge ↑</button><button data-phrase-action="indent" data-id="${node.id}" type="button">Indent</button><button data-phrase-action="outdent" data-id="${node.id}" type="button">Outdent</button></div>${node.children.map((x)=>phraseNodeHtml(x,depth+1)).join('')}</div>`;}
+
+async function renderPhrasing() {
+  if (currentStudy) phrasingDocument=(await repo.listPhrasingDocuments(currentStudy.id)).find((x)=>samePassage(x.passage,currentScripture.passage));
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">PHRASING</span><h2>See the argument</h2><p class="panel-lede">Indent clauses or verse units to make relationships visible. This structure is your analysis; Scripture tokens themselves are never modified.</p>${phrasingDocument?`<div class="phrase-tree">${phrasingDocument.roots.map((x)=>phraseNodeHtml(x)).join('')}</div>`:'<button class
