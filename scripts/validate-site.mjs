@@ -13,4 +13,5 @@ if(/\bToday\b|dashboard|streak/i.test(html)) throw new Error('Study UI regressed
 if(!html.includes('id="scripture"')||!html.includes('data-tab="guide"')) throw new Error('Core study workspace missing');
 if(!app.includes('IndexedDbSelahRepository')||!app.includes('PassageGuideService')) throw new Error('Web UI is not wired to Selah core services');
 if(!app.includes("new Worker('./search-worker.js'")||!searchWorker.includes('ScriptureSearchIndex')) throw new Error('Scripture search worker is not wired into the deployable study workspace');
+if(app.includes("const tokenEls = $('.token');")) throw new Error('Highlight renderer regressed to a single-element token selector');
 console.log('Static site integrity checks passed.');
