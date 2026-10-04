@@ -20,7 +20,11 @@ function inferredRef(parsed: RawMorphologyLine, index: number, context?: Chapter
     const match=/^([^.]+)\.(\d+)\.(\d+)$/.exec(parsed.id);
     if (match) return { book:match[1]!, chapter:Number(match[2]), verse:Number(match[3]) };
   }
-  return context ? { book:context.book, chapter:context.chapter, verse:index+1 } : undefined;
+  if (context) {
+    const verse=context.verseNumbers?.[index]??index+1;
+    return { book:context.book, chapter:context.chapter, verse };
+  }
+  return undefined;
 }
 
 export class BsbMorphologyProvider implements MorphologyProvider {
