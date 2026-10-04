@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Selah — Study Workspace</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button class="wordmark" type="button" aria-label="Selah">SELAH</button>
+    <form id="referenceForm" class="reference-form">
+      <button id="backBtn" class="icon-button" type="button" aria-label="Back">←</button>
+      <button id="forwardBtn" class="icon-button" type="button" aria-label="Forward">→</button>
+      <input id="referenceInput" value="Philippians 2:5–11" aria-label="Bible reference" autocomplete="off" spellcheck="false" />
+    </form>
+    <div class="top-actions">
+      <button id="searchBtn" class="text-button" type="button">Search</button>
+      <button id="studiesBtn" class="text-button" type="button">Studies</button>
+      <button id="themeBtn" class="icon-button" type="button" aria-label="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <section class="bible-pane" aria-label="Scripture">
+      <div class="passage-meta">
+        <span class="translation">BSB</span>
+        <span class="passage-label">Philippians 2:5–11</span>
+      </div>
+      <article class="scripture" id="scripture">
+        <h1>Philippians 2</h1>
+        <p class="section-heading">The Mind of Christ</p>
+        <p class="verse" data-verse="5"><button class="verse-number" type="button">5</button><span>Let this mind be in you which was also in Christ Jesus:</span></p>
+        <p class="verse" data-verse="6"><button class="verse-number" type="button">6</button><span>Who, existing in the form of God, did not consider equality with God something to be grasped,</span></p>
+        <p class="verse" data-verse="7"><button class="verse-number" type="button">7</button><span>but emptied Himself, taking the form of a servant, being made in human likeness.</span></p>
+        <p class="verse" data-verse="8"><button class="verse-number" type="button">8</button><span>And being found in appearance as a man, He humbled Himself and became obedient to death—even death on a cross.</span></p>
+        <p class="verse" data-verse="9"><button class="verse-number" type="button">9</button><span>Therefore God exalted Him to the highest place and gave Him the name above all names,</span></p>
+        <p class="verse" data-verse="10"><button class="verse-number" type="button">10</button><span>that at the name of Jesus every knee should bow, in heaven and on earth and under the earth,</span></p>
+        <p class="verse" data-verse="11"><button class="verse-number" type="button">11</button><span>and every tongue confess that Jesus Christ is Lord, to the glory of God the Father.</span></p>
+      </article>
+    </section>
+
+    <div class="divider" id="divider" role="separator" aria-orientation="vertical" tabindex="0"></div>
+
+    <section class="study-pane" id="studyPane" aria-label="Study tools">
+      <nav class="study-tabs" aria-label="Study tool">
+        <button class="tab active" data-tab="guide" type="button">Guide</button>
+        <button class="tab" data-tab="notes" type="button">Notes</button>
+        <button class="tab" data-tab="references" type="button">References</button>
+        <button class="tab" data-tab="words" type="button">Words</button>
+        <button class="tab" data-tab="resources" type="button">Resources</button>
+      </nav>
+
+      <div class="study-content" id="studyContent">
+        <section class="tool-panel active" data-panel="guide">
+          <header class="panel-header">
+            <div><span class="eyebrow">PASSAGE GUIDE</span><h2>Philippians 2:5–11</h2></div>
+            <span class="quiet">follows passage</span>
+          </header>
+          <section class="guide-section">
+            <button class="section-title" type="button"><span>Context</span><span>−</span></button>
+            <div class="section-body">
+              <dl class="facts"><div><dt>Previous</dt><dd>Philippians 2:1–4</dd></div><div><dt>Following</dt><dd>Philippians 2:12–18</dd></div><div><dt>Book</dt><dd>Paul's letter to the church in Philippi</dd></div></dl>
+            </div>
+          </section>
+          <section class="guide-section">
+            <button class="section-title" type="button"><span>Structure</span><span>−</span></button>
+            <div class="section-body structure-list">
+              <button type="button"><span>5</span><strong>The mind of Christ</strong></button>
+              <button type="button"><span>6–8</span><strong>Christ's humiliation</strong></button>
+              <button type="button"><span>9–11</span><strong>Christ's exaltation</strong></button>
+            </div>
+          </section>
+          <section class="guide-section">
+            <button class="section-title" type="button"><span>Cross-references</span><span>6</span></button>
+            <div class="section-body reference-list">
+              <button type="button" data-ref="Isaiah 45:23"><strong>Isaiah 45:23</strong><span>Every knee will bow</span></button>
+              <button type="button" data-ref="Romans 14:11"><strong>Romans 14:11</strong><span>Paul cites Isaiah's confession</span></button>
+              <button type="button" data-ref="2 Corinthians 8:9"><strong>2 Corinthians 8:9</strong><span>Rich, yet became poor</span></button>
+            </div>
+          </section>
+          <section class="guide-section">
+            <button class="section-title" type="button"><span>Important words</span><span>4</span></button>
+            <div class="section-body word-list">
+              <button type="button"><span class="greek">φρονέω</span><span>mind / mindset</span></button>
+              <button type="button"><span class="greek">μορφή</span><span>form</span></button>
+              <button type="button"><span class="greek">κενόω</span><span>empty</span></button>
+              <button type="button"><span class="greek">ταπεινόω</span><span>humble</span></button>
+            </div>
+          </section>
+        </section>
+
+        <section class="tool-panel" data-panel="notes">
+          <header class="panel-header"><div><span class="eyebrow">STUDY DOCUMENT</span><h2>Philippians 2:5–11</h2></div><span id="saveState" class="quiet">saved locally</span></header>
+          <div class="note-section"><label for="observations">Observations</label><textarea id="observations" placeholder="What do you see in the text?"></textarea></div>
+          <div class="note-section"><label for="questions">Questions</label><textarea id="questions" placeholder="What needs investigation?"></textarea></div>
+          <div class="note-section"><label for="interpretation">Interpretation</label><textarea id="interpretation" placeholder="What is the author's point, and what supports it?"></textarea></div>
+          <div class="note-section"><label for="summary">Summary</label><textarea id="summary" placeholder="State the passage's main point in your own words."></textarea></div>
+        </section>
+
+        <section class="tool-panel" data-panel="references">
+          <header class="panel-header"><div><span class="eyebrow">CROSS-REFERENCES</span><h2>Philippians 2:5–11</h2></div></header>
+          <div class="reference-list large">
+            <button type="button" data-ref="Isaiah 45:23"><strong>Isaiah 45:23</strong><span>Every knee bows; every tongue swears allegiance.</span></button>
+            <button type="button" data-ref="Romans 14:11"><strong>Romans 14:11</strong><span>Paul explicitly applies Isaiah's language.</span></button>
+            <button type="button" data-ref="John 13:12–17"><strong>John 13:12–17</strong><span>Jesus' servant-pattern for His disciples.</span></button>
+            <button type="button" data-ref="2 Corinthians 8:9"><strong>2 Corinthians 8:9</strong><span>Christ's voluntary descent for others.</span></button>
+          </div>
+        </section>
+
+        <section class="tool-panel" data-panel="words">
+          <header class="panel-header"><div><span class="eyebrow">WORD LENS</span><h2>Important lexical items</h2></div></header>
+          <div class="word-detail"><span class="greek hero-word">μορφή</span><strong>morphē</strong><p>Form. Linked to Strong's G3444 in the source dataset.</p><dl class="facts"><div><dt>Passage</dt><dd>vv. 6, 7</dd></div><div><dt>Tool</dt><dd>Occurrences · lexical data · source text</dd></div></dl><p class="caution">A gloss is not an interpretation. Meaning must be evaluated in context.</p></div>
+        </section>
+
+        <section class="tool-panel" data-panel="resources">
+          <header class="panel-header"><div><span class="eyebrow">EXTERNAL RESOURCES</span><h2>Open only when needed</h2></div></header>
+          <div class="resource-list">
+            <a href="https://enduringword.com/bible-commentary/philippians-2/" target="_blank" rel="noreferrer"><strong>Enduring Word</strong><span>Commentary ↗</span></a>
+            <a href="https://www.stepbible.org/" target="_blank" rel="noreferrer"><strong>STEP Bible</strong><span>Original-language tools ↗</span></a>
+            <a href="https://biblehub.com/philippians/2.htm" target="_blank" rel="noreferrer"><strong>Bible Hub</strong><span>Parallel resources ↗</span></a>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="study-bar">
+    <div class="history-label"><span class="dot"></span><span>Philippians 2:5–11</span></div>
+    <div class="study-actions">
+      <button id="patternsBtn" type="button">Patterns</button>
+      <button id="phrasingBtn" type="button">Phrasing</button>
+      <button id="focusBtn" type="button">Reading focus</button>
+    </div>
+  </footer>
+
+  <div id="selectionMenu" class="selection-menu" hidden>
+    <button data-action="note" type="button">Note</button>
+    <button data-action="highlight" type="button">Highlight</button>
+    <button data-action="word" type="button">Word</button>
+    <button data-action="compare" type="button">Compare</button>
+  </div>
+
+  <aside id="peek" class="peek" hidden>
+    <header><div><span class="eyebrow">REFERENCE PEEK</span><h3 id="peekTitle">Isaiah 45:23</h3></div><button id="peekClose" class="icon-button" type="button">×</button></header>
+    <p id="peekText">By Myself I have sworn; truth has gone out from My mouth, a word that will not be revoked: Every knee will bow before Me, every tongue will swear allegiance.</p>
+    <button class="open-main" type="button">Open as main passage →</button>
+  </aside>
+
+  <aside id="studiesDrawer" class="drawer" hidden>
+    <header><span>STUDIES</span><button id="drawerClose" class="icon-button" type="button">×</button></header>
+    <input placeholder="Search studies" aria-label="Search studies" />
+    <section><h3>New Testament</h3><button type="button"><span>Philippians</span><span>1 study</span></button></section>
+    <section><h3>Recent</h3><button type="button"><span>Philippians 2:5–11</span><span>now</span></button></section>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>

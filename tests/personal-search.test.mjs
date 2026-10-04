@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { PersonalStudySearchIndex, ScriptureSearchIndex } from '../dist/src/search/index.js';
+import { parseReference } from '../dist/src/domain/references/index.js';
+
+const p=(x)=>parseReference(x).passage;
+
+test('personal search finds study documents and anchored notes without dashboard metadata',()=>{
+ const index=new PersonalStudySearchIndex();
+ index.rebuild({
+  studies:[{id:'s1',primaryPassage:p('Rom 8:1-4'),title:'Romans 8 — no condemnation',tags:['justification'],archived:false,createdAt:1,updatedAt:1}],
+  documents:[{studyId:'s1',format:'tiptap-json',document:{},plainText:'Paul connects life in the Spirit with freedom from condemnation.',updatedAt:1}],
+  annotations:[{id:'a1',studyId:'s1',kind:'note',anchor:{type:'reference',passage:p('Rom 8:1')},body:'Therefore points back to the preceding argument.',tags:[],createdAt:1,updatedAt:1}]
+ });
+ assert.equal(index.search('Spirit freedom')[0].kind,'document');
+ assert.equal(index.search('preceding argument')[0].kind,'annotation');
+});
+
+test('scripture search index serialization round-trips without re-tokenizing',()=>{
+ const index=new ScriptureSearchIndex();
+ index.add({ref:{book:'JHN',chapter:1,verse:1},tokens:[{id:'1',text:'In the beginning was the Word',language:'en'}]});
+ const restored=ScriptureSearchIndex.fromSerialized(index.serialize());
+ assert.equal(restored.search('beginning Word')[0].canonicalId,'John.1.1');
+});

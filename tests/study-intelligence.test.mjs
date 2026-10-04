@@ -1,0 +1,71 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { analyzePatterns } from '../dist/src/bible/patterns/index.js';
+import { indentPhrase, splitPhraseNode, mergePhraseWithPrevious } from '../dist/src/bible/phrasing/index.js';
+import { parseReference } from '../dist/src/domain/references/index.js';
+import { BsbPdCrossReferenceProvider } from '../dist/src/research/cross-references/index.js';
+import { AnnotationService } from '../dist/src/annotations/index.js';
+import { MemorySelahRepository } from '../dist/src/persistence/index.js';
+import { PassageGuideService } from '../dist/src/study/guide/index.js';
+
+const p=(x)=>parseReference(x).passage;
+
+test('patterns find repeated textual and lexical signals without interpreting them', () => {
+  const scripture={translationId:'BSB',passage:p('Phil 2:6-7'),verses:[
+    {ref:p('Phil 2:6').start,tokens:[{id:'1',text:'form',strongs:'G3444',language:'en'},{id:'2',text:'God',strongs:'G2316',language:'en'}]},
+    {ref:p('Phil 2:7').start,tokens:[{id:'3',text:'form',strongs:'G3444',language:'en'},{id:'4',text:'servant',strongs:'G1401',language:'en'}]},
+  ]};
+  const patterns=analyzePatterns(scripture);
+  assert.ok(patterns.some((x)=>x.type==='word' && x.key==='form' && x.count===2));
+  assert.ok(patterns.some((x)=>x.type==='strongs' && x.key==='G3444' && x.count===2));
+});
+
+test('phrasing indentation creates explicit hierarchy without changing token identity', () => {
+  const nodes=[{id:'a',tokenIds:['1'],children:[]},{id:'b',tokenIds:['2'],children:[]}];
+  const result=indentPhrase(nodes,'b');
+  assert.equal(result.length,1);
+  assert.equal(result[0].children[0].id,'b');
+  assert.deepEqual(result[0].children[0].tokenIds,['2']);
+});
+
+test('BSB cross-reference provider normalizes verse links', async () => {
+  const jsonl=JSON.stringify({id:'PHP.2.10',b:'PHP',c:2,v:10,x:['ISA.45.23','ROM.14.11']});
+  const provider=new BsbPdCrossReferenceProvider(jsonl);
+  const refs=await provider.forPassage(p('Phil 2:10'));
+  assert.equal(refs.length,2);
+  assert.equal(refs[0].target.start.book,'ISA');
+  assert.equal(refs[1].target.start.book,'ROM');
+});
+
+test('phrasing can indent and outdent nested units without changing token ids', async () => {
+  const { outdentPhrase } = await import('../dist/src/bible/phrasing/index.js');
+  const nodes=[{id:'a',tokenIds:['1'],children:[]},{id:'b',tokenIds:['2'],children:[]}];
+  const nested=indentPhrase(nodes,'b');
+  const flat=outdentPhrase(nested,'b');
+  assert.deepEqual(flat.map((x)=>x.id),['a','b']);
+  assert.deepEqual(flat[1].tokenIds,['2']);
+});
+
+test('phrasing splits and recombines leaf units without duplicating Scripture tokens', () => {
+  const nodes=[{id:'a',tokenIds:['1','2','3','4'],label:'clause',children:[]}];
+  const split=splitPhraseNode(nodes,'a','2','b');
+  assert.deepEqual(split.map((x)=>x.tokenIds),[['1','2'],['3','4']]);
+  assert.equal(split[0].label,'clause');
+  assert.equal(split[1].label,undefined);
+  const merged=mergePhraseWithPrevious(split,'b');
+  assert.deepEqual(merged.map((x)=>x.tokenIds),[['1','2','3','4']]);
+});
+
+test('guide exposes structural headings already present in Scripture data', async () => {
+  const repo = new MemorySelahRepository();
+  const annotations = new AnnotationService(repo);
+  const refs = new BsbPdCrossReferenceProvider('');
+  const guide = new PassageGuideService(annotations, refs);
+  const scripture={translationId:'BSB',passage:p('Phil 2:5-7'),verses:[
+    {ref:p('Phil 2:5').start,tokens:[{id:'1',text:'Let ',language:'en'}],heading:'The Mind of Christ'},
+    {ref:p('Phil 2:6').start,tokens:[{id:'2',text:'Who ',language:'en'}]},
+    {ref:p('Phil 2:7').start,tokens:[{id:'3',text:'but emptied ',language:'en'}]},
+  ]};
+  const result=await guide.build(scripture);
+  assert.deepEqual(result.sections,[{verse:5,heading:'The Mind of Christ'}]);
+});

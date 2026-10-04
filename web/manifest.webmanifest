@@ -1,0 +1,9 @@
+{
+  "name": "Selah",
+  "short_name": "Selah",
+  "description": "A passage-centered Bible study workspace",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f2eb",
+  "theme_color": "#f5f2eb"
+}

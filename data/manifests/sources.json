@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "bsb-display",
+      "name": "Berean Standard Bible display data",
+      "category": "translation-and-alignment",
+      "sourceUrl": "https://github.com/BSB-publishing/bsb-data-output",
+      "license": "CC0-1.0",
+      "attributionRequired": false,
+      "plannedRuntimeUse": ["scripture-text", "strongs-alignment", "original-language-display", "structure"]
+    },
+    {
+      "id": "bsb-crossrefs",
+      "name": "BSB generated TSK cross-reference data",
+      "category": "cross-references",
+      "sourceUrl": "https://github.com/BSB-publishing/bsb-data-output",
+      "license": "Public-Domain/CC0",
+      "attributionRequired": false,
+      "plannedRuntimeUse": ["cross-references"]
+    },
+    {
+      "id": "oshb-morphology",
+      "name": "Open Scriptures Hebrew morphology via BSB index-cc-by",
+      "category": "morphology",
+      "sourceUrl": "https://github.com/openscriptures/morphhb",
+      "license": "CC-BY-4.0",
+      "attributionRequired": true,
+      "attribution": "Hebrew morphology data from Open Scriptures Hebrew Bible (OSHB), licensed under CC BY 4.0.",
+      "plannedRuntimeUse": ["hebrew-morphology", "word-study"]
+    },
+    {
+      "id": "stepbible-lexicon",
+      "name": "STEPBible TBESH/TBESG extended Strong's lexicon via BSB data output",
+      "category": "lexicon",
+      "sourceUrl": "https://github.com/BSB-publishing/bsb-data-output",
+      "license": "CC-BY-4.0",
+      "attributionRequired": true,
+      "attribution": "Extended Strong's lexicon data from STEPBible TBESH/TBESG, licensed under CC BY 4.0.",
+      "plannedRuntimeUse": ["word-study", "lexicon", "glosses"]
+    }
+  ]
+}

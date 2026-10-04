@@ -1,0 +1,4 @@
+{
+  "fixture": true,
+  "note": "Development fixture. Run npm run data:fetch:bsb for complete data."
+}
