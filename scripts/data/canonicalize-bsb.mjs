@@ -76,11 +76,13 @@ let fallbackVerses=0;
 let missingDerivedVerses=0;
 let mismatchedDerivedVerses=0;
 const maxVerses={};
+const versePresence={};
 const mismatchSamples=[];
 
 for(const book of BOOKS){
   const official=canonical.get(book.id);
   maxVerses[book.id]={};
+  versePresence[book.id]={};
   for(let chapter=1;chapter<=book.chapters;chapter+=1){
     const officialChapter=official.chapters[chapter];
     if(!officialChapter)throw new Error(`Official USJ missing ${book.id} ${chapter}`);
@@ -98,6 +100,7 @@ for(const book of BOOKS){
     const verseNumbers=Object.keys(officialChapter).map(Number).sort((a,b)=>a-b);
     if(!verseNumbers.length)throw new Error(`Official USJ has no verses for ${book.id} ${chapter}`);
     maxVerses[book.id][chapter]=Math.max(...verseNumbers);
+    versePresence[book.id][chapter]=verseNumbers;
 
     for(const verse of verseNumbers){
       canonicalVerses+=1;
@@ -158,6 +161,7 @@ if(Number(vendoredManifest.verses)!==canonicalVerses){
 }
 
 await writeFile(join(dataRoot,'max-verses.json'),JSON.stringify(maxVerses));
+await writeFile(join(dataRoot,'verse-presence.json'),JSON.stringify(versePresence));
 await writeFile(join(dataRoot,'canonicalization-report.json'),JSON.stringify({
   source:usjUrl,
   canonicalVerses,
