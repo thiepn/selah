@@ -248,7 +248,8 @@ async function renderGuide() {
       <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Passage structure</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
       <section class="panel-section"><h3>Patterns</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
-      <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No references available.</p>'}</div></section>
+      <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section>
+      <section class="panel-section"><h3>Referenced by</h3><div>${guide.backlinks.slice(0,8).map(backlinkButtonHtml).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section>
       <section class="panel-section"><h3>Important lexical keys</h3><div class="metric-row">${guide.importantLexicalKeys.map((key)=>`<button class="metric lexical-key" data-strongs="${escapeHtml(key)}">${escapeHtml(key)}</button>`).join('')||'<span class="quiet">Lexical alignment is unavailable in this installed fixture.</span>'}</div></section>
       <section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}</section>
     </section>`;
@@ -258,7 +259,11 @@ async function renderGuide() {
 
 function referenceButtonHtml(ref) {
   const target=formatPassage(ref.target);
-  return `<button class="reference-card" type="button" data-reference="${escapeHtml(target)}"><strong>${escapeHtml(target)}</strong><span>Open without losing the primary passage</span></button>`;
+  return `<button class="reference-card" type="button" data-reference="${escapeHtml(target)}"><strong>${escapeHtml(target)}</strong><span>Referenced from this passage</span></button>`;
+}
+function backlinkButtonHtml(ref) {
+  const source=formatPassage(ref.source);
+  return `<button class="reference-card" type="button" data-reference="${escapeHtml(source)}"><strong>${escapeHtml(source)}</strong><span>Points to this passage</span></button>`;
 }
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
@@ -319,8 +324,8 @@ function scheduleDocumentSave(value) {
 async function renderReferences() {
   elements.studyContent.innerHTML='<div class="loading">Loading references…</div>';
   try {
-    const refs=await researchProvider.forPassage(currentScripture.passage);
-    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">CROSS-REFERENCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">References open as a Peek first so you do not lose the text you are studying.</p><div>${refs.map(referenceButtonHtml).join('')||'<p class="quiet">No cross-references available for this passage.</p>'}</div></section>`;
+    const [refs,backlinks]=await Promise.all([researchProvider.forPassage(currentScripture.passage),researchProvider.backlinksForPassage(currentScripture.passage)]);
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SCRIPTURE CONNECTIONS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Explore both directions of the reference network while the primary passage stays fixed.</p><section class="panel-section"><h3>From this passage</h3><div>${refs.map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section><section class="panel-section"><h3>Referenced by</h3><div>${backlinks.map(backlinkButtonHtml).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section></section>`;
     wireReferenceButtons();
   } catch(error){ renderToolError('References unavailable',error); }
 }
@@ -398,13 +403,21 @@ async function renderActiveTab() {
 }
 
 function renderToolError(title,error){elements.studyContent.innerHTML=`<div class="error-state"><strong>${escapeHtml(title)}</strong>${escapeHtml(error instanceof Error?error.message:String(error))}</div>`;}
-function wireReferenceButtons(){$$('[data-reference]').forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
+function wireReferenceButtons(root=document){[...root.querySelectorAll('[data-reference]')].forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
 function wireLexicalButtons(){$$('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
 function wireSectionJumps(){$$('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
 
 async function openPeek(passage) {
   activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); elements.peek.hidden=false; elements.peekText.textContent='Loading…';
-  try { const scripture=await scriptureProvider.getPassage(passage); elements.peekText.textContent=scripture.verses.map((v)=>`${v.ref.verse} ${v.tokens.map((t)=>t.text).join('')}`).join('\n'); }
+  try {
+    const scripture=await scriptureProvider.getPassage(passage);
+    const [refs,backlinks]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage)]);
+    const text=scripture.verses.map((v)=>`<p class="peek-verse"><sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}</p>`).join('');
+    const outgoing=refs.slice(0,6).map(referenceButtonHtml).join('');
+    const incoming=backlinks.slice(0,6).map(backlinkButtonHtml).join('');
+    elements.peekText.innerHTML=`<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
+    wireReferenceButtons(elements.peekText);
+  }
   catch { elements.peekText.textContent='This reference is not installed in the current development data fixture. It will resolve after the complete BSB dataset is vendored.'; }
 }
 
@@ -436,7 +449,7 @@ async function togglePatterns() {
 async function updateSelectionLens() {
   if(!selectedRangeInfo)return;
   const verses=currentScripture.verses.filter((verse)=>verse.ref.chapter===selectedRangeInfo.passage.start.chapter&&verse.ref.verse>=selectedRangeInfo.passage.start.verse&&verse.ref.verse<=selectedRangeInfo.passage.end.verse);
-  try { const lens=await lensService.forPassage({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,verses}); const lexical=lens.lexicalKeys.slice(0,2).join(' · '); $('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
+  try { const lens=await lensService.forPassage({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,verses}); const lexical=lens.lexicalKeys.slice(0,2).join(' · '); $('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.backlinkCount} citing · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
 }
 
 async function createAnnotationFromSelection(body) {
