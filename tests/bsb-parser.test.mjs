@@ -21,3 +21,16 @@ test('BSB parser exposes original-language tokens separately', () => {
   assert.equal(original.get(1)[0].language, 'hbo');
   assert.equal(original.get(1)[0].strongs, 'H7225');
 });
+
+test('BSB display parser accepts current one-object-per-chapter JSON', () => {
+  const current = JSON.stringify({
+    eng:{1:[["In",null],[" ",null],["the beginning","H7225",{supplied:true}]],2:[["God","H430"]]},
+    heb:{1:[["בְּרֵאשִׁית","H7225"]],2:[["אֱלֹהִים","H430"]]},
+    structure:{1:{headings:[{level:'s1',text:'The Creation'}],para:['p']}}
+  }, null, 2);
+  const verses=parseBsbDisplayJsonl(current,'GEN',1);
+  assert.equal(verses.length,2);
+  assert.equal(verses[0].tokens[2].strongs,'H7225');
+  assert.equal(verses[0].heading,'The Creation');
+  assert.equal(parseBsbOriginalTokens(current,'GEN',1).get(2)[0].strongs,'H430');
+});
