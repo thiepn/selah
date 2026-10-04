@@ -1,15 +1,15 @@
-import { parseReference, formatPassage, canonicalPassageId, BOOK_BY_ID, BOOKS, VerseBoundsIndex } from './core/domain/references/index.js';
+import { parseReference, formatPassage, canonicalPassageId, compareVerseRefs, BOOK_BY_ID, BOOKS, VerseBoundsIndex } from './core/domain/references/index.js';
 import { PassageContextStore } from './core/domain/context/index.js';
 import { createResearchTrail, extractStudyDocumentScriptureLinks } from './core/domain/studies/index.js';
 import { IndexedDbSelahRepository, createBackup, parseBackup } from './core/persistence/index.js';
 import { BsbScriptureProvider, FetchTextAssetLoader, BsbResearchProvider } from './core/data/bsb/index.js';
-import { AnnotationService } from './core/annotations/index.js';
+import { AnnotationService, annotationMatchesPassage } from './core/annotations/index.js';
 import { StudyService, WorkspaceService } from './core/study/index.js';
 import { LensService } from './core/study/lens/index.js';
 import { PassageGuideService } from './core/study/guide/index.js';
 import { OriginalLanguageService } from './core/research/original-language/index.js';
 import { TranslationRegistry } from './core/research/compare/index.js';
-import { analyzePatterns } from './core/bible/patterns/index.js';
+import { analyzePatterns, analyzeStructuralMarkers } from './core/bible/patterns/index.js';
 import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePhraseWithPrevious } from './core/bible/phrasing/index.js';
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
@@ -172,10 +172,11 @@ async function renderScripture() {
   const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
   const noteVerses = new Set();
   for (const annotation of annotations) {
-    if (annotation.kind === 'note' || annotation.kind === 'question') {
-      if (annotation.anchor.type === 'reference') {
-        for (let v=annotation.anchor.passage.start.verse; v<=annotation.anchor.passage.end.verse; v++) noteVerses.add(`${annotation.anchor.passage.start.book}.${annotation.anchor.passage.start.chapter}.${v}`);
-      } else if (annotation.anchor.type === 'text') noteVerses.add(`${annotation.anchor.verse.book}.${annotation.anchor.verse.chapter}.${annotation.anchor.verse.verse}`);
+    if (annotation.kind !== 'note' && annotation.kind !== 'question') continue;
+    for (const verse of currentScripture.verses) {
+      if (annotationMatchesPassage(annotation,{start:verse.ref,end:verse.ref})) {
+        noteVerses.add(`${verse.ref.book}.${verse.ref.chapter}.${verse.ref.verse}`);
+      }
     }
   }
   let previousHeading;
@@ -248,7 +249,8 @@ async function renderGuide() {
       <span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2>
       <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.literaryContext.length?`<div class="literary-context"><span class="mini-label">Literary context</span>${guide.literaryContext.map((section)=>`<button type="button" class="context-section ${section.role}" data-reference="${escapeHtml(formatPassage(section.passage))}"><span>${section.role}</span><strong>${escapeHtml(section.heading)}</strong><small>${escapeHtml(formatPassage(section.passage))}</small></button>`).join('')}</div>`:''}${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Headings inside selection</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
-      <section class="panel-section"><h3>Patterns</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
+      <section class="panel-section"><h3>Repeated signals</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
+      <section class="panel-section"><h3>Discourse markers</h3><div class="metric-row">${guide.structuralMarkers.slice(0,12).map((marker)=>`<span class="metric">${escapeHtml(marker.label)} · ${escapeHtml(marker.category.replace('purpose-result','purpose/result'))}</span>`).join('')||'<span class="quiet">No explicit discourse markers detected in this selection.</span>'}</div><p class="quiet">These are textual signals in the English translation, not automatic interpretations of the argument.</p></section>
       <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section>
       <section class="panel-section"><h3>Referenced by</h3><div>${guide.backlinks.slice(0,8).map(backlinkButtonHtml).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section>
       <section class="panel-section"><h3>Important lexical keys</h3><div class="metric-row">${guide.importantLexicalKeys.map((key)=>`<button class="metric lexical-key" data-strongs="${escapeHtml(key)}">${escapeHtml(key)}</button>`).join('')||'<span class="quiet">Lexical alignment is unavailable in this installed fixture.</span>'}</div></section>
@@ -464,14 +466,17 @@ function downloadTextFile(name,text,type='application/json') {
 
 async function togglePatterns() {
   const button=$('#patternsBtn'); button.classList.toggle('active'); button.setAttribute('aria-pressed',String(button.classList.contains('active'))); patternTokenIds.clear();
-  if(button.classList.contains('active')) for(const pattern of analyzePatterns(currentScripture)) for(const hit of pattern.occurrences) patternTokenIds.add(hit.tokenId);
+  if(button.classList.contains('active')) {
+    for(const pattern of analyzePatterns(currentScripture)) for(const hit of pattern.occurrences) patternTokenIds.add(hit.tokenId);
+    for(const marker of analyzeStructuralMarkers(currentScripture)) for(const hit of marker.occurrences) patternTokenIds.add(hit.tokenId);
+  }
   await renderScripture();
 }
 
 async function updateSelectionLens() {
   if(!selectedRangeInfo)return;
-  const verses=currentScripture.verses.filter((verse)=>verse.ref.chapter===selectedRangeInfo.passage.start.chapter&&verse.ref.verse>=selectedRangeInfo.passage.start.verse&&verse.ref.verse<=selectedRangeInfo.passage.end.verse);
-  try { const lens=await lensService.forPassage({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,verses}); const lexical=lens.lexicalKeys.slice(0,2).join(' · '); $('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.backlinkCount} citing · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
+  const verses=currentScripture.verses.filter((verse)=>compareVerseRefs(verse.ref,selectedRangeInfo.passage.start)>=0&&compareVerseRefs(verse.ref,selectedRangeInfo.passage.end)<=0);
+  try { const lens=await lensService.forPassage({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,verses}); const lexical=lens.lexicalKeys.slice(0,2).join(' · '); $('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.backlinkCount} linked here · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
 }
 
 async function createAnnotationFromSelection(body) {
