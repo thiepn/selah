@@ -61,11 +61,14 @@ export class BsbScriptureProvider implements ScriptureProvider {
     return pending;
   }
 
-
   async getOriginalVerse(ref: VerseRef) {
     const tokens = (await this.#originalChapter(ref.book, ref.chapter)).get(ref.verse);
     if (!tokens) return [];
     return structuredClone(tokens);
+  }
+
+  async getChapter(book: string, chapter: number): Promise<ScriptureVerse[]> {
+    return structuredClone(await this.#chapter(book, chapter));
   }
 
   async getVerse(ref: VerseRef): Promise<ScriptureVerse> {
