@@ -94,3 +94,16 @@ test('guide derives previous/current/next literary sections from Bible headings'
   assert.equal(result.literaryContext[1].passage.start.verse,5);
   assert.equal(result.literaryContext[1].passage.end.verse,11);
 });
+
+
+test('compact chapter research infers source verse from line position', async () => {
+  const jsonl=[
+    JSON.stringify({x:['JHN.1.1'],m:[{s:'H1',m:'HN',p:'noun',l:'א'}]}),
+    JSON.stringify({x:['ROM.1.1'],m:[]}),
+  ].join('\n');
+  const refs=new BsbPdCrossReferenceProvider(jsonl,{book:'GEN',chapter:1});
+  const result=await refs.forPassage(p('Gen 1:2'));
+  assert.equal(result.length,1);
+  assert.equal(result[0].source.start.verse,2);
+  assert.equal(result[0].target.start.book,'ROM');
+});
