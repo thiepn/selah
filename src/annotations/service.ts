@@ -64,6 +64,7 @@ export class AnnotationService {
     return annotation;
   }
 
+
   async createHighlight(input: {
     translationId: string;
     verse: VerseRef;
