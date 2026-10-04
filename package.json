@@ -20,6 +20,10 @@
     "build:production": "npm run data:vendor:bsb && npm run data:validate:vendored && npm run data:build:search && npm run build",
     "check:bundle": "node scripts/check-bundle-size.mjs"
   },
-  "engines": {"node": ">=22"},
-  "devDependencies": {"typescript": "5.8.3"}
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
 }
