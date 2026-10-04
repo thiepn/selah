@@ -85,7 +85,7 @@
 
   <aside class="drawer" id="studiesDrawer" aria-label="Saved studies" hidden>
     <header><span>STUDIES</span><button class="icon-button" id="drawerClose" type="button" aria-label="Close studies">×</button></header>
-    <input id="studySearch" placeholder="Search studies…" aria-label="Search studies">
+    <div class="study-filter-row"><input id="studySearch" placeholder="Search studies…" aria-label="Search studies"><button class="text-button" id="archivedStudiesBtn" type="button" aria-pressed="false">Archived</button></div>
     <div id="studiesList"></div>
     <footer class="drawer-backup"><button class="text-button" id="backupBtn" type="button">Backup</button><button class="text-button" id="restoreBtn" type="button">Restore</button><input id="restoreInput" type="file" accept="application/json,.json" hidden></footer>
   </aside>
