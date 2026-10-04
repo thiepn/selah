@@ -213,3 +213,13 @@ body.reading-focus .scripture { width: min(760px, calc(100% - 52px)); }
 .chapter-nav:hover:not(:disabled) { color: var(--text); }
 .chapter-nav:disabled { opacity: .25; cursor: default; }
 #nextChapterBtn { margin-left: auto; }
+
+
+.passage-launcher{min-height:calc(100vh - 220px);display:grid;place-content:center;justify-items:center;text-align:center;padding:48px 24px;color:var(--muted)}
+.passage-launcher .launcher-wordmark{font-size:10px;font-weight:800;letter-spacing:.22em;color:var(--accent);margin-bottom:14px}
+.passage-launcher h1{margin:0 0 10px!important;font-size:clamp(30px,4vw,44px)!important;color:var(--ink)}
+.passage-launcher p{max-width:42ch;margin:0 0 20px;font:13px/1.6 ui-sans-serif,system-ui}
+.study-empty{padding:clamp(36px,8vh,84px) 30px;color:var(--muted);max-width:46ch}
+.study-empty p{font-size:13px;line-height:1.65;margin:10px 0 16px}
+.study-empty strong{color:var(--ink);font-weight:600}
+button:disabled{cursor:default;opacity:.38}
