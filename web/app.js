@@ -437,7 +437,13 @@ async function renderResources() {
 }
 
 async function renderActiveTab() {
-  $$('.tab').forEach((tab)=>tab.classList.toggle('active',tab.dataset.tab===activeTab));
+  $('.tab').forEach((tab)=>{
+    const active=tab.dataset.tab===activeTab;
+    tab.classList.toggle('active',active);
+    tab.setAttribute('aria-selected',String(active));
+    tab.tabIndex=active?0:-1;
+  });
+  elements.studyContent.setAttribute('aria-labelledby',`tab-${activeTab}`);
   if(!currentScripture)return;
   if(activeTab==='guide')return renderGuide();
   if(activeTab==='notes')return renderNotes();
@@ -547,6 +553,20 @@ $('#prevChapterBtn').addEventListener('click',()=>openAdjacentChapter(-1));
 $('#nextChapterBtn').addEventListener('click',()=>openAdjacentChapter(1));
 $('#forwardBtn').addEventListener('click',async()=>{workspace=await workspaceService.forward(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
 $('#studyTabs').addEventListener('click',async(event)=>{const tab=event.target.closest('[data-tab]');if(!tab)return;activeTab=tab.dataset.tab;await renderActiveTab();if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');});
+$('#studyTabs').addEventListener('keydown',(event)=>{
+  const tabs=$('#studyTabs [role="tab"]');
+  const current=tabs.indexOf(document.activeElement);
+  if(current<0)return;
+  let next=current;
+  if(event.key==='ArrowRight')next=(current+1)%tabs.length;
+  else if(event.key==='ArrowLeft')next=(current-1+tabs.length)%tabs.length;
+  else if(event.key==='Home')next=0;
+  else if(event.key==='End')next=tabs.length-1;
+  else return;
+  event.preventDefault();
+  tabs[next].focus();
+  tabs[next].click();
+});
 $('#patternsBtn').addEventListener('click',togglePatterns);
 $('#focusBtn').addEventListener('click',(event)=>{document.body.classList.toggle('reading-focus');event.currentTarget.classList.toggle('active');event.currentTarget.setAttribute('aria-pressed',String(event.currentTarget.classList.contains('active')));});
 $('#themeBtn').addEventListener('click',async()=>{const settings=await repo.getSettings();const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;await repo.setSettings({...settings,theme:next});});
