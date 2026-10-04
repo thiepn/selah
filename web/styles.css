@@ -190,3 +190,11 @@ body.reading-focus .scripture { width: min(760px, calc(100% - 52px)); }
 .linked-scripture code{font-size:11px;padding:1px 4px;border:1px solid var(--line);border-radius:4px}
 .passage-sections{margin-top:14px;display:grid;gap:4px}.mini-label{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}.section-jump{border:0;background:transparent;text-align:left;padding:6px 0;font:inherit;font-size:12px;color:var(--text);display:grid;grid-template-columns:34px 1fr;gap:6px;cursor:pointer}.section-jump span{color:var(--muted);font-size:10px;padding-top:2px}.section-jump:hover{text-decoration:underline}
 .study-row{display:flex;align-items:flex-start;gap:8px}.study-open{flex:1!important;text-align:left!important;display:block!important;padding:11px 0!important}.study-actions{display:flex;gap:2px;padding-top:7px}.study-actions button{width:auto!important;padding:4px!important;font-size:10px!important;color:var(--muted)}.study-actions button:hover{color:var(--text)}
+
+
+.peek-scripture { display: grid; gap: .45rem; }
+.peek-verse { margin: 0; line-height: 1.65; }
+.peek-verse sup { opacity: .58; margin-right: .25rem; }
+.peek-connections { display: grid; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.peek-connections h4 { margin: 0 0 .5rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; opacity: .62; }
+.peek-connections .reference-card { width: 100%; }
