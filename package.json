@@ -17,10 +17,12 @@
     "serve": "node scripts/serve-site.mjs",
     "data:build:search": "npm run build:core && node scripts/data/build-scripture-search.mjs",
     "data:vendor:bsb": "npm run build:core && node scripts/data/vendor-bsb-git.mjs",
-    "build:production": "npm run data:vendor:bsb && npm run data:validate:vendored && npm run data:build:crossrefs && npm run data:verify:research && npm run data:build:search && npm run build",
+    "build:production": "npm run data:vendor:bsb && npm run data:canonicalize:bsb && npm run data:validate:vendored && npm run data:build:concordance && npm run data:build:crossrefs && npm run data:verify:research && npm run data:build:search && npm run build",
     "check:bundle": "node scripts/check-bundle-size.mjs",
     "data:build:crossrefs": "npm run build:core && node scripts/data/build-crossref-index.mjs",
-    "data:verify:research": "npm run build:core && node scripts/data/verify-production-research.mjs"
+    "data:verify:research": "npm run build:core && node scripts/data/verify-production-research.mjs",
+    "data:canonicalize:bsb": "npm run build:core && node scripts/data/canonicalize-bsb.mjs",
+    "data:build:concordance": "npm run build:core && node scripts/data/build-concordance.mjs"
   },
   "engines": {
     "node": ">=22"
