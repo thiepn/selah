@@ -66,6 +66,15 @@ export type AnnotationAnchor =
       fingerprint?: string;
     }
   | {
+      type: 'text-range';
+      translationId: string;
+      passage: PassageRef;
+      startTokenId: string;
+      endTokenId: string;
+      quotedText: string;
+      fingerprint?: string;
+    }
+  | {
       type: 'original-token';
       corpusId: string;
       tokenIds: string[];
