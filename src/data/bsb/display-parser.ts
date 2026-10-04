@@ -6,10 +6,12 @@ interface BsbStructureEntry {
   para?: string[];
 }
 
+type BsbTokenTuple = [string, string?, Record<string, unknown>?];
+
 interface BsbDisplayLine {
-  eng?: Record<string, Array<[string, string?]>>;
-  grk?: Record<string, Array<[string, string?]>>;
-  heb?: Record<string, Array<[string, string?]>>;
+  eng?: Record<string, BsbTokenTuple[]>;
+  grk?: Record<string, BsbTokenTuple[]>;
+  heb?: Record<string, BsbTokenTuple[]>;
   structure?: Record<string, BsbStructureEntry>;
 }
 
@@ -17,7 +19,7 @@ const tokenId = (translation: string, ref: VerseRef, language: ScriptureLanguage
   `${translation}:${ref.book}.${ref.chapter}.${ref.verse}:${language}:${String(index).padStart(3, '0')}`;
 
 function toTokens(
-  values: Array<[string, string?]>,
+  values: BsbTokenTuple[],
   ref: VerseRef,
   language: ScriptureLanguage,
   translation: string,
@@ -29,12 +31,22 @@ function toTokens(
   });
 }
 
-export function parseBsbDisplayJsonl(jsonl: string, book: string, chapter: number): ScriptureVerse[] {
+function parseDisplayRecords(input: string): BsbDisplayLine[] {
+  const trimmed = input.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed) as BsbDisplayLine;
+    if (parsed && typeof parsed === 'object' && (parsed.eng || parsed.grk || parsed.heb || parsed.structure)) return [parsed];
+  } catch {
+    // Historical BSB output used line-delimited chapter records. Fall through.
+  }
+  return trimmed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => JSON.parse(line) as BsbDisplayLine);
+}
+
+/** Accepts both current BSB chapter JSON and historical JSONL display data. */
+export function parseBsbDisplayJsonl(input: string, book: string, chapter: number): ScriptureVerse[] {
   const verses: ScriptureVerse[] = [];
-  for (const rawLine of jsonl.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const parsed = JSON.parse(line) as BsbDisplayLine;
+  for (const parsed of parseDisplayRecords(input)) {
     const entries = Object.entries(parsed.eng ?? {});
     for (const [verseKey, english] of entries) {
       const verse = Number(verseKey);
@@ -57,12 +69,10 @@ export function parseBsbDisplayJsonl(jsonl: string, book: string, chapter: numbe
   return verses;
 }
 
-export function parseBsbOriginalTokens(jsonl: string, book: string, chapter: number): Map<number, ScriptureToken[]> {
+/** Accepts both current BSB chapter JSON and historical JSONL display data. */
+export function parseBsbOriginalTokens(input: string, book: string, chapter: number): Map<number, ScriptureToken[]> {
   const output = new Map<number, ScriptureToken[]>();
-  for (const rawLine of jsonl.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const parsed = JSON.parse(line) as BsbDisplayLine;
+  for (const parsed of parseDisplayRecords(input)) {
     const source = parsed.grk ?? parsed.heb;
     if (!source) continue;
     const language: ScriptureLanguage = parsed.grk ? 'grc' : 'hbo';
