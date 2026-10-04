@@ -6,25 +6,30 @@
 
 - product contract and Bible-study-only scope
 - reproducible data-source/license manifests
-- canonical reference domain
-- optional exact verse-bound index
+- canonical reference domain with translation-aware exact verse bounds
 - shared PassageContext
 - versioned IndexedDB persistence
 - Scripture and personal-study search engines
-- BSB display-data provider
+- lazy off-main-thread Scripture search worker with offline precaching
+- BSB Scripture provider
 - deployable Scripture reader/workspace
-- durable annotation anchors
+- durable annotation anchors, including translation-scoped multi-verse text ranges
+- multi-verse notes and highlights, including cross-chapter selections
 - Study / Study Document / Workspace separation
 - Research Trail back/forward behavior and reference Peek
 - explicit previous/next Bible chapter navigation
+- visible chapter boundaries inside cross-chapter passage studies
 
 ### P10–P18 — close reading and research
 
 - repeated English-word and Strong's pattern analysis
+- high-confidence textual discourse-marker observation aids
 - token-preserving Phrasing tree model, clause splitting/merging, indentation, labels, and persistence
 - bidirectional cross-reference engine (outgoing references + incoming backlinks)
 - contextual Lens
 - Guide aggregator over shared services, including previous/current/next literary section context
+- human-readable Guide lexical entries (lemma, transliteration, gloss, Strong's key, frequency)
+- Guide lexical discovery from original-language tokens when conservative English alignment is unavailable
 - lexicon provider
 - morphology provider
 - Strong's concordance provider
@@ -36,43 +41,62 @@
 ### P19–P23 — usability, offline, ownership
 
 - study archive/search drawer
+- rename/archive study management
 - mobile Bible-first study-sheet layout
 - PWA service worker and runtime Scripture caching
 - full backup/restore with forward migration
 - Markdown study-context export
 - keyboard navigation basics and accessible semantic controls
+- resizable keyboard-operable desktop panes
+- semantic, arrow-key-operable study tablist
 
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
+- official BSB USJ canonical English-text normalization
+- official BSB versification treated as translation authority; generic-English differences are recorded rather than silently coerced
 - current BSB chapter JSON + historical JSONL display compatibility
-- generated exact verse bounds
+- generated exact BSB verse bounds
 - generated Scripture search index
 - vendored-data integrity validation
+- canonical Strong's concordance generation
 - semantic full-data research smoke across seven biblical genres, original-language tokens, Hebrew morphology, lexicon/concordance, and bidirectional references
 - development fixture isolated from generated production data
 - Vercel production-build command
 - generated reverse cross-reference index
 - path-scoped + weekly upstream compatibility workflow
+- production data-size budgets enforced in CI and production builds
 
 ## Verification currently passing
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite (40 tests currently passing)
+- automated Node test suite: **47/47 passing** on the latest tested study-engine head
 - static application build/integrity validation
-- bundle-size budgets for deployable JS/CSS
+- application bundle-size budgets
 - backup corruption and future-schema rejection
 - local HTTP serving smoke check
-- full upstream BSB qualification: 1,189 chapters / 30,969 verses
-- reverse Scripture-reference index: 430,204 edges / 30,034 target verses
+- full upstream BSB production qualification succeeds
+- full BSB corpus: **1,189 chapters / 30,969 verse records**
+- canonical Strong's concordance: **13,859 lexical keys**
+- reverse Scripture-reference index: **430,204 edges / 30,034 target verses**
 - semantic production-data smoke across seven biblical genres
+- production payload qualification:
+  - BSB research pack: **135.75 MiB / 3,599 files**
+  - Scripture search index: **17.22 MiB**
+  - reverse-reference index: **5.00 MiB**
+  - Strong's concordance: **4.14 MiB**
+  - complete static site: **153.14 MiB / 3,668 files**
+- application code remains small relative to data: about **53 KiB app JS + 95 KiB core JS + 21 KiB CSS** before compression in the qualified build
 
 ## Open qualification work
 
-- browser rendering automation is blocked by administrator browser policy in this environment
+- browser rendering automation remains blocked by administrator browser policy in the implementation environment
 - full real-device mobile study qualification
-- full screen-reader certification (keyboard-resizable panes and semantic toggle state are implemented)
-- full-production-data performance measurements (static application bundle budgets are enforced)
+- full screen-reader certification beyond the implemented semantic/keyboard improvements
 - additional translation providers where redistribution terms permit
-- V1 multi-genre real-study certification
+- V1 human multi-genre real-study certification
+
+## Product boundaries still enforced
+
+Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. The default experience remains Scripture first, with study tools operating contextually around the passage.
