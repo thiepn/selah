@@ -195,6 +195,15 @@ body.reading-focus .scripture { width: min(760px, calc(100% - 52px)); }
 .peek-scripture { display: grid; gap: .45rem; }
 .peek-verse { margin: 0; line-height: 1.65; }
 .peek-verse sup { opacity: .58; margin-right: .25rem; }
-.peek-connections { display: grid; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.peek-connections { display: grid; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .peek-connections h4 { margin: 0 0 .5rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; opacity: .62; }
 .peek-connections .reference-card { width: 100%; }
+
+
+.literary-context { display: grid; gap: .5rem; margin-top: 1rem; }
+.context-section { display: grid; grid-template-columns: 4.5rem 1fr auto; gap: .55rem; align-items: baseline; width: 100%; padding: .65rem .75rem; border: 1px solid var(--line); border-radius: .45rem; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.context-section > span { text-transform: uppercase; letter-spacing: .07em; font-size: .66rem; opacity: .55; }
+.context-section > strong { font-weight: 600; }
+.context-section > small { opacity: .58; }
+.context-section.current { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.context-section:hover { background: var(--surface-2); }
