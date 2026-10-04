@@ -51,6 +51,7 @@ function assertChapter(bookId: string, chapter: number, input: string): void {
 }
 
 function assertVerseNumber(verse: number, input: string): void {
+  // Exact max-verse validation belongs to versification data. This guards malformed refs now.
   if (!Number.isInteger(verse) || verse < 1 || verse > 200) {
     throw new ReferenceParseError(`Invalid verse ${verse}`, input);
   }
@@ -67,6 +68,7 @@ export function parseReference(raw: string): ParsedReference {
   const input = raw.trim().replace(/[–—]/g, '-').replace(/\s+/g, ' ');
   if (!input) throw new ReferenceParseError('Reference is empty', raw);
 
+  // Longest alias wins, which prevents "1 John" being consumed as "John".
   const candidates = [...BOOKS]
     .flatMap((book) => [book.name, book.osis, book.id, ...book.aliases].map((alias) => ({ alias, book })))
     .sort((a, b) => b.alias.length - a.alias.length);
