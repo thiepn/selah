@@ -153,227 +153,290 @@ async function loadInitial() {
     currentStudy = workspace.studyId ? await repo.getStudy(workspace.studyId) : await getStudyForPassage(scripture.passage);
     await setCurrentScripture(scripture);
   } catch (error) {
-    console.warn(error);
-    workspace = await workspaceService.create(defaultPassage);
+    workspace = { ...workspace, primaryPassage:defaultPassage, researchTrail:createResearchTrail({passage:defaultPassage}), updatedAt:Date.now() };
+    await repo.putWorkspace(workspace);
     const scripture = await scriptureProvider.getPassage(defaultPassage);
+    currentStudy = await getStudyForPassage(defaultPassage);
     await setCurrentScripture(scripture);
+    toast('Restored the development passage because the previous Scripture data is not installed.');
   }
+}
+
+function scriptureTokens() { return currentScripture?.verses.flatMap((verse)=>verse.tokens) ?? []; }
+function tokenById(id) { return scriptureTokens().find((token)=>token.id===id); }
+function verseByTokenId(id) { return currentScripture?.verses.find((verse)=>verse.tokens.some((token)=>token.id===id)); }
+
+async function renderScripture() {
+  if (!currentScripture) return;
+  const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
+  const noteVerses = new Set();
+  for (const annotation of annotations) {
+    if (annotation.kind === 'note' || annotation.kind === 'question') {
+      if (annotation.anchor.type === 'reference') {
+        for (let v=annotation.anchor.passage.start.verse; v<=annotation.anchor.passage.end.verse; v++) noteVerses.add(`${annotation.anchor.passage.start.book}.${annotation.anchor.passage.start.chapter}.${v}`);
+      } else if (annotation.anchor.type === 'text') noteVerses.add(`${annotation.anchor.verse.book}.${annotation.anchor.verse.chapter}.${annotation.anchor.verse.verse}`);
+    }
+  }
+  let previousHeading;
+  const html = [];
+  const book = BOOK_BY_ID.get(currentScripture.passage.start.book);
+  html.push(`<h1>${escapeHtml(book?.name ?? currentScripture.passage.start.book)} ${currentScripture.passage.start.chapter}</h1>`);
+  for (const verse of currentScripture.verses) {
+    if (verse.heading && verse.heading !== previousHeading) {
+      html.push(`<p class="section-heading">${escapeHtml(verse.heading)}</p>`);
+      previousHeading = verse.heading;
+    }
+    const refKey = `${verse.ref.book}.${verse.ref.chapter}.${verse.ref.verse}`;
+    const hasNote = noteVerses.has(refKey) ? ' has-note' : '';
+    const tokenHtml = verse.tokens.map((token)=>`<span class="token${patternTokenIds.has(token.id)?' pattern-hit':''}" data-token-id="${escapeHtml(token.id)}"${token.strongs?` data-strongs="${escapeHtml(token.strongs)}"`:''}>${escapeHtml(token.text)}</span>`).join('');
+    html.push(`<p class="verse${hasNote}" data-book="${verse.ref.book}" data-chapter="${verse.ref.chapter}" data-verse="${verse.ref.verse}"><button class="verse-number" type="button" aria-label="Verse ${verse.ref.verse}">${verse.ref.verse}</button>${tokenHtml}</p>`);
+  }
+  elements.scripture.innerHTML = html.join('');
+  applyAnnotationHighlights(annotations);
+}
+
+function applyAnnotationHighlights(annotations) {
+  for (const annotation of annotations) {
+    if (annotation.kind !== 'highlight' || annotation.anchor.type !== 'text' || annotation.anchor.translationId !== currentScripture.translationId) continue;
+    const tokenEls = $$('.token');
+    const start = tokenEls.findIndex((el)=>el.dataset.tokenId===annotation.anchor.startTokenId);
+    const end = tokenEls.findIndex((el)=>el.dataset.tokenId===annotation.anchor.endTokenId);
+    if (start < 0 || end < 0) continue;
+    for (let i=Math.min(start,end);i<=Math.max(start,end);i++) tokenEls[i].classList.add('annotation-highlight');
+  }
+}
+
+function tokenElementFromNode(node) {
+  const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  return el?.closest?.('[data-token-id]');
+}
+
+function selectedTokenRange() {
+  const selection = getSelection();
+  if (!selection || selection.rangeCount===0 || selection.isCollapsed || !elements.scripture.contains(selection.anchorNode) || !elements.scripture.contains(selection.focusNode)) return undefined;
+  const startEl = tokenElementFromNode(selection.anchorNode);
+  const endEl = tokenElementFromNode(selection.focusNode);
+  if (!startEl || !endEl) return undefined;
+  const tokenEls = $$('.token');
+  const a = tokenEls.indexOf(startEl); const b = tokenEls.indexOf(endEl);
+  if (a<0 || b<0) return undefined;
+  const first = tokenEls[Math.min(a,b)], last = tokenEls[Math.max(a,b)];
+  const firstVerse = first.closest('.verse'), lastVerse = last.closest('.verse');
+  const passage = {
+    start:{book:firstVerse.dataset.book,chapter:Number(firstVerse.dataset.chapter),verse:Number(firstVerse.dataset.verse)},
+    end:{book:lastVerse.dataset.book,chapter:Number(lastVerse.dataset.chapter),verse:Number(lastVerse.dataset.verse)}
+  };
+  return { startTokenId:first.dataset.tokenId, endTokenId:last.dataset.tokenId, passage, quotedText:selection.toString().trim(), sameVerse:passage.start.book===passage.end.book&&passage.start.chapter===passage.end.chapter&&passage.start.verse===passage.end.verse };
 }
 
 async function ensureStudy() {
   if (currentStudy) return currentStudy;
   currentStudy = await studyService.create(currentScripture.passage);
-  workspace = { ...workspace, studyId:currentStudy.id, updatedAt:Date.now() };
+  workspace = { ...workspace, studyId: currentStudy.id, updatedAt:Date.now() };
   await repo.putWorkspace(workspace);
   await workspaceService.markLastOpened(workspace);
   return currentStudy;
 }
 
-function updateHistoryButtons() {
-  $('#backBtn').disabled = workspace.researchTrail.index <= 0;
-  $('#forwardBtn').disabled = workspace.researchTrail.index >= workspace.researchTrail.entries.length-1;
-}
-
-function tokenById(id) {
-  for (const verse of currentScripture?.verses ?? []) {
-    const token = verse.tokens.find((candidate)=>candidate.id===id);
-    if (token) return token;
-  }
-}
-
-function verseByTokenId(id) {
-  return currentScripture?.verses.find((verse)=>verse.tokens.some((token)=>token.id===id));
-}
-
-async function renderScripture() {
-  if (!currentScripture) return;
-  const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
-  const highlightedIds = new Set();
-  const noteVerses = new Set();
-  for (const annotation of annotations) {
-    if (annotation.anchor.type==='text') {
-      const verse=currentScripture.verses.find((x)=>x.ref.book===annotation.anchor.verse.book&&x.ref.chapter===annotation.anchor.verse.chapter&&x.ref.verse===annotation.anchor.verse.verse);
-      if (verse) {
-        const ids=verse.tokens.map((x)=>x.id); const a=ids.indexOf(annotation.anchor.startTokenId); const b=ids.indexOf(annotation.anchor.endTokenId);
-        if (annotation.kind==='highlight'&&a>=0&&b>=0) for (let i=Math.min(a,b);i<=Math.max(a,b);i++) highlightedIds.add(ids[i]);
-        if (annotation.kind==='note'||annotation.kind==='question') noteVerses.add(verse.ref.verse);
-      }
-    }
-    if (annotation.anchor.type==='reference') for(let v=annotation.anchor.passage.start.verse;v<=annotation.anchor.passage.end.verse;v++)noteVerses.add(v);
-  }
-  const grouped=new Map();
-  for(const verse of currentScripture.verses){const arr=grouped.get(verse.ref.chapter)??[];arr.push(verse);grouped.set(verse.ref.chapter,arr);}
-  let html='';
-  for(const [chapter,verses] of grouped){
-    html += `<h1>${escapeHtml(BOOK_BY_ID.get(verses[0].ref.book)?.name??verses[0].ref.book)} ${chapter}</h1>`;
-    for(const verse of verses){
-      if(verse.heading) html += `<p class="section-heading">${escapeHtml(verse.heading)}</p>`;
-      html += `<p class="verse${noteVerses.has(verse.ref.verse)?' has-note':''}" data-book="${verse.ref.book}" data-chapter="${verse.ref.chapter}" data-verse="${verse.ref.verse}"><button class="verse-number" type="button" aria-label="Verse ${verse.ref.verse}">${verse.ref.verse}</button><span>${verse.tokens.map((token)=>`<span class="token${highlightedIds.has(token.id)?' annotation-highlight':''}${patternTokenIds.has(token.id)?' pattern-hit':''}" data-token-id="${escapeHtml(token.id)}"${token.strongs?` data-strongs="${escapeHtml(token.strongs)}"`:''}>${escapeHtml(token.text)}</span>`).join('')}</span></p>`;
-    }
-  }
-  elements.scripture.innerHTML=html;
-}
-
-function setActiveTabUi() {
-  $$('#studyTabs .tab').forEach((button)=>button.classList.toggle('active',button.dataset.tab===activeTab));
-}
-
-async function renderActiveTab() {
-  if (!currentScripture) return;
-  setActiveTabUi();
-  elements.studyContent.innerHTML='<div class="loading">Loading study context…</div>';
-  try {
-    if(activeTab==='guide') await renderGuide();
-    else if(activeTab==='notes') await renderNotes();
-    else if(activeTab==='references') await renderReferences();
-    else if(activeTab==='words') await renderWords();
-    else if(activeTab==='compare') await renderCompare();
-    else if(activeTab==='resources') await renderResources();
-    else if(activeTab==='phrasing') await renderPhrasing();
-  } catch(error) {
-    console.error(error);
-    elements.studyContent.innerHTML=`<div class="error-state"><strong>Study tool unavailable</strong>${escapeHtml(error instanceof Error?error.message:String(error))}</div>`;
-  }
-}
-
 async function renderGuide() {
-  const guide=await guideService.build(currentScripture);
-  const lens=await lensService.forPassage(currentScripture);
-  elements.studyContent.innerHTML=`<section class="panel"><header class="panel-header"><div><span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2></div><span class="quiet">follows passage</span></header><div class="metric-row"><span class="metric">${guide.crossReferences.length} references</span><span class="metric">${guide.annotations.length} notes</span><span class="metric">${guide.patterns.length} patterns</span><span class="metric">${lens.lexicalKeys.length} lexical keys</span></div><section class="panel-section"><h3>Context</h3><p class="panel-lede">Stay anchored in the current literary unit before leaving it for secondary resources.</p>${guide.sections.length?`<div class="passage-sections"><div class="mini-label">Textual structure</div>${guide.sections.map((section)=>`<button class="section-jump" type="button" data-verse="${section.verse}"><span>v. ${section.verse}</span><strong>${escapeHtml(section.heading)}</strong></button>`).join('')}</div>`:''}</section><section class="panel-section"><h3>Cross-references</h3>${guide.crossReferences.slice(0,8).map((x)=>referenceButton(x.target)).join('')||'<p class="quiet">No bundled references for this passage.</p>'}</section><section class="panel-section"><h3>Important words</h3>${guide.importantLexicalKeys.map((key)=>`<button class="word-card guide-word" type="button" data-strongs="${escapeHtml(key)}"><strong>${escapeHtml(key)}</strong><span>Investigate usage and morphology</span></button>`).join('')||'<p class="quiet">Select a word in Scripture to investigate it.</p>'}</section><section class="panel-section"><h3>Your material</h3>${guide.annotations.length?`${guide.annotations.slice(0,5).map(annotationHtml).join('')}`:'<p class="quiet">No notes anchored here yet.</p>'}</section><section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>`<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><strong>${escapeHtml(resource.name)}</strong><small>${escapeHtml(resource.category)} ↗</small></a>`).join('')}</section></section>`;
-  bindReferenceButtons();
-  bindAnnotationActions();
-  $$('.section-jump').forEach((button)=>button.addEventListener('click',()=>{const verse=elements.scripture.querySelector(`.verse[data-verse="${button.dataset.verse}"]`);verse?.scrollIntoView({behavior:'smooth',block:'center'});verse?.querySelector('.verse-number')?.focus();}));
-  $$('.guide-word').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));
+  elements.studyContent.innerHTML='<div class="loading">Building passage guide…</div>';
+  try {
+    const guide = await guideService.build(currentScripture);
+    const book = BOOK_BY_ID.get(currentScripture.passage.start.book);
+    elements.studyContent.innerHTML = `<section class="panel">
+      <span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2>
+      <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
+      <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Passage structure</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
+      <section class="panel-section"><h3>Patterns</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
+      <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No references available.</p>'}</div></section>
+      <section class="panel-section"><h3>Important lexical keys</h3><div class="metric-row">${guide.importantLexicalKeys.map((key)=>`<button class="metric lexical-key" data-strongs="${escapeHtml(key)}">${escapeHtml(key)}</button>`).join('')||'<span class="quiet">Lexical alignment is unavailable in this installed fixture.</span>'}</div></section>
+      <section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}</section>
+    </section>`;
+    wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
+  } catch (error) { renderToolError('Guide unavailable',error); }
 }
 
-function referenceButton(passage) {
-  return `<button class="reference-card" type="button" data-reference="${escapeHtml(formatPassage(passage))}"><strong>${escapeHtml(formatPassage(passage))}</strong><span>Peek without losing the current passage</span></button>`;
+function referenceButtonHtml(ref) {
+  const target=formatPassage(ref.target);
+  return `<button class="reference-card" type="button" data-reference="${escapeHtml(target)}"><strong>${escapeHtml(target)}</strong><span>Open without losing the primary passage</span></button>`;
 }
-
-function annotationHtml(a) {
-  const anchor=a.anchor.type==='reference'?formatPassage(a.anchor.passage):a.anchor.type==='text'?`“${a.anchor.quotedText}”`:'Original text';
-  return `<article class="annotation-item" data-annotation-id="${escapeHtml(a.id)}"><div class="annotation-heading"><div><span class="annotation-kind">${escapeHtml(a.kind)}</span><span class="annotation-anchor">${escapeHtml(anchor)}</span></div><div class="annotation-actions">${a.kind!=='highlight'?'<button type="button" data-edit-annotation>Edit</button>':''}<button type="button" data-delete-annotation>Delete</button></div></div>${a.body?`<p>${escapeHtml(a.body)}</p>`:''}</article>`;
-}
-
-function bindAnnotationActions() {
-  $$('[data-delete-annotation]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.closest('[data-annotation-id]')?.dataset.annotationId;if(!id)return;if(!confirm('Delete this annotation?'))return;await annotationService.remove(id);toast('Annotation deleted.');await renderScripture();await renderActiveTab();}));
-  $$('[data-edit-annotation]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.closest('[data-annotation-id]')?.dataset.annotationId;if(!id)return;const annotation=(await repo.listAnnotations()).find((item)=>item.id===id);if(!annotation)return;const body=prompt(annotation.kind==='question'?'Edit question':'Edit note',annotation.body??'');if(body===null)return;await annotationService.update(id,{body:body.trim()});toast('Annotation updated.');await renderActiveTab();}));
-}
+function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
 async function renderNotes() {
-  const annotations=await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
-  const document=currentStudy?await repo.getStudyDocument(currentStudy.id):undefined;
-  const links=document?extractStudyDocumentScriptureLinks(document.plainText):[];
-  elements.studyContent.innerHTML=`<section class="panel"><header class="panel-header"><div><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(currentStudy?.title??formatPassage(currentScripture.passage))}</h2></div><span id="saveState" class="quiet">saved locally</span></header><textarea id="studyDocument" class="study-document" placeholder="Write freely. Suggested headings:&#10;&#10;Observations&#10;Questions&#10;Structure&#10;Context&#10;Interpretation&#10;Connections&#10;Summary">${escapeHtml(document?.plainText??'')}</textarea><p class="panel-lede">Use <code>[[Romans 8:1-4]]</code> to create a Scripture link without turning Selah into a PKM system.</p><section class="panel-section linked-scripture"><h3>Linked Scripture</h3>${links.map((link)=>`<button class="reference-card" type="button" data-reference="${escapeHtml(formatPassage(link.passage))}"><strong>${escapeHtml(formatPassage(link.passage))}</strong><span>${escapeHtml(link.raw)}</span></button>`).join('')||'<p class="quiet">No Scripture links in this document yet.</p>'}</section><section class="panel-section"><h3>Anchored notes</h3><div class="annotation-list">${annotations.map(annotationHtml).join('')||'<p class="quiet">Select Scripture and add a note, question, or highlight.</p>'}</div></section></section>`;
-  bindReferenceButtons();
-  bindAnnotationActions();
-  const textarea=$('#studyDocument');
-  textarea.addEventListener('input',()=>{clearTimeout(noteSaveTimer);setSaving(true);noteSaveTimer=setTimeout(async()=>{const study=await ensureStudy();await repo.putStudyDocument({studyId:study.id,format:'plaintext',document:textarea.value,plainText:textarea.value,updatedAt:Date.now()});await studyService.touch(study.id);setSaving(false);},260);});
+  const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
+  const document = currentStudy ? await repo.getStudyDocument(currentStudy.id) : undefined;
+  const documentText=document?.plainText??'';
+  const links=extractStudyDocumentScriptureLinks(documentText);
+  const linkedHtml=links.length?`<section class="panel-section linked-scripture"><h3>Linked Scripture</h3><div class="metric-row">${links.map((link)=>`<button class="metric" type="button" data-reference="${escapeHtml(formatPassage(link.passage))}">${escapeHtml(link.label)}</button>`).join('')}</div><p class="quiet">Type references as <code>[[Romans 8:1-4]]</code>. Links remain ordinary plaintext and open as Peeks.</p></section>`:'';
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Write synthesis here; keep verse-specific observations anchored directly to Scripture.</p>
+    <section class="panel-section"><h3>Anchored material</h3><div class="annotation-list">${annotations.map(annotationHtml).join('')||'<p class="quiet">Select Scripture and add a note, question, or highlight.</p>'}</div></section>
+    <textarea class="study-document" id="studyDocument" placeholder="Observations\n\nQuestions\n\nStructure\n\nInterpretation\n\nConnections\n\nSummary">${escapeHtml(documentText)}</textarea>${linkedHtml}</section>`;
+  $('#studyDocument').addEventListener('input',(event)=>{scheduleDocumentSave(event.target.value);renderStudyDocumentLinks(event.target.value);});
+  wireAnnotationActions(); wireReferenceButtons();
+}
+
+function annotationHtml(annotation) {
+  const anchor = annotation.anchor.type==='reference' ? formatPassage(annotation.anchor.passage) : annotation.anchor.type==='text' ? annotation.anchor.quotedText : 'original-language token';
+  const body = annotation.body || (annotation.kind==='highlight' ? `Highlight (${annotation.highlightStyle??'default'})` : '');
+  const editable=annotation.kind!=='highlight' && annotation.body;
+  return `<article class="annotation-item" data-annotation-id="${escapeHtml(annotation.id)}"><div class="annotation-heading"><div><span class="annotation-kind">${escapeHtml(annotation.kind)}</span><span class="annotation-anchor">${escapeHtml(anchor)}</span></div><div class="annotation-actions">${editable?'<button type="button" data-annotation-action="edit">Edit</button>':''}<button type="button" data-annotation-action="delete">Delete</button></div></div>${body?`<p>${escapeHtml(body)}</p>`:''}</article>`;
+}
+
+function renderStudyDocumentLinks(text) {
+  const links=extractStudyDocumentScriptureLinks(text);
+  let section=$('.linked-scripture');
+  if(!links.length){section?.remove();return;}
+  const html=`<h3>Linked Scripture</h3><div class="metric-row">${links.map((link)=>`<button class="metric" type="button" data-reference="${escapeHtml(formatPassage(link.passage))}">${escapeHtml(link.label)}</button>`).join('')}</div><p class="quiet">Type references as <code>[[Romans 8:1-4]]</code>. Links remain ordinary plaintext and open as Peeks.</p>`;
+  if(!section){section=document.createElement('section');section.className='panel-section linked-scripture';$('#studyDocument').insertAdjacentElement('afterend',section);}
+  section.innerHTML=html; wireReferenceButtons();
+}
+
+function wireAnnotationActions() {
+  $$('[data-annotation-action]').forEach((button)=>button.addEventListener('click',async()=>{
+    const item=button.closest('[data-annotation-id]'); const id=item?.dataset.annotationId; if(!id)return;
+    const action=button.dataset.annotationAction;
+    if(action==='edit'){
+      const annotation=(await repo.listAnnotations()).find((x)=>x.id===id); if(!annotation)return;
+      const revised=prompt('Edit annotation',annotation.body??''); if(revised===null)return;
+      await annotationService.update(id,{body:revised.trim()}); await currentStudy&&studyService.touch(currentStudy.id); await renderNotes();
+    }
+    if(action==='delete'){
+      if(!confirm('Delete this anchored annotation?'))return;
+      await annotationService.remove(id); await currentStudy&&studyService.touch(currentStudy.id); await renderScripture(); await renderNotes();
+    }
+  }));
+}
+
+function scheduleDocumentSave(value) {
+  setSaving(true); clearTimeout(noteSaveTimer);
+  noteSaveTimer=setTimeout(async()=>{
+    const study=await ensureStudy();
+    await repo.putStudyDocument({studyId:study.id,format:'plaintext',document:null,plainText:value,updatedAt:Date.now()});
+    await studyService.touch(study.id); setSaving(false);
+  },300);
 }
 
 async function renderReferences() {
-  const references=await researchProvider.forPassage(currentScripture.passage);
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">CROSS-REFERENCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">References open as Peeks first, keeping your primary study fixed.</p><div>${references.map((x)=>referenceButton(x.target)).join('')||'<p class="quiet">No bundled cross-references for this passage.</p>'}</div></section>`;
-  bindReferenceButtons();
+  elements.studyContent.innerHTML='<div class="loading">Loading references…</div>';
+  try {
+    const refs=await researchProvider.forPassage(currentScripture.passage);
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">CROSS-REFERENCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">References open as a Peek first so you do not lose the text you are studying.</p><div>${refs.map(referenceButtonHtml).join('')||'<p class="quiet">No cross-references available for this passage.</p>'}</div></section>`;
+    wireReferenceButtons();
+  } catch(error){ renderToolError('References unavailable',error); }
 }
 
 async function renderWords() {
-  const verse=selectedToken?verseByTokenId(selectedToken.id):context.get().activeVerse??currentScripture.verses[0]?.ref;
-  if(!verse){elements.studyContent.innerHTML='<div class="empty-state">Select a verse or word.</div>';return;}
-  const analyses=await originalLanguage.analyzeVerse(verse);
-  let shown=selectedLexicalKey?analyses.filter((x)=>x.token.strongs===selectedLexicalKey):(selectedToken?.strongs?analyses.filter((x)=>x.token.strongs===selectedToken.strongs):analyses);
-  if(selectedLexicalKey&&!shown.length){
-    const [lexicon,occurrences]=await Promise.all([researchProvider.get(selectedLexicalKey),researchProvider.versesForStrongs(selectedLexicalKey)]);
-    shown=[{ref:verse,token:{id:`guide:${selectedLexicalKey}`,text:lexicon?.lemma??selectedLexicalKey,strongs:selectedLexicalKey,language:lexicon?.language==='hebrew'?'hbo':'grc'},...(lexicon?{lexicon}:{}),occurrences,occurrenceCount:occurrences.length}];
+  const strongs = selectedToken?.strongs ?? selectedLexicalKey;
+  if (!strongs) {
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY</span><h2>Select an aligned word</h2><p class="panel-lede">Tap a word in Scripture that has original-language alignment, or choose an important lexical key from the Guide. Selah shows lexical, morphology, and concordance evidence without treating a gloss as the meaning of the whole verse.</p><p class="warning">The bundled development fixture does not include Strong’s alignment. Run the full BSB data vendoring command to activate this layer.</p></section>`;
+    return;
   }
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY</span><h2>${escapeHtml(formatPassage({start:verse,end:verse}))}</h2><p class="panel-lede">Lexical and morphological data are evidence to investigate, not an automatic interpretation.</p>${shown.map((item)=>`<section class="panel-section"><div class="word-lemma">${escapeHtml(item.token.text)}</div><div class="word-translit">${escapeHtml(item.lexicon?.transliteration??item.token.strongs??'')}</div>${item.lexicon?.gloss?`<p class="word-definition"><strong>Gloss:</strong> ${escapeHtml(item.lexicon.gloss)}</p>`:''}${item.lexicon?.definition?`<p class="word-definition">${escapeHtml(item.lexicon.definition)}</p>`:''}${item.morphology?.morphology?`<div class="metric-row"><span class="metric">${escapeHtml(item.morphology.morphology)}</span>${item.morphology.partOfSpeech?`<span class="metric">${escapeHtml(item.morphology.partOfSpeech)}</span>`:''}</div>`:''}${item.occurrenceCount!==undefined?`<p class="quiet">${item.occurrenceCount} verse occurrences in the bundled concordance</p><div class="occurrence-list">${(item.occurrences??[]).slice(0,24).map((ref)=>referenceButton({start:ref,end:ref})).join('')}</div>`:''}</section>`).join('')||'<p class="quiet">No original-language alignment is available for this verse in the installed data pack.</p>'}<p class="warning">Do not infer a passage's meaning from a gloss alone. Usage, grammar, literary context, and argument remain primary.</p></section>`;
-  bindReferenceButtons();
+  elements.studyContent.innerHTML='<div class="loading">Loading original-language data…</div>';
+  try {
+    const passageAnalyses=(await Promise.all(currentScripture.verses.map((verse)=>originalLanguage.analyzeVerse(verse.ref)))).flat();
+    const analyses=passageAnalyses.filter((x)=>x.token.strongs===strongs);
+    const lex=await researchProvider.get(strongs);
+    const first=analyses[0];
+    const heading=selectedToken?.text.trim() || lex?.lemma || strongs;
+    const occurrences=first?.occurrences ?? await researchProvider.versesForStrongs(strongs);
+    const occurrenceHtml=occurrences.length
+      ? occurrences.slice(0,24).map((ref)=>`<button class="metric occurrence-ref" type="button" data-reference="${escapeHtml(formatPassage({start:ref,end:ref}))}">${escapeHtml(formatPassage({start:ref,end:ref}))}</button>`).join('')
+      : '<span class="quiet">No concordance occurrences are installed.</span>';
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY · ${escapeHtml(strongs)}</span><h2>${escapeHtml(heading)}</h2><p class="panel-lede">Original-language evidence connected to this passage.</p>${analyses.map((a)=>`<section class="panel-section"><div class="word-lemma">${escapeHtml(a.morphology?.lemma||a.lexicon?.lemma||a.token.text)}</div><div class="word-translit">${escapeHtml(a.lexicon?.transliteration||'')} ${escapeHtml(a.morphology?.partOfSpeech||'')}</div><div class="metric-row">${a.morphology?.morphology?`<span class="metric">${escapeHtml(a.morphology.morphology)}</span>`:''}${a.occurrenceCount!==undefined?`<span class="metric">${a.occurrenceCount} verse occurrences</span>`:''}<span class="metric">${escapeHtml(formatPassage({start:a.ref,end:a.ref}))}</span></div></section>`).join('')||'<p class="quiet">This key is present in the research index but has no aligned token in the current passage.</p>'}${lex?`<section class="panel-section"><h3>Lexicon</h3><p class="word-definition"><strong>${escapeHtml(lex.gloss||'')}</strong>${lex.definition?` — ${escapeHtml(lex.definition)}`:''}</p></section>`:''}<section class="panel-section"><h3>Occurrences</h3><div class="metric-row occurrence-list">${occurrenceHtml}</div>${occurrences.length>24?`<p class="quiet">Showing the first 24 of ${occurrences.length} verse occurrences.</p>`:''}</section><p class="warning">Lexical data describes possible usage. Meaning is determined by this sentence, argument, genre, and broader context—not by a dictionary gloss alone.</p></section>`;
+    wireReferenceButtons();
+  } catch(error){ renderToolError('Word study unavailable',error); }
 }
 
 async function renderCompare() {
-  const result=await translations.compare(currentScripture.passage,['BSB']);
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">COMPARE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Selah only bundles translations it may legally redistribute. Additional providers can plug into this surface later.</p><div class="compare-grid">${result.translations.map(({metadata,scripture})=>`<section class="translation-block"><h3>${escapeHtml(metadata.abbreviation)}</h3>${scripture.verses.map((verse)=>`<p><sup>${verse.ref.verse}</sup> ${escapeHtml(verse.tokens.map((t)=>t.text).join(''))}</p>`).join('')}</section>`).join('')}</div></section>`;
+  const result=await translations.compare(currentScripture.passage,translations.list().map((x)=>x.id));
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">COMPARE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Selah only displays translations whose redistribution rights are configured. BSB is the built-in public-domain translation.</p><div class="compare-grid">${result.translations.map(({metadata,scripture})=>`<section class="translation-block"><h3>${escapeHtml(metadata.abbreviation)}</h3><p>${scripture.verses.map((v)=>`<sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}`).join(' ')}</p></section>`).join('')}</div></section>`;
+}
+
+function defaultPhrasingDocument(study) {
+  return { id:crypto.randomUUID(),studyId:study.id,passage:structuredClone(currentScripture.passage),roots:currentScripture.verses.map((verse)=>({id:crypto.randomUUID(),tokenIds:verse.tokens.map((t)=>t.id),label:`v.${verse.ref.verse}`,children:[]})),updatedAt:Date.now() };
+}
+function phraseText(node){return node.tokenIds.map((id)=>tokenById(id)?.text??'').join('');}
+function phraseSplitHtml(node){
+  if(phrasingSplitNodeId!==node.id || node.children.length || node.tokenIds.length<2) return `<div class="phrase-text">${escapeHtml(phraseText(node))}</div>`;
+  return `<div class="phrase-text phrase-split-mode">${node.tokenIds.map((id,index)=>{const token=tokenById(id);const marker=index<node.tokenIds.length-1?`<button class="phrase-split-marker" data-phrase-action="split-after" data-id="${node.id}" data-token-id="${escapeHtml(id)}" type="button" title="Split here" aria-label="Split phrase after ${escapeHtml(token?.text??'token')}">│</button>`:'';return `<span>${escapeHtml(token?.text??'')}</span>${marker}`;}).join('')}</div>`;
+}
+function phraseNodeHtml(node,depth=0){return `<div class="phrase-node" style="margin-left:${Math.min(depth,5)*14}px" data-phrase-id="${node.id}"><input class="phrase-label" data-label-id="${node.id}" value="${escapeHtml(node.label??'')}" placeholder="Label">${phraseSplitHtml(node)}<div class="phrase-toolbar"><button data-phrase-action="split-mode" data-id="${node.id}" type="button">${phrasingSplitNodeId===node.id?'Cancel split':'Split'}</button><button data-phrase-action="merge-prev" data-id="${node.id}" type="button">Merge ↑</button><button data-phrase-action="indent" data-id="${node.id}" type="button">Indent</button><button data-phrase-action="outdent" data-id="${node.id}" type="button">Outdent</button></div>${node.children.map((x)=>phraseNodeHtml(x,depth+1)).join('')}</div>`;}
+
+async function renderPhrasing() {
+  if (currentStudy) phrasingDocument=(await repo.listPhrasingDocuments(currentStudy.id)).find((x)=>samePassage(x.passage,currentScripture.passage));
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">PHRASING</span><h2>See the argument</h2><p class="panel-lede">Indent clauses or verse units to make relationships visible. This structure is your analysis; Scripture tokens themselves are never modified.</p>${phrasingDocument?`<div class="phrase-tree">${phrasingDocument.roots.map((x)=>phraseNodeHtml(x)).join('')}</div>`:'<button class="primary-button" id="startPhrasing" type="button">Start phrasing this passage</button>'}</section>`;
+  $('#startPhrasing')?.addEventListener('click',async()=>{const study=await ensureStudy(); phrasingDocument=defaultPhrasingDocument(study); await repo.putPhrasingDocument(phrasingDocument); await renderPhrasing();});
+  $$('[data-phrase-action]').forEach((button)=>button.addEventListener('click',async()=>{
+    if(!phrasingDocument)return;
+    const id=button.dataset.id; const action=button.dataset.phraseAction;
+    if(action==='split-mode'){phrasingSplitNodeId=phrasingSplitNodeId===id?undefined:id;await renderPhrasing();return;}
+    let roots=phrasingDocument.roots;
+    if(action==='split-after'){roots=splitPhraseNode(roots,id,button.dataset.tokenId,crypto.randomUUID());phrasingSplitNodeId=undefined;}
+    else if(action==='merge-prev') roots=mergePhraseWithPrevious(roots,id);
+    else if(action==='indent') roots=indentPhrase(roots,id);
+    else if(action==='outdent') roots=outdentPhrase(roots,id);
+    phrasingDocument={...phrasingDocument,roots,updatedAt:Date.now()}; await repo.putPhrasingDocument(phrasingDocument); await renderPhrasing();
+  }));
+  $$('[data-label-id]').forEach((input)=>input.addEventListener('change',async()=>{if(!phrasingDocument)return;phrasingDocument={...phrasingDocument,roots:updatePhraseNode(phrasingDocument.roots,input.dataset.labelId,{label:input.value}),updatedAt:Date.now()};await repo.putPhrasingDocument(phrasingDocument);}));
 }
 
 async function renderResources() {
   const guide=await guideService.build(currentScripture);
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">RESOURCES</span><h2>Investigate when needed</h2><p class="panel-lede">Secondary resources stay secondary. Read and observe Scripture first.</p>${guide.resources.map(({resource,url})=>`<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><strong>${escapeHtml(resource.name)}</strong><small>${escapeHtml(resource.category)} ↗</small></a>`).join('')}<button id="attributionBtn" class="resource-link" type="button"><strong>Data sources & attribution</strong><small>licenses</small></button><section id="attributionPanel" class="panel-section" hidden></section><button id="copyAiBtn" class="resource-link" type="button"><strong>Copy study context</strong><small>external AI / other tools</small></button></section>`;
-  $('#copyAiBtn').addEventListener('click',()=>elements.exportDialog.showModal());
-  $('#attributionBtn').addEventListener('click',async()=>{const panel=$('#attributionPanel');panel.hidden=false;panel.innerHTML='<p class="quiet">Loading bundled attribution…</p>';try{const response=await fetch('./data/bsb/ATTRIBUTION.md');const text=response.ok?await response.text():'No attribution file is bundled in this development data pack.';panel.innerHTML=`<pre class="attribution-text">${escapeHtml(text)}</pre>`;}catch{panel.innerHTML='<p class="quiet">Attribution file unavailable.</p>';}});
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">EXTERNAL RESOURCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Open trusted external tools only when you deliberately want them. Selah keeps commentary secondary to your own observation of the text.</p>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}<section class="resource-attribution"><h3>Data & licenses</h3><a class="resource-link" href="./data/bsb/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer"><span><strong>Bundled Scripture & research data</strong><small>View source attribution and licenses</small></span><span aria-hidden="true">↗</span></a></section></section>`;
 }
 
-function initialPhraseRoots() {
-  return currentScripture.verses.map((verse)=>({id:crypto.randomUUID(),tokenIds:verse.tokens.map((x)=>x.id),label:`v. ${verse.ref.verse}`,children:[]}));
+async function renderActiveTab() {
+  $$('.tab').forEach((tab)=>tab.classList.toggle('active',tab.dataset.tab===activeTab));
+  if(!currentScripture)return;
+  if(activeTab==='guide')return renderGuide();
+  if(activeTab==='notes')return renderNotes();
+  if(activeTab==='references')return renderReferences();
+  if(activeTab==='words')return renderWords();
+  if(activeTab==='compare')return renderCompare();
+  if(activeTab==='phrasing')return renderPhrasing();
+  if(activeTab==='resources')return renderResources();
 }
 
-function phraseText(node) { return node.tokenIds.map((id)=>tokenById(id)?.text??'').join(''); }
-
-function phraseNodeHtml(node,depth=0) {
-  const splitMode=phrasingSplitNodeId===node.id;
-  const tokenParts=splitMode?node.tokenIds.map((id,index)=>`${escapeHtml(tokenById(id)?.text??'')}${index<node.tokenIds.length-1?`<button class="phrase-split-marker" type="button" data-phrase-split="${escapeHtml(node.id)}" data-after-token="${escapeHtml(id)}" title="Split after this token">¦</button>`:''}`).join(''):`<span class="phrase-text">${escapeHtml(phraseText(node))}</span>`;
-  return `<div class="phrase-node" data-node-id="${escapeHtml(node.id)}" style="margin-left:${depth*18}px"><input class="phrase-label" value="${escapeHtml(node.label??'')}" placeholder="Label this unit" /><div class="${splitMode?'phrase-split-mode':'phrase-text'}">${tokenParts}</div><div class="phrase-toolbar"><button type="button" data-action="indent">Indent</button><button type="button" data-action="outdent">Outdent</button><button type="button" data-action="split">${splitMode?'Cancel split':'Split'}</button><button type="button" data-action="merge">Merge ↑</button></div></div>${node.children.map((child)=>phraseNodeHtml(child,depth+1)).join('')}`;
-}
-
-async function savePhrasing() {
-  if(!phrasingDocument)return; phrasingDocument={...phrasingDocument,updatedAt:Date.now()};await repo.putPhrasingDocument(phrasingDocument);setSaving(false);
-}
-
-async function renderPhrasing() {
-  const study=await ensureStudy(); const id=`phrasing:${study.id}:${canonicalPassageId(currentScripture.passage)}`;
-  phrasingDocument=await repo.getPhrasingDocument(id)??{id,studyId:study.id,passage:structuredClone(currentScripture.passage),roots:initialPhraseRoots(),updatedAt:Date.now()};
-  elements.studyContent.innerHTML=`<section class="panel"><header class="panel-header"><div><span class="eyebrow">PHRASING</span><h2>Structure the passage</h2></div><span id="saveState" class="quiet">saved locally</span></header><p class="panel-lede">Indent, group, label, split, and recombine units without modifying Scripture itself.</p><div id="phraseTree" class="phrase-tree">${phrasingDocument.roots.map((node)=>phraseNodeHtml(node)).join('')}</div></section>`;
-  $('#phraseTree').addEventListener('click',async(event)=>{
-    const splitMarker=event.target.closest('[data-phrase-split]');if(splitMarker){setSaving(true);phrasingDocument.roots=splitPhraseNode(phrasingDocument.roots,splitMarker.dataset.phraseSplit,splitMarker.dataset.afterToken,crypto.randomUUID());phrasingSplitNodeId=undefined;await savePhrasing();await renderPhrasing();return;}
-    const button=event.target.closest('[data-action]');if(!button)return;const id=button.closest('[data-node-id]').dataset.nodeId;setSaving(true);
-    if(button.dataset.action==='indent')phrasingDocument.roots=indentPhrase(phrasingDocument.roots,id);
-    if(button.dataset.action==='outdent')phrasingDocument.roots=outdentPhrase(phrasingDocument.roots,id);
-    if(button.dataset.action==='split'){phrasingSplitNodeId=phrasingSplitNodeId===id?undefined:id;await renderPhrasing();return;}
-    if(button.dataset.action==='merge')phrasingDocument.roots=mergePhraseWithPrevious(phrasingDocument.roots,id);
-    await savePhrasing();await renderPhrasing();
-  });
-  $('#phraseTree').addEventListener('change',async(event)=>{if(!event.target.matches('.phrase-label'))return;const id=event.target.closest('[data-node-id]').dataset.nodeId;setSaving(true);phrasingDocument.roots=updatePhraseNode(phrasingDocument.roots,id,{label:event.target.value.trim()||undefined});await savePhrasing();});
-}
-
-function bindReferenceButtons() {
-  $$('[data-reference]').forEach((button)=>button.addEventListener('click',async()=>{const parsed=parseReference(button.dataset.reference);if(parsed.passage)await openPeek(parsed.passage);}));
-}
+function renderToolError(title,error){elements.studyContent.innerHTML=`<div class="error-state"><strong>${escapeHtml(title)}</strong>${escapeHtml(error instanceof Error?error.message:String(error))}</div>`;}
+function wireReferenceButtons(){$$('[data-reference]').forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
+function wireLexicalButtons(){$$('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
+function wireSectionJumps(){$$('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
 
 async function openPeek(passage) {
-  activePeekPassage=passage;elements.peek.hidden=false;elements.peekTitle.textContent=formatPassage(passage);elements.peekText.textContent='Loading Scripture…';
-  try{const scripture=await scriptureProvider.getPassage(passage);elements.peekText.textContent=scripture.verses.map((v)=>`${v.ref.verse} ${v.tokens.map((t)=>t.text).join('')}`).join('\n');}
-  catch{elements.peekText.textContent='This reference is not installed in the current offline data pack.';}
+  activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); elements.peek.hidden=false; elements.peekText.textContent='Loading…';
+  try { const scripture=await scriptureProvider.getPassage(passage); elements.peekText.textContent=scripture.verses.map((v)=>`${v.ref.verse} ${v.tokens.map((t)=>t.text).join('')}`).join('\n'); }
+  catch { elements.peekText.textContent='This reference is not installed in the current development data fixture. It will resolve after the complete BSB dataset is vendored.'; }
 }
 
 async function navigateResearch(passage) {
-  workspace=await workspaceService.navigate(workspace,passage);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(passage));
+  try { workspace=await workspaceService.navigate(workspace,passage); await setCurrentScripture(await scriptureProvider.getPassage(passage)); }
+  catch(error){toast(error instanceof Error?error.message:'Unable to open passage');}
 }
 
-async function renderStudies(query='') {
-  const studies=(await repo.listStudies()).sort((a,b)=>b.updatedAt-a.updatedAt);
-  const filtered=studies.filter((x)=>!query||(`${x.title??''} ${formatPassage(x.primaryPassage)} ${x.tags.join(' ')}`).toLowerCase().includes(query.toLowerCase()));
-  elements.studiesList.innerHTML=filtered.map((study)=>`<article class="study-row" data-study-row="${escapeHtml(study.id)}"><button type="button" class="study-open" data-study-id="${escapeHtml(study.id)}"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))}${study.archived?' · archived':''}</span></button><span class="study-actions"><button type="button" data-rename-study title="Rename">Rename</button><button type="button" data-archive-study title="${study.archived?'Restore':'Archive'}">${study.archived?'Restore':'Archive'}</button></span></article>`).join('')||'<p class="quiet">No saved studies yet. A study is created when you first write or annotate.</p>';
-  $$('[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const study=await repo.getStudy(button.dataset.studyId);if(!study)return;currentStudy=study;let target=(await repo.listWorkspaces()).find((w)=>w.studyId===study.id);workspace=target??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);elements.studiesDrawer.hidden=true;await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));}));
-  $$('[data-rename-study]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.closest('[data-study-row]').dataset.studyRow;const study=await repo.getStudy(id);if(!study)return;const next=prompt('Study title',study.title??formatPassage(study.primaryPassage));if(next===null)return;try{await studyService.rename(id,next);if(currentStudy?.id===id)currentStudy=await repo.getStudy(id);await renderStudies(elements.studySearch.value);if(activeTab==='notes')await renderNotes();}catch(error){toast(error instanceof Error?error.message:'Unable to rename study');}}));
-  $$('[data-archive-study]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.closest('[data-study-row]').dataset.studyRow;const study=await repo.getStudy(id);if(!study)return;await studyService.setArchived(id,!study.archived);if(currentStudy?.id===id)currentStudy=await repo.getStudy(id);await renderStudies(elements.studySearch.value);toast(study.archived?'Study restored.':'Study archived.');}));
+function updateHistoryButtons(){ $('#backBtn').disabled=workspace.researchTrail.index<=0; $('#forwardBtn').disabled=workspace.researchTrail.index>=workspace.researchTrail.entries.length-1; }
+
+async function renderStudies(filter='') {
+  const q=filter.trim().toLowerCase();
+  const studies=(await repo.listStudies()).filter((s)=>!s.archived&&(s.title??formatPassage(s.primaryPassage)).toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
+  elements.studiesList.innerHTML=studies.length?studies.map((study)=>`<article class="study-row" data-study-id="${study.id}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button><div class="study-actions"><button type="button" data-study-action="rename">Rename</button><button type="button" data-study-action="archive">Archive</button></div></article>`).join(''):'<p class="quiet">No saved studies yet. Selah creates one when you first write or annotate.</p>';
+  $$('.study-open').forEach((button)=>button.addEventListener('click',async()=>{const row=button.closest('[data-study-id]');const study=await repo.getStudy(row.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));elements.studiesDrawer.hidden=true;}));
+  $$('[data-study-action]').forEach((button)=>button.addEventListener('click',async()=>{const row=button.closest('[data-study-id]');const id=row?.dataset.studyId;if(!id)return;if(button.dataset.studyAction==='rename'){const study=await repo.getStudy(id);if(!study)return;const next=prompt('Rename study',study.title??formatPassage(study.primaryPassage));if(next===null)return;try{const updated=await studyService.rename(id,next);if(currentStudy?.id===id)currentStudy=updated;await renderStudies(elements.studySearch.value);toast('Study renamed.');}catch(error){toast(error instanceof Error?error.message:'Unable to rename study');}}if(button.dataset.studyAction==='archive'){await studyService.setArchived(id,true);if(currentStudy?.id===id)currentStudy=undefined;await renderStudies(elements.studySearch.value);toast('Study archived.');}}));
 }
 
-function selectedTokenRange() {
-  const selection=getSelection();if(!selection?.rangeCount||selection.isCollapsed)return undefined;
-  const range=selection.getRangeAt(0);const startEl=range.startContainer.parentElement?.closest?.('[data-token-id]')??(range.startContainer.nodeType===1?range.startContainer.closest?.('[data-token-id]'):undefined);const endEl=range.endContainer.parentElement?.closest?.('[data-token-id]')??(range.endContainer.nodeType===1?range.endContainer.closest?.('[data-token-id]'):undefined);
-  if(!startEl||!endEl)return undefined;
-  const startVerse=verseByTokenId(startEl.dataset.tokenId);const endVerse=verseByTokenId(endEl.dataset.tokenId);if(!startVerse||!endVerse)return undefined;
-  return {passage:{start:startVerse.ref,end:endVerse.ref},startTokenId:startEl.dataset.tokenId,endTokenId:endEl.dataset.tokenId,quotedText:selection.toString().trim(),sameVerse:startVerse.ref.book===endVerse.ref.book&&startVerse.ref.chapter===endVerse.ref.chapter&&startVerse.ref.verse===endVerse.ref.verse};
+function downloadTextFile(name,text,type='application/json') {
+  const blob=new Blob([text],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 async function togglePatterns() {
-  const button=$('#patternsBtn');const on=!button.classList.contains('active');button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));patternTokenIds.clear();
-  if(on){for(const pattern of analyzePatterns(currentScripture))for(const occurrence of pattern.occurrences)patternTokenIds.add(occurrence.tokenId);}
+  const button=$('#patternsBtn'); button.classList.toggle('active'); button.setAttribute('aria-pressed',String(button.classList.contains('active'))); patternTokenIds.clear();
+  if(button.classList.contains('active')) for(const pattern of analyzePatterns(currentScripture)) for(const hit of pattern.occurrences) patternTokenIds.add(hit.tokenId);
   await renderScripture();
 }
 
 async function updateSelectionLens() {
-  if(!selectedRangeInfo){$('#selectionLensMeta').textContent='';return;}
-  try { const passage=await scriptureProvider.getPassage(selectedRangeInfo.passage);const lens=await lensService.forPassage(passage);const lexical=lens.lexicalKeys.length?`${lens.lexicalKeys.length} lexical`:'';$('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
+  if(!selectedRangeInfo)return;
+  const verses=currentScripture.verses.filter((verse)=>verse.ref.chapter===selectedRangeInfo.passage.start.chapter&&verse.ref.verse>=selectedRangeInfo.passage.start.verse&&verse.ref.verse<=selectedRangeInfo.passage.end.verse);
+  try { const lens=await lensService.forPassage({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,verses}); const lexical=lens.lexicalKeys.slice(0,2).join(' · '); $('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
 }
 
 async function createAnnotationFromSelection(body) {
