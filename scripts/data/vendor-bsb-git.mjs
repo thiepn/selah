@@ -26,9 +26,9 @@ for(const book of BOOKS){
   maxVerses[book.id]={};
   for(let chapter=1;chapter<=book.chapters;chapter+=1){
     chapters+=1;
-    const path=join(outputRoot,`display/${book.id}/${book.id}${chapter}.jsonl`);
+    const path=join(outputRoot,`display/${book.id}/${book.id}${chapter}.json`);
     const text=await readFile(path,'utf8'); bytes+=Buffer.byteLength(text); let max=0;
-    for(const line of text.split(/\r?\n/)){if(!line.trim())continue;const parsed=JSON.parse(line);for(const key of Object.keys(parsed.eng??{})){max=Math.max(max,Number(key));verses+=1;}}
+    const parsed=JSON.parse(text); for(const key of Object.keys(parsed.eng??{})){max=Math.max(max,Number(key));verses+=1;}
     maxVerses[book.id][chapter]=max;
   }
 }
