@@ -70,3 +70,27 @@ test('guide exposes structural headings already present in Scripture data', asyn
   assert.deepEqual(result.sections,[{verse:5,heading:'The Mind of Christ'}]);
   assert.deepEqual(result.backlinks,[]);
 });
+
+
+test('guide derives previous/current/next literary sections from Bible headings', async () => {
+  const repo = new MemorySelahRepository();
+  const annotations = new AnnotationService(repo);
+  const refs = new BsbPdCrossReferenceProvider('');
+  const chapter=[
+    {ref:p('Phil 2:1').start,tokens:[{id:'a',text:'A',language:'en'}],heading:'Unity and Humility'},
+    {ref:p('Phil 2:2').start,tokens:[{id:'b',text:'B',language:'en'}]},
+    {ref:p('Phil 2:5').start,tokens:[{id:'c',text:'C',language:'en'}],heading:'The Mind of Christ'},
+    {ref:p('Phil 2:6').start,tokens:[{id:'d',text:'D',language:'en'}]},
+    {ref:p('Phil 2:12').start,tokens:[{id:'e',text:'E',language:'en'}],heading:'Lights in the World'},
+    {ref:p('Phil 2:13').start,tokens:[{id:'f',text:'F',language:'en'}]},
+  ];
+  const scriptureProvider={translation:{id:'BSB',name:'BSB',abbreviation:'BSB',language:'en',license:'PD'},getChapter:async()=>chapter};
+  const guide = new PassageGuideService(annotations, refs, scriptureProvider);
+  const scripture={translationId:'BSB',passage:p('Phil 2:5-7'),verses:chapter.slice(2,4)};
+  const result=await guide.build(scripture);
+  assert.deepEqual(result.literaryContext.map((x)=>[x.role,x.heading]),[
+    ['previous','Unity and Humility'],['current','The Mind of Christ'],['next','Lights in the World'],
+  ]);
+  assert.equal(result.literaryContext[1].passage.start.verse,5);
+  assert.equal(result.literaryContext[1].passage.end.verse,11);
+});
