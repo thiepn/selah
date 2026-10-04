@@ -9,15 +9,16 @@ let chapters = 0;
 let verses = 0;
 for (const book of BOOKS) {
   for (let chapter = 1; chapter <= book.chapters; chapter += 1) {
-    const display = join(dataRoot, `display/${book.id}/${book.id}${chapter}.jsonl`);
+    const display = join(dataRoot, `display/${book.id}/${book.id}${chapter}.json`);
     const research = join(dataRoot, `index-cc-by/${book.id}/${book.id}${chapter}.jsonl`);
     await access(display);
     await access(research);
     const text = await readFile(display, 'utf8');
-    const parsedLines = text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
-    if (!parsedLines.length) throw new Error(`Empty display data: ${book.id} ${chapter}`);
+    const parsed = JSON.parse(text);
+    const verseCount = Object.keys(parsed.eng ?? {}).length;
+    if (!verseCount) throw new Error(`Empty display data: ${book.id} ${chapter}`);
     chapters += 1;
-    for (const line of parsedLines) verses += Object.keys(line.eng ?? {}).length;
+    verses += verseCount;
   }
 }
 await access(join(dataRoot, 'concordance/strongs-to-verses.json'));
