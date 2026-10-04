@@ -1,4 +1,4 @@
-import { parseReference, formatPassage, canonicalPassageId, BOOK_BY_ID, VerseBoundsIndex } from './core/domain/references/index.js';
+import { parseReference, formatPassage, canonicalPassageId, BOOK_BY_ID, BOOKS, VerseBoundsIndex } from './core/domain/references/index.js';
 import { PassageContextStore } from './core/domain/context/index.js';
 import { createResearchTrail, extractStudyDocumentScriptureLinks } from './core/domain/studies/index.js';
 import { IndexedDbSelahRepository, createBackup, parseBackup } from './core/persistence/index.js';
@@ -145,6 +145,7 @@ async function setCurrentScripture(scripture) {
   await renderScripture();
   await renderActiveTab();
   updateHistoryButtons();
+  updateChapterButtons();
 }
 
 async function loadInitial() {
@@ -428,6 +429,27 @@ async function navigateResearch(passage) {
 
 function updateHistoryButtons(){ $('#backBtn').disabled=workspace.researchTrail.index<=0; $('#forwardBtn').disabled=workspace.researchTrail.index>=workspace.researchTrail.entries.length-1; }
 
+function adjacentChapter(direction) {
+  if (!currentScripture) return undefined;
+  const currentBook=BOOK_BY_ID.get(currentScripture.passage.start.book);
+  if(!currentBook)return undefined;
+  let book=currentBook; let chapter=currentScripture.passage.start.chapter+direction;
+  if(chapter<1){book=BOOKS[currentBook.order-2];if(!book)return undefined;chapter=book.chapters;}
+  else if(chapter>currentBook.chapters){book=BOOKS[currentBook.order];if(!book)return undefined;chapter=1;}
+  return {book:book.id,chapter};
+}
+
+function updateChapterButtons(){
+  $('#prevChapterBtn').disabled=!adjacentChapter(-1);
+  $('#nextChapterBtn').disabled=!adjacentChapter(1);
+}
+
+async function openAdjacentChapter(direction){
+  const target=adjacentChapter(direction);if(!target)return;
+  try{const verses=await scriptureProvider.getChapter(target.book,target.chapter);if(!verses.length)throw new Error('Chapter is unavailable');await switchPrimaryPassage({translationId:scriptureProvider.translation.id,passage:{start:verses[0].ref,end:verses.at(-1).ref},verses});}
+  catch(error){toast(error instanceof Error?error.message:'Unable to open chapter');}
+}
+
 async function renderStudies(filter='') {
   const q=filter.trim().toLowerCase();
   const studies=(await repo.listStudies()).filter((s)=>!s.archived&&(s.title??formatPassage(s.primaryPassage)).toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
@@ -467,6 +489,8 @@ async function highlightSelection() {
 
 $('#referenceForm').addEventListener('submit',async(event)=>{event.preventDefault();const query=elements.referenceInput.value.trim();try{const scripture=await resolveReferenceInput(query);await switchPrimaryPassage(scripture);}catch(error){if(/Unknown Bible book|Could not parse reference|Reference is empty/.test(error instanceof Error?error.message:'')){await renderSearchResults(query);return;}toast(error instanceof Error?error.message:'Unable to open passage');}});
 $('#backBtn').addEventListener('click',async()=>{workspace=await workspaceService.back(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
+$('#prevChapterBtn').addEventListener('click',()=>openAdjacentChapter(-1));
+$('#nextChapterBtn').addEventListener('click',()=>openAdjacentChapter(1));
 $('#forwardBtn').addEventListener('click',async()=>{workspace=await workspaceService.forward(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
 $('#studyTabs').addEventListener('click',async(event)=>{const tab=event.target.closest('[data-tab]');if(!tab)return;activeTab=tab.dataset.tab;await renderActiveTab();if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');});
 $('#patternsBtn').addEventListener('click',togglePatterns);
