@@ -39,9 +39,10 @@ async function writeAsset(relative, sourceUrl) {
 const jobs = [];
 for (const book of BOOKS) {
   for (let chapter = 1; chapter <= book.chapters; chapter += 1) {
-    const file = `${book.id}${chapter}.jsonl`;
-    jobs.push({ relative:`display/${book.id}/${file}`, url:`${upstream}/display/${book.id}/${file}` });
-    jobs.push({ relative:`index-cc-by/${book.id}/${file}`, url:`${upstream}/index-cc-by/${book.id}/${file}` });
+    const displayFile = `${book.id}${chapter}.json`;
+    const researchFile = `${book.id}${chapter}.jsonl`;
+    jobs.push({ relative:`display/${book.id}/${displayFile}`, url:`${upstream}/display/${book.id}/${displayFile}` });
+    jobs.push({ relative:`index-cc-by/${book.id}/${researchFile}`, url:`${upstream}/index-cc-by/${book.id}/${researchFile}` });
   }
 }
 jobs.push({ relative:'concordance/strongs-to-verses.json', url:`${upstream}/concordance/strongs-to-verses.json` });
@@ -78,18 +79,14 @@ if (failures.length) {
   throw new Error(`${failures.length} BSB assets failed to download; see fetch-failures.json`);
 }
 
-// Derive exact English verse maxima from the vendored public-domain display files.
 const maxVerses = {};
 for (const book of BOOKS) {
   maxVerses[book.id] = {};
   for (let chapter = 1; chapter <= book.chapters; chapter += 1) {
-    const text = await readFile(join(outputRoot, `display/${book.id}/${book.id}${chapter}.jsonl`), 'utf8');
+    const text = await readFile(join(outputRoot, `display/${book.id}/${book.id}${chapter}.json`), 'utf8');
+    const parsed = JSON.parse(text);
     let max = 0;
-    for (const line of text.split(/\r?\n/)) {
-      if (!line.trim()) continue;
-      const parsed = JSON.parse(line);
-      for (const key of Object.keys(parsed.eng ?? {})) max = Math.max(max, Number(key));
-    }
+    for (const key of Object.keys(parsed.eng ?? {})) max = Math.max(max, Number(key));
     maxVerses[book.id][chapter] = max;
   }
 }
