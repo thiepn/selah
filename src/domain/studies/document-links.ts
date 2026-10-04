@@ -9,6 +9,10 @@ export interface StudyDocumentScriptureLink {
   end: number;
 }
 
+/** Extract [[Scripture reference]] links from a plaintext Study Document.
+ * Invalid links and future non-Scripture link kinds are ignored rather than
+ * turning ordinary writing into an error state.
+ */
 export function extractStudyDocumentScriptureLinks(text: string): StudyDocumentScriptureLink[] {
   const links: StudyDocumentScriptureLink[] = [];
   const pattern = /\[\[([^\]\n]+)\]\]/g;
@@ -20,7 +24,9 @@ export function extractStudyDocumentScriptureLinks(text: string): StudyDocumentS
       const parsed = parseReference(label);
       if (parsed.kind !== 'passage' || !parsed.passage) continue;
       links.push({ raw: match[0], label, passage: parsed.passage, start, end: start + match[0].length });
-    } catch {}
+    } catch {
+      // Plaintext notes are authoritative; malformed wiki links remain plain text.
+    }
   }
   return links;
 }
