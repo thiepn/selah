@@ -116,11 +116,13 @@ body.reading-focus .study-pane, body.reading-focus .divider { display: none; }
 body.reading-focus .workspace { grid-template-columns: 1fr; }
 body.reading-focus .scripture { width: min(760px, calc(100% - 52px)); }
 @media (max-width: 760px) {
-  .topbar { grid-template-columns: 82px 1fr 38px; padding: 0 8px; height: 52px; }
+  .topbar { grid-template-columns: 68px minmax(0,1fr) 68px; padding: 0 8px; height: 52px; }
   .reference-form { grid-template-columns: 0 0 1fr; overflow: hidden; }
   .reference-form .icon-button { visibility: hidden; width: 0; padding: 0; }
   .reference-form input { min-width: 0; font-size: 12px; }
   .top-actions .text-button { display: none; }
+  .top-actions #studiesBtn { display: inline-flex; padding-inline: 7px; }
+  .top-actions #themeBtn { display: none; }
   .workspace { height: calc(100vh - 96px); display: block; position: relative; }
   .bible-pane { height: 100%; }
   .divider { display: none; }
