@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzePatterns } from '../dist/src/bible/patterns/index.js';
+import { analyzePatterns, analyzeStructuralMarkers } from '../dist/src/bible/patterns/index.js';
 import { indentPhrase, splitPhraseNode, mergePhraseWithPrevious } from '../dist/src/bible/phrasing/index.js';
 import { parseReference } from '../dist/src/domain/references/index.js';
 import { BsbPdCrossReferenceProvider } from '../dist/src/research/cross-references/index.js';
@@ -106,4 +106,18 @@ test('compact chapter research infers source verse from line position', async ()
   assert.equal(result.length,1);
   assert.equal(result[0].source.start.verse,2);
   assert.equal(result[0].target.start.book,'ROM');
+});
+
+
+test('structural markers surface explicit discourse signals without treating them as interpretation', () => {
+  const scripture={translationId:'BSB',passage:p('Phil 2:5-8'),verses:[
+    {ref:p('Phil 2:5').start,tokens:[{id:'a',text:'If ',language:'en'},{id:'b',text:'anything ',language:'en'}]},
+    {ref:p('Phil 2:6').start,tokens:[{id:'c',text:'but ',language:'en'},{id:'d',text:'not ',language:'en'}]},
+    {ref:p('Phil 2:7').start,tokens:[{id:'e',text:'so that ',language:'en'},{id:'f',text:'others ',language:'en'}]},
+    {ref:p('Phil 2:8').start,tokens:[{id:'g',text:'therefore ',language:'en'},{id:'h',text:'God ',language:'en'}]},
+  ]};
+  const markers=analyzeStructuralMarkers(scripture);
+  assert.deepEqual(markers.map((x)=>[x.label,x.category]),[
+    ['if','condition'],['but','contrast'],['so that','purpose-result'],['therefore','inference'],
+  ]);
 });
