@@ -24,6 +24,7 @@ test('questions and highlights remain distinct anchored annotation types', async
   assert.deepEqual(all.map((x)=>x.kind).sort(), ['highlight','question']);
 });
 
+
 test('annotations can be edited and removed without changing their anchor', async () => {
   const repo = new MemorySelahRepository();
   const service = new AnnotationService(repo, { idFactory: () => 'edit-1', now: (() => { let n=10; return () => ++n; })() });
