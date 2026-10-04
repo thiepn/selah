@@ -53,6 +53,9 @@ let phrasingSplitNodeId;
 let noteSaveTimer;
 let pendingAnnotationKind='note';
 let scriptureSearchIndexPromise;
+let scriptureSearchWorker;
+let scriptureSearchRequestId=0;
+const scriptureSearchPending=new Map();
 let verseBoundsPromise;
 
 const defaultPassage = parseReference('Phil 2:5-11').passage;
@@ -83,11 +86,42 @@ async function loadScriptureSearchIndex() {
   return scriptureSearchIndexPromise;
 }
 
+function getScriptureSearchWorker() {
+  if (typeof Worker === 'undefined') return undefined;
+  if (scriptureSearchWorker) return scriptureSearchWorker;
+  scriptureSearchWorker = new Worker('./search-worker.js',{type:'module'});
+  scriptureSearchWorker.addEventListener('message',(event)=>{
+    const {id,results,error}=event.data??{};
+    const pending=scriptureSearchPending.get(id);
+    if(!pending)return;
+    scriptureSearchPending.delete(id);
+    if(error)pending.reject(new Error(error));
+    else pending.resolve(results??[]);
+  });
+  scriptureSearchWorker.addEventListener('error',(event)=>{
+    for(const pending of scriptureSearchPending.values()) pending.reject(new Error(event.message||'Scripture search worker failed'));
+    scriptureSearchPending.clear();
+    scriptureSearchWorker?.terminate();
+    scriptureSearchWorker=undefined;
+  });
+  return scriptureSearchWorker;
+}
+
+async function searchScripture(query,limit=30) {
+  const worker=getScriptureSearchWorker();
+  if(!worker) return (await loadScriptureSearchIndex()).search(query,limit);
+  const id=++scriptureSearchRequestId;
+  return new Promise((resolve,reject)=>{
+    scriptureSearchPending.set(id,{resolve,reject});
+    worker.postMessage({id,query,limit});
+  });
+}
+
 async function renderSearchResults(query) {
   elements.studyContent.innerHTML='<div class="loading">Searching Scripture and studies…</div>';
-  const [scriptureIndex,snapshot]=await Promise.all([loadScriptureSearchIndex().catch(()=>undefined),repo.exportSnapshot()]);
+  const [scriptureResults,snapshot]=await Promise.all([searchScripture(query,30).catch(()=>[]),repo.exportSnapshot()]);
   const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,annotations:snapshot.annotations});
-  const scriptureResults=scriptureIndex?.search(query,30)??[]; const personalResults=personal.search(query,30);
+  const personalResults=personal.search(query,30);
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
   $$('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
   $$('.search-personal[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const study=await repo.getStudy(button.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));}));
