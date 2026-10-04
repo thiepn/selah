@@ -34,6 +34,7 @@ export class ScriptureSearchIndex {
     }
   }
 
+
   serialize(): SerializedScriptureSearchIndex {
     return {
       version: 1,
