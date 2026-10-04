@@ -142,3 +142,34 @@ test('guide enriches important lexical signals with readable lexicon data', asyn
   assert.equal(result.importantLexicalItems[0].count,2);
   assert.equal(result.importantLexicalItems[0].entry.lemma,'μορφή');
 });
+
+
+test('guide derives lexical signals from original-language tokens when English alignment is absent', async () => {
+  const repo = new MemorySelahRepository();
+  const annotations = new AnnotationService(repo);
+  const refs = new BsbPdCrossReferenceProvider('');
+  const scriptureProvider={
+    translation:{id:'BSB',name:'BSB',abbreviation:'BSB',language:'en',license:'PD'},
+    async getOriginalVerse(ref){
+      return ref.verse===6
+        ? [{id:'g1',text:'μορφῇ',strongs:'G3444',language:'grc'}]
+        : [{id:'g2',text:'μορφὴν',strongs:'G3444',language:'grc'}];
+    },
+    async getVerse(){throw new Error('unused');},
+    async getPassage(){throw new Error('unused');},
+    async hasPassage(){return true;},
+  };
+  const lexicon={
+    async get(){return undefined;},
+    async getMany(){return [{strongs:'G3444',language:'greek',lemma:'μορφή',gloss:'form'}];},
+    async search(){return [];},
+  };
+  const guide = new PassageGuideService(annotations, refs, scriptureProvider, lexicon);
+  const scripture={translationId:'BSB',passage:p('Phil 2:6-7'),verses:[
+    {ref:p('Phil 2:6').start,tokens:[{id:'e1',text:'form',language:'en'}]},
+    {ref:p('Phil 2:7').start,tokens:[{id:'e2',text:'form',language:'en'}]},
+  ]};
+  const result=await guide.build(scripture);
+  assert.equal(result.importantLexicalItems[0].strongs,'G3444');
+  assert.equal(result.importantLexicalItems[0].count,2);
+});
