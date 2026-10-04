@@ -39,6 +39,15 @@ const lensService = new LensService(annotationService, researchProvider);
 const originalLanguage = new OriginalLanguageService(scriptureProvider, researchProvider, researchProvider, researchProvider);
 const translations = new TranslationRegistry([scriptureProvider]);
 
+function syncTranslationComparisonAvailability() {
+  const available=translations.list().length>1;
+  const compareTab=$('[data-tab="compare"]');
+  const compareAction=$('[data-action="compare"]');
+  if(compareTab)compareTab.hidden=!available;
+  if(compareAction)compareAction.hidden=!available;
+  if(!available&&activeTab==='compare')activeTab='guide';
+}
+
 let currentScripture;
 let currentStudy;
 let workspace;
@@ -633,5 +642,6 @@ if(matchMedia('(max-width:760px)').matches) elements.scripture.addEventListener(
 const settings=await repo.getSettings();
 const preferredTheme=settings.theme==='system'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):settings.theme;
 document.documentElement.dataset.theme=preferredTheme;
+syncTranslationComparisonAvailability();
 await loadInitial();
 if('serviceWorker'in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
