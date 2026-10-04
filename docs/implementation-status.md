@@ -21,7 +21,7 @@
 
 - repeated English-word and Strong's pattern analysis
 - token-preserving Phrasing tree model, clause splitting/merging, indentation, labels, and persistence
-- cross-reference engine
+- bidirectional cross-reference engine (outgoing references + incoming backlinks)
 - contextual Lens
 - Guide aggregator over shared services
 - lexicon provider
@@ -49,13 +49,14 @@
 - vendored-data integrity validation
 - development fixture isolated from generated production data
 - Vercel production-build command
+- generated reverse cross-reference index
 - weekly upstream compatibility workflow
 
 ## Verification currently passing
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite (30 tests currently passing)
+- automated Node test suite (36 tests currently passing)
 - static application build/integrity validation
 - bundle-size budgets for deployable JS/CSS
 - backup corruption and future-schema rejection
