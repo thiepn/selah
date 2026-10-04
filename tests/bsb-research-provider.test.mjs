@@ -27,3 +27,25 @@ test('BSB research provider lazily composes chapter research, lexicon, and conco
   assert.equal(loader.calls.filter((x)=>x.includes('index-cc-by')).length,1);
   assert.equal(loader.calls.filter((x)=>x.includes('crossrefs/reverse')).length,1);
 });
+
+
+test('BSB research provider maps compact positional chapter records onto requested verses', async()=>{
+  class CompactLoader {
+    async load(path){
+      if(path.includes('index-cc-by')) return [
+        JSON.stringify({x:['JHN.1.1'],m:[{s:'H7225',m:'HR/Ncfsa',p:'noun',l:'בְּ/רֵאשִׁית'}]}),
+        JSON.stringify({x:['ROM.1.1'],m:[]}),
+      ].join('\n');
+      if(path.includes('crossrefs/reverse')) return JSON.stringify({version:1,incoming:{}});
+      if(path.includes('lexicon')) return '{}';
+      if(path.includes('concordance')) return '{}';
+      throw new Error(path);
+    }
+  }
+  const provider=new BsbResearchProvider(new CompactLoader());
+  const refs=await provider.forPassage(parseReference('Gen 1:2').passage);
+  assert.equal(refs[0].source.start.verse,2);
+  const morph=await provider.forVerse(parseReference('Gen 1:1').passage.start);
+  assert.equal(morph.ref.verse,1);
+  assert.equal(morph.entries[0].strongs,'H7225');
+});
