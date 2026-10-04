@@ -61,6 +61,7 @@ export function outdentPhrase(nodes: PhraseNode[], id: string): PhraseNode[] {
   return nodes;
 }
 
+
 export function splitPhraseNode(nodes: PhraseNode[], id: string, afterTokenId: string, newNodeId: string): PhraseNode[] {
   const index = nodes.findIndex((node) => node.id === id);
   if (index >= 0) {
