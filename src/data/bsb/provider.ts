@@ -61,6 +61,7 @@ export class BsbScriptureProvider implements ScriptureProvider {
     return pending;
   }
 
+
   async getOriginalVerse(ref: VerseRef) {
     const tokens = (await this.#originalChapter(ref.book, ref.chapter)).get(ref.verse);
     if (!tokens) return [];
