@@ -18,7 +18,7 @@ await run('git',['clone','--depth','1','--filter=blob:none',repo,cache]);
 await rm(outputRoot,{recursive:true,force:true});
 await mkdir(outputRoot,{recursive:true});
 
-for(const path of ['base/display','base/index-cc-by','base/concordance','base/lexicon']) await cp(join(cache,path),join(outputRoot,path.replace(/^base\//,'')),{recursive:true});
+for(const path of ['base/display','base/index-cc-by','base/concordance','base/lexicon','base/versification']) await cp(join(cache,path),join(outputRoot,path.replace(/^base\//,'')),{recursive:true});
 for(const file of ['VERSION.json','ATTRIBUTION.md','LICENSE-CC0.md','LICENSE-CC-BY.md']) await cp(join(cache,file),join(outputRoot,file));
 
 const maxVerses={}; let verses=0; let bytes=0; let chapters=0;
