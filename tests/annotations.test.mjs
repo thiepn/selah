@@ -36,3 +36,12 @@ test('annotations can be edited and removed without changing their anchor', asyn
   await service.remove(original.id);
   assert.equal((await repo.listAnnotations('s1')).length, 0);
 });
+
+
+test('cross-chapter reference annotations remain visible on both sides of the boundary', async () => {
+  const repo = new MemorySelahRepository();
+  const service = new AnnotationService(repo, { idFactory:()=> 'cross-1', now:()=> 5 });
+  await service.createReferenceNote(p('Rom 8:39-9:1'), 'crosses the chapter boundary');
+  assert.equal((await service.forPassage(p('Rom 8:39'), 'BSB')).length,1);
+  assert.equal((await service.forPassage(p('Rom 9:1'), 'BSB')).length,1);
+});
