@@ -9,4 +9,5 @@ export interface CrossReference {
 
 export interface CrossReferenceProvider {
   forPassage(passage: PassageRef): Promise<CrossReference[]>;
+  backlinksForPassage?(passage: PassageRef): Promise<CrossReference[]>;
 }
