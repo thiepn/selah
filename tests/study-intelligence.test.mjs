@@ -121,3 +121,24 @@ test('structural markers surface explicit discourse signals without treating the
     ['if','condition'],['but','contrast'],['so that','purpose-result'],['therefore','inference'],
   ]);
 });
+
+
+test('guide enriches important lexical signals with readable lexicon data', async () => {
+  const repo = new MemorySelahRepository();
+  const annotations = new AnnotationService(repo);
+  const refs = new BsbPdCrossReferenceProvider('');
+  const lexicon = {
+    async get(){ return undefined; },
+    async getMany(keys){ return keys.includes('G3444') ? [{ strongs:'G3444', language:'greek', lemma:'μορφή', transliteration:'morphē', gloss:'form' }] : []; },
+    async search(){ return []; },
+  };
+  const guide = new PassageGuideService(annotations, refs, undefined, lexicon);
+  const scripture={translationId:'BSB',passage:p('Phil 2:6-7'),verses:[
+    {ref:p('Phil 2:6').start,tokens:[{id:'1',text:'form',strongs:'G3444',language:'en'}]},
+    {ref:p('Phil 2:7').start,tokens:[{id:'2',text:'form',strongs:'G3444',language:'en'}]},
+  ]};
+  const result=await guide.build(scripture);
+  assert.equal(result.importantLexicalItems[0].strongs,'G3444');
+  assert.equal(result.importantLexicalItems[0].count,2);
+  assert.equal(result.importantLexicalItems[0].entry.lemma,'μορφή');
+});
