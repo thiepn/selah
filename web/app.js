@@ -748,7 +748,24 @@ elements.selectionMenu.addEventListener('click',async(event)=>{const action=even
 elements.noteForm.addEventListener('submit',async(event)=>{if(event.submitter?.value==='cancel')return;event.preventDefault();const body=elements.noteBody.value.trim();if(!body)return;await createAnnotationFromSelection(body);elements.noteDialog.close();});
 
 document.addEventListener('pointerdown',(event)=>{if(!elements.selectionMenu.hidden&&!elements.selectionMenu.contains(event.target)&&!elements.scripture.contains(event.target))elements.selectionMenu.hidden=true;});
-document.addEventListener('keydown',async(event)=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();}if(event.altKey&&event.key==='ArrowLeft'){event.preventDefault();$('#backBtn').click();}if(event.altKey&&event.key==='ArrowRight'){event.preventDefault();$('#forwardBtn').click();}if(event.key==='Escape'){elements.peek.hidden=true;elements.studiesDrawer.hidden=true;}});
+document.addEventListener('keydown',async(event)=>{
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();return;}
+  if(event.altKey&&event.key==='ArrowLeft'){event.preventDefault();$('#backBtn').click();return;}
+  if(event.altKey&&event.key==='ArrowRight'){event.preventDefault();$('#forwardBtn').click();return;}
+  if(event.key==='Escape'){elements.peek.hidden=true;elements.studiesDrawer.hidden=true;return;}
+  const target=event.target;
+  const editing=target instanceof Element&&Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
+  if(editing||event.ctrlKey||event.metaKey||event.altKey)return;
+  const shortcut={n:'note',q:'question',h:'highlight'}[event.key.toLowerCase()];
+  if(!shortcut)return;
+  const range=selectedTokenRange();
+  if(!range)return;
+  event.preventDefault();
+  selectedRangeInfo=range;
+  context.patch({selection:{range:range.passage,text:range.quotedText,tokenIds:[range.startTokenId,range.endTokenId]}});
+  const action=$(`[data-action="${shortcut}"]`);
+  if(action&&!action.hidden)action.click();
+});
 
 const divider=$('#divider');let dragging=false;let bibleWidth=56;
 function setBibleWidth(value){bibleWidth=Math.max(38,Math.min(72,value));document.documentElement.style.setProperty('--bible-width',`${bibleWidth}%`);divider.setAttribute('aria-valuenow',String(Math.round(bibleWidth)));}
