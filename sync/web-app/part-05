@@ -1,0 +1,56 @@
+="primary-button" id="startPhrasing" type="button">Start phrasing this passage</button>'}</section>`;
+  $('#startPhrasing')?.addEventListener('click',async()=>{const study=await ensureStudy(); phrasingDocument=defaultPhrasingDocument(study); await repo.putPhrasingDocument(phrasingDocument); await renderPhrasing();});
+  $$('[data-phrase-action]').forEach((button)=>button.addEventListener('click',async()=>{
+    if(!phrasingDocument)return;
+    const id=button.dataset.id; const action=button.dataset.phraseAction;
+    if(action==='split-mode'){phrasingSplitNodeId=phrasingSplitNodeId===id?undefined:id;await renderPhrasing();return;}
+    let roots=phrasingDocument.roots;
+    if(action==='split-after'){roots=splitPhraseNode(roots,id,button.dataset.tokenId,crypto.randomUUID());phrasingSplitNodeId=undefined;}
+    else if(action==='merge-prev') roots=mergePhraseWithPrevious(roots,id);
+    else if(action==='indent') roots=indentPhrase(roots,id);
+    else if(action==='outdent') roots=outdentPhrase(roots,id);
+    phrasingDocument={...phrasingDocument,roots,updatedAt:Date.now()}; await repo.putPhrasingDocument(phrasingDocument); await renderPhrasing();
+  }));
+  $$('[data-label-id]').forEach((input)=>input.addEventListener('change',async()=>{if(!phrasingDocument)return;phrasingDocument={...phrasingDocument,roots:updatePhraseNode(phrasingDocument.roots,input.dataset.labelId,{label:input.value}),updatedAt:Date.now()};await repo.putPhrasingDocument(phrasingDocument);}));
+}
+
+async function renderResources() {
+  const guide=await guideService.build(currentScripture);
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">EXTERNAL RESOURCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Open trusted external tools only when you deliberately want them. Selah keeps commentary secondary to your own observation of the text.</p>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}<section class="resource-attribution"><h3>Data & licenses</h3><a class="resource-link" href="./data/bsb/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer"><span><strong>Bundled Scripture & research data</strong><small>View source attribution and licenses</small></span><span aria-hidden="true">↗</span></a></section></section>`;
+}
+
+async function renderActiveTab() {
+  $$('.tab').forEach((tab)=>tab.classList.toggle('active',tab.dataset.tab===activeTab));
+  if(!currentScripture)return;
+  if(activeTab==='guide')return renderGuide();
+  if(activeTab==='notes')return renderNotes();
+  if(activeTab==='references')return renderReferences();
+  if(activeTab==='words')return renderWords();
+  if(activeTab==='compare')return renderCompare();
+  if(activeTab==='phrasing')return renderPhrasing();
+  if(activeTab==='resources')return renderResources();
+}
+
+function renderToolError(title,error){elements.studyContent.innerHTML=`<div class="error-state"><strong>${escapeHtml(title)}</strong>${escapeHtml(error instanceof Error?error.message:String(error))}</div>`;}
+function wireReferenceButtons(){$$('[data-reference]').forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
+function wireLexicalButtons(){$$('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
+function wireSectionJumps(){$$('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
+
+async function openPeek(passage) {
+  activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); elements.peek.hidden=false; elements.peekText.textContent='Loading…';
+  try { const scripture=await scriptureProvider.getPassage(passage); elements.peekText.textContent=scripture.verses.map((v)=>`${v.ref.verse} ${v.tokens.map((t)=>t.text).join('')}`).join('\n'); }
+  catch { elements.peekText.textContent='This reference is not installed in the current development data fixture. It will resolve after the complete BSB dataset is vendored.'; }
+}
+
+async function navigateResearch(passage) {
+  try { workspace=await workspaceService.navigate(workspace,passage); await setCurrentScripture(await scriptureProvider.getPassage(passage)); }
+  catch(error){toast(error instanceof Error?error.message:'Unable to open passage');}
+}
+
+function updateHistoryButtons(){ $('#backBtn').disabled=workspace.researchTrail.index<=0; $('#forwardBtn').disabled=workspace.researchTrail.index>=workspace.researchTrail.entries.length-1; }
+
+async function renderStudies(filter='') {
+  const q=filter.trim().toLowerCase();
+  const studies=(await repo.listStudies()).filter((s)=>!s.archived&&(s.title??formatPassage(s.primaryPassage)).toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
+  elements.studiesList.innerHTML=studies.length?studies.map((study)=>`<article class="study-row" data-study-id="${study.id}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button><div class="study-actions"><button type="button" data-study-action="rename">Rename</button><button type="button" data-study-action="archive">Archive</button></div></article>`).join(''):'<p class="quiet">No saved studies yet. Selah creates one when you first write or annotate.</p>';
+  $$('.study-open').forEach((button)=>button.addEventListener('click',async()=>{const row=button.closest('[data-study-id]');const study=await repo.getStudy(row.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);work
