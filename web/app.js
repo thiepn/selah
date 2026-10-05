@@ -16,6 +16,7 @@ import { ReviewService } from './core/review/index.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
+import { claimsUI } from './interpretation-claims.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -869,6 +870,7 @@ async function renderActiveTab() {
   if(activeTab==='notes')return renderNotes();
   if(activeTab==='outline')return renderOutline();
   if(activeTab==='synthesis')return renderSynthesis();
+  if(activeTab==='claims')return claimsUI(elements.studyContent,repo,studyService,currentStudy,currentScripture,ensureStudy,toast,openClaimReference);
   if(activeTab==='references')return renderReferences();
   if(activeTab==='words')return renderWords();
   if(activeTab==='compare')return renderCompare();
@@ -880,6 +882,14 @@ function renderToolError(title,error){elements.studyContent.innerHTML=`<div clas
 function wireReferenceButtons(root=document){[...root.querySelectorAll('[data-reference]')].forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
 function wireLexicalButtons(){queryAll('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
 function wireSectionJumps(){queryAll('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
+
+async function openClaimReference(reference) {
+  try{
+    const parsed=parseReference(reference);
+    if(parsed.kind!=='passage')return;
+    await openPeek(parsed.passage);
+  }catch(error){toast(error instanceof Error?error.message:'Unable to open evidence reference');}
+}
 
 async function openPeek(passage) {
   activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); elements.peek.hidden=false; elements.peekText.textContent='Loading…';
