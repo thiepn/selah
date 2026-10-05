@@ -31,10 +31,10 @@
       <div class="passage-meta">
         <button class="chapter-nav" id="prevChapterBtn" type="button" aria-label="Previous chapter">‹</button>
         <span class="translation">BSB</span>
-        <span id="passageStatus">Loading…</span>
+        <span id="passageStatus" role="status" aria-live="polite" aria-atomic="true">Loading…</span>
         <button class="chapter-nav" id="nextChapterBtn" type="button" aria-label="Next chapter">›</button>
       </div>
-      <article class="scripture" id="scripture" aria-live="polite"></article>
+      <article class="scripture" id="scripture"></article>
     </section>
     <div class="divider" id="divider" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Scripture and study panes" aria-valuemin="38" aria-valuemax="72" aria-valuenow="56"></div>
     <aside class="study-pane" id="studyPane" aria-label="Study tools">
@@ -55,7 +55,7 @@
   </main>
 
   <footer class="study-bar">
-    <div class="history-label"><span class="dot"></span><span id="saveState">saved locally</span></div>
+    <div class="history-label"><span class="dot"></span><span id="saveState" role="status" aria-live="polite" aria-atomic="true">saved locally</span></div>
     <div class="study-actions">
       <button id="patternsBtn" type="button" aria-pressed="false">Patterns</button>
       <button id="focusBtn" type="button" aria-pressed="false">Reading focus</button>
@@ -73,32 +73,32 @@
     <button data-action="copy" type="button">Copy</button>
   </div>
 
-  <dialog class="note-dialog" id="noteDialog">
+  <dialog class="note-dialog" id="noteDialog" aria-labelledby="noteDialogTitle">
     <form method="dialog" id="noteForm">
       <header><strong id="noteDialogTitle">Add note</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <p class="quiet" id="noteAnchorLabel"></p>
-      <textarea id="noteBody" rows="6" placeholder="Write what you observe, question, or infer from the text…"></textarea>
+      <textarea id="noteBody" rows="6" aria-label="Study note or question" placeholder="Write what you observe, question, or infer from the text…"></textarea>
       <footer><button value="cancel" class="text-button">Cancel</button><button value="default" id="saveNoteBtn" class="primary-button">Save note</button></footer>
     </form>
   </dialog>
 
-  <aside class="peek" id="peek" hidden aria-live="polite">
+  <aside class="peek" id="peek" hidden role="region" aria-labelledby="peekTitle" tabindex="-1">
     <header><div><span class="eyebrow">REFERENCE PEEK</span><h3 id="peekTitle"></h3></div><button class="icon-button" id="peekClose" type="button" aria-label="Close">×</button></header>
     <div id="peekText" class="peek-text"></div>
     <button class="open-main" id="peekOpen" type="button">Open as main passage →</button>
   </aside>
 
-  <aside class="drawer" id="studiesDrawer" aria-label="Saved studies" hidden>
-    <header><span>STUDIES</span><button class="icon-button" id="drawerClose" type="button" aria-label="Close studies">×</button></header>
+  <aside class="drawer" id="studiesDrawer" role="dialog" aria-modal="true" aria-labelledby="studiesDrawerTitle" hidden>
+    <header><span id="studiesDrawerTitle">STUDIES</span><button class="icon-button" id="drawerClose" type="button" aria-label="Close studies">×</button></header>
     <div class="study-filter-row"><input id="studySearch" placeholder="Search title, passage, or topic…" aria-label="Search studies"><button class="text-button" id="archivedStudiesBtn" type="button" aria-pressed="false">Archived</button></div>
     <div class="study-view-switch" role="group" aria-label="Group studies by"><button type="button" data-study-view="books" aria-pressed="true">Books</button><button type="button" data-study-view="topics" aria-pressed="false">Topics</button></div>
     <div id="studiesList"></div>
     <footer class="drawer-backup"><button class="text-button" id="backupBtn" type="button">Backup</button><button class="text-button" id="restoreBtn" type="button">Restore</button><input id="restoreInput" type="file" accept="application/json,.json" hidden></footer>
   </aside>
 
-  <dialog class="study-meta-dialog" id="studyMetaDialog">
+  <dialog class="study-meta-dialog" id="studyMetaDialog" aria-labelledby="studyMetaDialogTitle">
     <form method="dialog" id="studyMetaForm">
-      <header><strong>Edit study</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <header><strong id="studyMetaDialogTitle">Edit study</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <label>Title<input id="studyMetaTitle" maxlength="120" autocomplete="off"></label>
       <label>Topics<input id="studyMetaTags" maxlength="500" autocomplete="off" placeholder="Christology, humility, unity"></label>
       <p class="quiet">Use a few durable themes you would actually search for later. Separate topics with commas.</p>
@@ -106,7 +106,7 @@
     </form>
   </dialog>
 
-  <dialog class="study-snapshot-dialog" id="studySnapshotDialog">
+  <dialog class="study-snapshot-dialog" id="studySnapshotDialog" aria-labelledby="studySnapshotTitle">
     <form method="dialog">
       <header><div><span class="eyebrow">STUDY SNAPSHOT</span><strong id="studySnapshotTitle"></strong></div><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <div id="studySnapshotContent"></div>
@@ -114,7 +114,7 @@
     </form>
   </dialog>
 
-  <dialog class="review-card-dialog" id="reviewCardDialog">
+  <dialog class="review-card-dialog" id="reviewCardDialog" aria-labelledby="reviewCardDialogTitle">
     <form method="dialog" id="reviewCardForm">
       <header><strong id="reviewCardDialogTitle">Add custom review card</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <label>Question<textarea id="reviewCardQuestion" rows="3" maxlength="300" placeholder="What should I be able to explain from this passage?"></textarea></label>
@@ -124,7 +124,7 @@
     </form>
   </dialog>
 
-  <dialog class="book-overview-dialog" id="bookOverviewDialog">
+  <dialog class="book-overview-dialog" id="bookOverviewDialog" aria-labelledby="bookOverviewTitle">
     <form method="dialog">
       <header><div><span class="eyebrow">BOOK OVERVIEW</span><strong id="bookOverviewTitle"></strong></div><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <div id="bookOverviewContent"></div>
@@ -133,14 +133,14 @@
     </form>
   </dialog>
 
-  <aside class="drawer review-drawer" id="reviewDrawer" aria-label="Review cards" hidden>
-    <header><span>REVIEW</span><button class="icon-button" id="reviewClose" type="button" aria-label="Close review">×</button></header>
+  <aside class="drawer review-drawer" id="reviewDrawer" role="dialog" aria-modal="true" aria-labelledby="reviewDrawerTitle" hidden>
+    <header><span id="reviewDrawerTitle">REVIEW</span><button class="icon-button" id="reviewClose" type="button" aria-label="Close review">×</button></header>
     <div class="review-content" id="reviewContent"></div>
   </aside>
 
-  <dialog class="export-dialog" id="exportDialog">
+  <dialog class="export-dialog" id="exportDialog" aria-labelledby="exportDialogTitle">
     <form method="dialog">
-      <header><strong>Export study context</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <header><strong id="exportDialogTitle">Export study context</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <label><input type="checkbox" id="exportScripture" checked> Scripture</label>
       <label><input type="checkbox" id="exportAnnotations" checked> Notes and annotations</label>
       <label><input type="checkbox" id="exportDocument" checked> Study document</label>
