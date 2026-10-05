@@ -64,6 +64,7 @@ let phrasingDocument;
 let phrasingSplitNodeId;
 let noteSaveTimer;
 let synthesisSaveTimer;
+let reviewReconcileTimer;
 let outlineDraftPassage;
 let focusedObservationPromptId;
 let pendingAnnotationKind='note';
@@ -580,8 +581,15 @@ async function saveOutlineSections(sections) {
   setSaving(true);
   try {
     const outline=await outlineService.save(study,sections);
-    await studyService.touch(study.id);
-    currentStudy=study;
+    currentStudy=await studyService.touch(study.id);
+    const synthesis=await repo.getStudySynthesis(study.id);
+    if(synthesis){
+      const result=await reviewService.reconcileExisting(currentStudy,synthesis,outline);
+      if(result.updated||result.deleted){
+        await refreshReviewBadge();
+        if(!elements.reviewDrawer.hidden)await renderReview();
+      }
+    }
     setSaving(false);
     return outline;
   } catch(error) {
@@ -710,6 +718,21 @@ async function renderSynthesis() {
   });
 }
 
+async function reconcileReviewCardsNow(study,synthesis,outline=undefined) {
+  const resolvedOutline=outline??await outlineService.get(study.id);
+  const result=await reviewService.reconcileExisting(study,synthesis,resolvedOutline);
+  if(result.updated||result.deleted){
+    await refreshReviewBadge();
+    if(!elements.reviewDrawer.hidden)await renderReview();
+  }
+  return result;
+}
+
+function scheduleReviewReconcile(study,synthesis,delay=750) {
+  clearTimeout(reviewReconcileTimer);
+  reviewReconcileTimer=setTimeout(()=>reconcileReviewCardsNow(study,synthesis).catch(()=>{}),delay);
+}
+
 async function persistSynthesis(value,passage,studyIdAtEdit) {
   try {
     if(!synthesisHasContent(value)&&!studyIdAtEdit) { setSaving(false); return undefined; }
@@ -718,7 +741,8 @@ async function persistSynthesis(value,passage,studyIdAtEdit) {
     const updatedAt=Date.now();
     const synthesis={studyId:study.id,...value,updatedAt};
     await repo.putStudySynthesis(synthesis);
-    await studyService.touch(study.id);
+    study=await studyService.touch(study.id);
+    scheduleReviewReconcile(study,synthesis);
     if(currentScripture&&samePassage(currentScripture.passage,passage)){
       currentStudy=study;
       if(workspace&&workspace.studyId!==study.id){
