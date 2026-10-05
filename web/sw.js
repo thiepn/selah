@@ -1,4 +1,4 @@
-const CACHE = 'selah-shell-v8';
+const CACHE = 'selah-shell-v5';
 const SHELL = ['./','./index.html','./styles.css','./app.js','./book-overview.js','./guide-literary-mode.js','./interpretation-claims.js','./search-workspace.js','./a11y-overlays.js','./translation-compare.js','./search-worker.js','./manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
