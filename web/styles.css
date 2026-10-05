@@ -516,3 +516,6 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .synthesis-claim-list p{margin:0;font-size:11px;line-height:1.5}
 .synthesis-claim-list small{grid-column:2;color:var(--muted);font-size:9px}
 @media(max-width:760px){.synthesis-claims.empty{flex-direction:column}.synthesis-claim-list>div{grid-template-columns:1fr}.synthesis-claim-list small{grid-column:1}}
+
+.search-personal{position:relative}
+.search-source{display:inline-block;margin-bottom:4px;font-size:8px!important;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)!important}
