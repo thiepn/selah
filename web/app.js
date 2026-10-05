@@ -469,9 +469,7 @@ function backlinkButtonHtml(ref,studies=[]) {
   const source=formatPassage(ref.source);
   return connectedReferenceCardHtml({label:source,detail:'Points to this passage',reference:source,studies});
 }
-function wirePersonalStudyReferences(root=document){
-  wirePersonalReferenceActions(root,{openSnapshot:openStudySnapshot,openStudy:openStudyById});
-}
+function wirePersonalStudyReferences(root=document){root.querySelectorAll('[data-personal-snapshot]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();openStudySnapshot(button.dataset.personalSnapshot);}));}
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
 async function renderNotes() {
