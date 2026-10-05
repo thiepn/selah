@@ -2,6 +2,7 @@ import type { ScripturePassage } from '../bible/types.js';
 import { formatPassage } from '../domain/references/reference.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis } from '../domain/studies/types.js';
 import type { StudyOutline } from '../study/outline/types.js';
+import type { InterpretationClaim } from '../study/claims/types.js';
 
 const passageText = (scripture: ScripturePassage) => scripture.verses
   .map((verse) => `${verse.ref.verse} ${verse.tokens.map((t) => t.text).join('')}`)
@@ -19,6 +20,7 @@ export interface StudyContextExportOptions {
   includeAnnotations?: boolean;
   includeDocument?: boolean;
   includeOutline?: boolean;
+  includeClaims?: boolean;
   includeSynthesis?: boolean;
   tutorPrompt?: 'none' | 'socratic' | 'check-interpretation' | 'challenge';
 }
@@ -29,10 +31,11 @@ export function exportStudyContextMarkdown(input: {
   annotations?: Annotation[];
   document?: StudyDocument;
   outline?: StudyOutline;
+  claims?: InterpretationClaim[];
   synthesis?: StudySynthesis;
   options?: StudyContextExportOptions;
 }): string {
-  const options = { includeScripture: true, includeAnnotations: true, includeDocument: true, includeOutline: true, includeSynthesis: true, tutorPrompt: 'none' as const, ...input.options };
+  const options = { includeScripture: true, includeAnnotations: true, includeDocument: true, includeOutline: true, includeClaims: true, includeSynthesis: true, tutorPrompt: 'none' as const, ...input.options };
   const lines = [`# Selah Study Context`, '', `Passage: ${formatPassage(input.study.primaryPassage)}`, ...(input.study.tags.length ? [`Topics: ${input.study.tags.join(', ')}`] : []), ...(input.study.literaryMode ? [`Study lens override: ${input.study.literaryMode}`] : []), ''];
   if (options.includeScripture && input.scripture) lines.push('## Scripture', '', passageText(input.scripture), '');
   if (options.includeAnnotations && input.annotations?.length) {
@@ -49,6 +52,14 @@ export function exportStudyContextMarkdown(input: {
     lines.push('## Passage outline', '');
     for (const section of input.outline.sections) {
       lines.push(`- **${formatPassage(section.passage)}**${section.label.trim()?` — ${section.label.trim()}`:''}`);
+    }
+    lines.push('');
+  }
+  if (options.includeClaims && input.claims?.length) {
+    lines.push('## Interpretation claims', '');
+    for (const claim of input.claims) {
+      lines.push(`- **[${claim.confidence}]** ${claim.statement}`);
+      for (const evidence of claim.evidence) lines.push(`  - Evidence: ${formatPassage(evidence.passage)}${evidence.note?.trim()?` — ${evidence.note.trim()}`:''}`);
     }
     lines.push('');
   }
