@@ -27,3 +27,22 @@ export function drawerController(drawer,{initialFocus}={}){
   });
   return {open,close};
 }
+
+
+export function regionController(region,{initialFocus}={}){
+  let returnFocus;
+  const close=(restore=true)=>{
+    if(region.hidden)return;
+    region.hidden=true;
+    if(restore&&returnFocus instanceof HTMLElement&&returnFocus.isConnected)requestAnimationFrame(()=>returnFocus.focus());
+  };
+  const open=(trigger=document.activeElement)=>{
+    returnFocus=trigger instanceof HTMLElement?trigger:undefined;
+    region.hidden=false;
+    requestAnimationFrame(()=>{
+      const target=(typeof initialFocus==='function'?initialFocus():undefined)??region;
+      if(target instanceof HTMLElement)target.focus();
+    });
+  };
+  return {open,close};
+}
