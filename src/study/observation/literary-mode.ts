@@ -1,6 +1,5 @@
 import type { PassageRef } from '../../domain/references/types.js';
-
-export type LiteraryMode = 'narrative' | 'gospel' | 'law' | 'poetry' | 'wisdom' | 'prophecy' | 'epistle' | 'apocalyptic';
+import type { LiteraryMode } from '../../domain/studies/types.js';
 
 const GROUPS: Record<LiteraryMode, readonly string[]> = {
   narrative:['GEN','JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST','ACT'],
