@@ -12,7 +12,7 @@ Selah is built around eight primitives:
 2. shared passage/selection context
 3. source-independent Scripture and research providers
 4. durable annotation anchors
-5. studies, freeform study documents, and structured synthesis
+5. studies, freeform study documents, passage outlines, and structured synthesis
 6. recoverable workspace/research state
 7. study-derived spaced review cards
 8. versioned local persistence, backup, and migration
@@ -30,10 +30,12 @@ Implemented and wired into the deployable static application:
 - native IndexedDB persistence with schema migration
 - Study / Workspace / Research Trail separation
 - reference, text, and original-token annotation anchors
-- notes, questions, and highlights
+- notes, highlights, and answerable passage-anchored questions
 - persistent Study Document
+- durable Passage Outline with validated non-overlapping verse sections, selection-to-outline, editorial-heading seeding, and in-Scripture boundaries
+- text-derived observation questions that highlight their evidence without supplying interpretations
 - structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
-- study-derived Review cards with Forgot / Difficult / Good scheduling
+- study-derived Review cards with Forgot / Difficult / Good scheduling, including completed passage structure
 - persistent Phrasing (token-preserving clause splitting, merging, indentation) documents
 - textual and Strong's pattern analysis
 - cross-reference provider and in-workspace Peek model
