@@ -1,6 +1,7 @@
 import type { ScripturePassage } from '../bible/types.js';
 import { formatPassage } from '../domain/references/reference.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis } from '../domain/studies/types.js';
+import type { StudyOutline } from '../study/outline/types.js';
 
 const passageText = (scripture: ScripturePassage) => scripture.verses
   .map((verse) => `${verse.ref.verse} ${verse.tokens.map((t) => t.text).join('')}`)
@@ -17,6 +18,7 @@ export interface StudyContextExportOptions {
   includeScripture?: boolean;
   includeAnnotations?: boolean;
   includeDocument?: boolean;
+  includeOutline?: boolean;
   includeSynthesis?: boolean;
   tutorPrompt?: 'none' | 'socratic' | 'check-interpretation' | 'challenge';
 }
@@ -26,10 +28,11 @@ export function exportStudyContextMarkdown(input: {
   scripture?: ScripturePassage;
   annotations?: Annotation[];
   document?: StudyDocument;
+  outline?: StudyOutline;
   synthesis?: StudySynthesis;
   options?: StudyContextExportOptions;
 }): string {
-  const options = { includeScripture: true, includeAnnotations: true, includeDocument: true, includeSynthesis: true, tutorPrompt: 'none' as const, ...input.options };
+  const options = { includeScripture: true, includeAnnotations: true, includeDocument: true, includeOutline: true, includeSynthesis: true, tutorPrompt: 'none' as const, ...input.options };
   const lines = [`# Selah Study Context`, '', `Passage: ${formatPassage(input.study.primaryPassage)}`, ''];
   if (options.includeScripture && input.scripture) lines.push('## Scripture', '', passageText(input.scripture), '');
   if (options.includeAnnotations && input.annotations?.length) {
@@ -41,6 +44,13 @@ export function exportStudyContextMarkdown(input: {
     lines.push('');
   }
   if (options.includeDocument && input.document?.plainText.trim()) lines.push('## My study document', '', input.document.plainText.trim(), '');
+  if (options.includeOutline && input.outline?.sections.length) {
+    lines.push('## Passage outline', '');
+    for (const section of input.outline.sections) {
+      lines.push(`- **${formatPassage(section.passage)}**${section.label.trim()?` — ${section.label.trim()}`:''}`);
+    }
+    lines.push('');
+  }
   if (options.includeSynthesis && input.synthesis) {
     const synthesis=input.synthesis;
     const hasContent=[synthesis.mainIdea,synthesis.explanation,synthesis.evidence,synthesis.application,synthesis.prayer].some((value)=>value.trim());
