@@ -27,6 +27,7 @@
 - deterministic text-derived observation questions for repetition, logic, structure, explicit claims, and anti-assumption checks
 - observation prompts can highlight their source tokens and be saved as passage-anchored study questions
 - study questions preserve separate multiline responses that remain searchable and exportable
+- unresolved saved questions remain visible in Guide and Synthesis so interpretation does not silently bury open issues
 - token-preserving Phrasing tree model, clause splitting/merging, indentation, labels, and persistence
 - bidirectional cross-reference engine (outgoing references + incoming backlinks)
 - contextual Lens
@@ -43,8 +44,9 @@
 
 ### P19–P23 — usability, offline, ownership
 
-- Bible-book-grouped study archive/search drawer with recoverable archived studies
-- rename/archive/restore study management
+- study archive/search drawer with Books and Topics grouping, topic-aware search, and recoverable archived studies
+- atomic title + topic metadata editing plus archive/restore study management
+- manually curated study topics are normalized, deduplicated, searchable, and included in Markdown exports
 - mobile Bible-first study-sheet layout
 - PWA service worker with network-first freshness and offline fallback
 - full backup/restore with forward migration
@@ -79,7 +81,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **59/59 passing** on the current head
+- automated Node test suite: **61/61 passing** on the latest fully executed head
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -96,7 +98,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **153.14 MiB / 3,668 files**
-- current application code remains small relative to data: about **84 KiB app JS + 114 KiB core JS + 30 KiB CSS** before compression
+- current application code remains small relative to data: about **89 KiB app JS + 115 KiB core JS + 32 KiB CSS** before compression
 
 ## Open qualification work
 
