@@ -58,3 +58,16 @@ test('invalid topics do not partially rename a study',async()=>{
   assert.equal(unchanged.title,'The Word');
   assert.deepEqual(unchanged.tags,[]);
 });
+
+
+test('study literary mode override is reversible and preserves the study passage',async()=>{
+  const repo=new MemorySelahRepository();
+  const service=new StudyService(repo,{idFactory:()=> 'mode-1',now:(()=>{let n=50;return()=>++n;})()});
+  const study=await service.create(p('Dan 7:1-14'),'Daniel vision');
+  const overridden=await service.setLiteraryMode(study.id,'apocalyptic');
+  assert.equal(overridden.literaryMode,'apocalyptic');
+  assert.deepEqual(overridden.primaryPassage,study.primaryPassage);
+  const automatic=await service.setLiteraryMode(study.id,undefined);
+  assert.equal(automatic.literaryMode,undefined);
+  assert.deepEqual(automatic.primaryPassage,study.primaryPassage);
+});
