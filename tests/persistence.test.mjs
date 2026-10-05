@@ -10,6 +10,7 @@ test('snapshot export/import round-trips durable study state', async () => {
   const passage = parseReference('Phil 2:5-11').passage;
   await repo.putStudy({ id: 'study-1', primaryPassage: passage, tags: ['christology'], archived: false, createdAt: now, updatedAt: now });
   await repo.putStudySynthesis({studyId:'study-1',mainIdea:'Christ moves from humiliation to exaltation.',explanation:'Paul presents Christ as the pattern for humble obedience.',evidence:'Philippians 2:6-11',application:'Choose humble service.',prayer:'Form this mind in me.',confidence:'clear',updatedAt:now});
+  await repo.putStudyOutline({studyId:'study-1',sections:[{id:'o1',passage:parseReference('Phil 2:5-8').passage,label:'Christ humbles himself'},{id:'o2',passage:parseReference('Phil 2:9-11').passage,label:'God exalts Christ'}],updatedAt:now});
   await repo.putReviewCard({id:'r1',studyId:'study-1',source:'main-idea',prompt:'What is the main idea?',answer:'Christ moves from humiliation to exaltation.',stage:0,dueAt:now,history:[],createdAt:now,updatedAt:now});
   await repo.putAnnotation({
     id: 'note-1', studyId: 'study-1', kind: 'note',
@@ -36,8 +37,9 @@ test('older backups migrate missing phrasing and synthesis state forward safely'
   const parsed=parseBackup(legacy);
   assert.deepEqual(parsed.snapshot.phrasingDocuments,[]);
   assert.deepEqual(parsed.snapshot.studySyntheses,[]);
+  assert.deepEqual(parsed.snapshot.studyOutlines,[]);
   assert.deepEqual(parsed.snapshot.reviewCards,[]);
-  assert.equal(parsed.snapshot.metadata.appSchemaVersion,4);
+  assert.equal(parsed.snapshot.metadata.appSchemaVersion,5);
 });
 
 
@@ -48,6 +50,6 @@ test('backup parser rejects corrupt and future-schema data before destructive im
     snapshot:{metadata:{id:'metadata',appSchemaVersion:99,dataSchemaVersion:1,updatedAt:1},settings:{id:'settings',theme:'system',primaryTranslationId:'BSB',fontScale:1},studies:[],studyDocuments:[],annotations:[],workspaceStates:[],phrasingDocuments:[]}
   };
   assert.throws(()=>parseBackup(JSON.stringify(future)),/newer schema/);
-  const malformed={...future,appSchemaVersion:4,snapshot:{...future.snapshot,metadata:{...future.snapshot.metadata,appSchemaVersion:4},studies:'not-an-array'}};
+  const malformed={...future,appSchemaVersion:5,snapshot:{...future.snapshot,metadata:{...future.snapshot.metadata,appSchemaVersion:5},studies:'not-an-array'}};
   assert.throws(()=>parseBackup(JSON.stringify(malformed)),/studies must be an array/);
 });
