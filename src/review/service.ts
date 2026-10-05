@@ -1,5 +1,6 @@
 import type { Study, StudySynthesis } from '../domain/studies/types.js';
 import type { SelahRepository } from '../persistence/types.js';
+import type { StudyOutline } from '../study/outline/types.js';
 import { reviewCardDrafts, type ReviewCard, type ReviewRating } from './types.js';
 
 const DAY=86_400_000;
@@ -26,11 +27,11 @@ export class ReviewService {
       .sort((a,b)=>a.dueAt-b.dueAt||a.createdAt-b.createdAt);
   }
 
-  async syncFromSynthesis(study: Study, synthesis: StudySynthesis): Promise<{created:number;updated:number}> {
+  async syncFromSynthesis(study: Study, synthesis: StudySynthesis, outline?: StudyOutline): Promise<{created:number;updated:number}> {
     const existing=await this.repository.listReviewCards(study.id);
     const bySource=new Map(existing.map((card)=>[card.source,card]));
     let created=0,updated=0;
-    for(const draft of reviewCardDrafts(study,synthesis)) {
+    for(const draft of reviewCardDrafts(study,synthesis,outline)) {
       const current=bySource.get(draft.source);
       if(current) {
         if(current.prompt!==draft.prompt||current.answer!==draft.answer) {
