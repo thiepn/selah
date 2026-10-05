@@ -2,9 +2,10 @@ import type { PhrasingDocument } from '../bible/phrasing/model.js';
 import type { ReviewCard } from '../review/types.js';
 import type { StudyOutline } from '../study/outline/types.js';
 import type { BookSynthesis } from '../study/book-synthesis/types.js';
+import type { InterpretationClaim } from '../study/claims/types.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis, WorkspaceState } from '../domain/studies/types.js';
 
-export const APP_SCHEMA_VERSION = 6;
+export const APP_SCHEMA_VERSION = 7;
 export const DATA_SCHEMA_VERSION = 1;
 
 export interface SelahSettings {
@@ -31,6 +32,7 @@ export interface SelahSnapshot {
   studySyntheses: StudySynthesis[];
   studyOutlines: StudyOutline[];
   bookSyntheses: BookSynthesis[];
+  interpretationClaims: InterpretationClaim[];
   reviewCards: ReviewCard[];
   annotations: Annotation[];
   workspaceStates: WorkspaceState[];
@@ -58,6 +60,11 @@ export interface SelahRepository {
   listBookSyntheses(): Promise<BookSynthesis[]>;
   getBookSynthesis(bookId: string): Promise<BookSynthesis | undefined>;
   putBookSynthesis(synthesis: BookSynthesis): Promise<void>;
+
+  listInterpretationClaims(studyId?: string): Promise<InterpretationClaim[]>;
+  getInterpretationClaim(id: string): Promise<InterpretationClaim | undefined>;
+  putInterpretationClaim(claim: InterpretationClaim): Promise<void>;
+  deleteInterpretationClaim(id: string): Promise<void>;
 
   listReviewCards(studyId?: string): Promise<ReviewCard[]>;
   getReviewCard(id: string): Promise<ReviewCard | undefined>;
