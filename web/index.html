@@ -89,10 +89,21 @@
 
   <aside class="drawer" id="studiesDrawer" aria-label="Saved studies" hidden>
     <header><span>STUDIES</span><button class="icon-button" id="drawerClose" type="button" aria-label="Close studies">×</button></header>
-    <div class="study-filter-row"><input id="studySearch" placeholder="Search studies…" aria-label="Search studies"><button class="text-button" id="archivedStudiesBtn" type="button" aria-pressed="false">Archived</button></div>
+    <div class="study-filter-row"><input id="studySearch" placeholder="Search title, passage, or topic…" aria-label="Search studies"><button class="text-button" id="archivedStudiesBtn" type="button" aria-pressed="false">Archived</button></div>
+    <div class="study-view-switch" role="group" aria-label="Group studies by"><button type="button" data-study-view="books" aria-pressed="true">Books</button><button type="button" data-study-view="topics" aria-pressed="false">Topics</button></div>
     <div id="studiesList"></div>
     <footer class="drawer-backup"><button class="text-button" id="backupBtn" type="button">Backup</button><button class="text-button" id="restoreBtn" type="button">Restore</button><input id="restoreInput" type="file" accept="application/json,.json" hidden></footer>
   </aside>
+
+  <dialog class="study-meta-dialog" id="studyMetaDialog">
+    <form method="dialog" id="studyMetaForm">
+      <header><strong>Edit study</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <label>Title<input id="studyMetaTitle" maxlength="120" autocomplete="off"></label>
+      <label>Topics<input id="studyMetaTags" maxlength="500" autocomplete="off" placeholder="Christology, humility, unity"></label>
+      <p class="quiet">Use a few durable themes you would actually search for later. Separate topics with commas.</p>
+      <footer><button value="cancel" class="text-button">Cancel</button><button type="submit" value="default" class="primary-button">Save</button></footer>
+    </form>
+  </dialog>
 
   <aside class="drawer review-drawer" id="reviewDrawer" aria-label="Review cards" hidden>
     <header><span>REVIEW</span><button class="icon-button" id="reviewClose" type="button" aria-label="Close review">×</button></header>
