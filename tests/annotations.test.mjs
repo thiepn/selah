@@ -65,3 +65,14 @@ test('multi-verse text anchors preserve exact selection and translation scope', 
   assert.equal((await service.forPassage(p('Rom 9:1'),'BSB','s1')).length,2);
   assert.equal((await service.forPassage(p('Rom 9:1'),'OTHER','s1')).length,0);
 });
+
+
+test('questions preserve prompt and response as separate durable fields',async()=>{
+  const repo=new MemorySelahRepository();
+  const service=new AnnotationService(repo,{idFactory:()=> 'q1',now:(()=>{let n=20;return()=>++n;})()});
+  const question=await service.createQuestion(p('Phil 2:5-11'),'How does Christ ground Paul\'s appeal?','s1');
+  const answered=await service.update(question.id,{response:'Paul points to Christ\'s self-humbling obedience as the pattern for the church.'});
+  assert.equal(answered.body,question.body);
+  assert.match(answered.response,/self-humbling obedience/);
+  assert.deepEqual(answered.anchor,question.anchor);
+});
