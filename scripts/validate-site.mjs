@@ -13,6 +13,7 @@ const bookOverview=await readFile(join(site,'book-overview.js'),'utf8');
 const literaryModeUi=await readFile(join(site,'guide-literary-mode.js'),'utf8');
 const claimsUi=await readFile(join(site,'interpretation-claims.js'),'utf8');
 const searchWorkspace=await readFile(join(site,'search-workspace.js'),'utf8');
+const a11yOverlays=await readFile(join(site,'a11y-overlays.js'),'utf8');
 const translationCompare=await readFile(join(site,'translation-compare.js'),'utf8');
 const searchWorker=await readFile(join(site,'search-worker.js'),'utf8');
 if(/\bToday\b|dashboard|streak/i.test(html)) throw new Error('Study UI regressed toward dashboard/productivity concepts');
