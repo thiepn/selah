@@ -33,7 +33,9 @@ if(!app.includes('IndexedDbSelahRepository')||!app.includes('PassageGuideService
 if(!app.includes("from './book-overview.js'")||!bookOverview.includes('bookOverviewContentHtml')) throw new Error('Book overview UI module is not wired into the study archive');
 if(!app.includes("from './guide-literary-mode.js'")||!literaryModeUi.includes('modeControlHtml')) throw new Error('Literary-mode Guide UI module is not wired into the study workspace');
 if(!app.includes("from './translation-compare.js'")||!translationCompare.includes('createTranslationRegistry')||!translationCompare.includes('comparisonPanelHtml')) throw new Error('Translation comparison UI module is not wired into the study workspace');
-if(!app.includes("from './personal-reference-ui.js'")||!personalReferenceUi.includes('connectedReferenceCardHtml')||!app.includes('studiesOverlappingPassage')) throw new Error('Personal-reference UI module is not wired into Scripture connections');
+if(!app.includes("from './personal-reference-ui.js'")||!personalReferenceUi.includes('connectedReferenceCardHtml')||!personalReferenceUi.includes('personalStudyLinksHtml')||!app.includes('studiesOverlappingPassage')) throw new Error('Personal-reference UI module is not wired into Scripture connections');
+if(!app.includes('personalStudyLinksHtml(priorStudies')||!app.includes('Prior studies')) throw new Error('Reference Peek multi-study recall regressed');
+if(!personalReferenceUi.includes("new Set()")||!personalReferenceUi.includes("+${remaining} more")) throw new Error('Contextual prior-study recall must deduplicate and expose overflow');
 if(!app.includes("new Worker('./search-worker.js'")||!searchWorker.includes('ScriptureSearchIndex')) throw new Error('Scripture search worker is not wired into the deployable study workspace');
 if(app.includes("const tokenEls = $('.token');")) throw new Error('Highlight renderer regressed to a single-element token selector');
 if(/(?<!\\$)\\$\\([^\\n;]*\\)\\.(?:forEach|map|filter|findIndex|indexOf|some|every|reduce|slice|at)\\b/.test(app)) throw new Error('A single-element DOM helper is used with an array method');
