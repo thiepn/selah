@@ -10,6 +10,7 @@ const html=await readFile(join(site,'index.html'),'utf8');
 const app=await readFile(join(site,'app.js'),'utf8');
 const searchWorker=await readFile(join(site,'search-worker.js'),'utf8');
 if(/\bToday\b|dashboard|streak/i.test(html)) throw new Error('Study UI regressed toward dashboard/productivity concepts');
+if(/development fixture|vendoring command/i.test(app)) throw new Error('Developer-only data language leaked into the study UI');
 if(/id="referenceInput"[^>]+value="[^"]+"/.test(html)||!app.includes('renderPassageLauncher')) throw new Error('First launch regressed to a hard-coded sample passage');
 if(!html.includes('id="scripture"')||!html.includes('data-tab="guide"')) throw new Error('Core study workspace missing');
 if(!app.includes('IndexedDbSelahRepository')||!app.includes('PassageGuideService')) throw new Error('Web UI is not wired to Selah core services');
