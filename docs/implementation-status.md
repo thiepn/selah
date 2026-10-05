@@ -60,6 +60,26 @@
 - deterministic study-derived review cards with 1d / 7d / 30d / 90d / 180d scheduling, including a completed passage-outline retrieval card
 - review-card history embedded per card and searchable with personal study content
 
+### P24 — longitudinal recall and study revisitation
+
+- opted-in derived review cards automatically reconcile after Synthesis or Outline edits without surprise card creation
+- custom review cards support study-specific retrieval questions and are protected from derived-card synchronization
+- study-scoped due-review queues
+- review cards identify their source type and can jump directly back to the source study
+- read-only Study Snapshot surfaces passage, topics, main idea, structure, unresolved questions, application, and review state inside the existing archive
+- snapshot-to-review and snapshot-to-study navigation
+- optional one-click Copy & open ChatGPT handoff while plain Markdown export remains provider-independent and API-free
+
+### P25 — book-level synthesis and personal knowledge archive
+
+- IndexedDB / backup schema **v6**
+- one durable personal book-understanding record per canonical Bible book
+- book overview read model derives active passage studies, their main ideas, recurring manually curated topics, and unresolved questions directly from study data
+- Books archive headers open personal Book Overviews rather than a generic encyclopedia page
+- book understanding autosaves locally and is included in backup/migration
+- personal search indexes book-level understanding
+- book overview rendering extracted to an offline-precached UI module with its own enforced bundle budget
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -81,7 +101,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **61/61 passing** on the latest fully executed head
+- automated Node test suite: **71/71 passing** on the current P25-qualified head
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -98,7 +118,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **153.14 MiB / 3,668 files**
-- current application code remains small relative to data: about **89 KiB app JS + 115 KiB core JS + 32 KiB CSS** before compression
+- current application code remains small relative to data: **99,398 B app JS + 1,827 B focused UI modules + 39,909 B CSS + 123,627 B core JS** before compression
 
 ## Open qualification work
 
@@ -110,4 +130,4 @@
 
 ## Product boundaries still enforced
 
-Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded questions but do not generate interpretation. Review exists only as a retention layer for conclusions and structure the user deliberately created. The default experience remains Scripture first, with study tools operating contextually around the passage.
+Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded questions but do not generate interpretation. Review exists only as a retention layer for conclusions, structure, and custom retrieval questions the user deliberately created. Book Overviews are derived from the user's own passage studies rather than prefilled encyclopedia content. The default experience remains Scripture first, with study tools operating contextually around the passage.
