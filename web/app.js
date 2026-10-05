@@ -60,6 +60,7 @@ let patternTokenIds = new Set();
 let phrasingDocument;
 let phrasingSplitNodeId;
 let noteSaveTimer;
+let synthesisSaveTimer;
 let pendingAnnotationKind='note';
 let showArchivedStudies=false;
 let scriptureSearchIndexPromise;
@@ -164,7 +165,7 @@ async function searchScripture(query,limit=30) {
 async function renderSearchResults(query) {
   elements.studyContent.innerHTML='<div class="loading">Searching Scripture and studies…</div>';
   const [scriptureResults,snapshot]=await Promise.all([searchScripture(query,30).catch(()=>[]),repo.exportSnapshot()]);
-  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,annotations:snapshot.annotations});
+  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,syntheses:snapshot.studySyntheses,annotations:snapshot.annotations});
   const personalResults=personal.search(query,30);
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
   queryAll('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
@@ -462,6 +463,75 @@ function scheduleDocumentSave(value) {
   },300);
 }
 
+
+function emptySynthesis(studyId='') {
+  return { studyId, mainIdea:'', explanation:'', evidence:'', application:'', prayer:'', confidence:'needs-study', updatedAt:0 };
+}
+
+function readSynthesisForm() {
+  return {
+    mainIdea:$('#synthesisMainIdea')?.value??'',
+    explanation:$('#synthesisExplanation')?.value??'',
+    evidence:$('#synthesisEvidence')?.value??'',
+    application:$('#synthesisApplication')?.value??'',
+    prayer:$('#synthesisPrayer')?.value??'',
+    confidence:$('#synthesisConfidence')?.value??'needs-study',
+  };
+}
+
+function synthesisHasContent(value) {
+  return [value.mainIdea,value.explanation,value.evidence,value.application,value.prayer].some((item)=>item.trim());
+}
+
+async function renderSynthesis() {
+  const saved=currentStudy ? await repo.getStudySynthesis(currentStudy.id) : undefined;
+  const synthesis=saved??emptySynthesis(currentStudy?.id);
+  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>
+    <label class="synthesis-field synthesis-main"><span>Main idea</span><small>One sentence: what is the author saying here?</small><textarea id="synthesisMainIdea" rows="2" placeholder="The main point of this passage is…">${escapeHtml(synthesis.mainIdea)}</textarea></label>
+    <label class="synthesis-field"><span>Explain it</span><small>Explain the passage in your own words as if teaching someone else.</small><textarea id="synthesisExplanation" rows="7" placeholder="In context, the author is arguing…">${escapeHtml(synthesis.explanation)}</textarea></label>
+    <label class="synthesis-field"><span>Textual evidence</span><small>Which verses, words, structure, or connections support your reading?</small><textarea id="synthesisEvidence" rows="4" placeholder="v. 6…; the therefore in v. 9…">${escapeHtml(synthesis.evidence)}</textarea></label>
+    <label class="synthesis-field synthesis-confidence"><span>Interpretation confidence</span><select id="synthesisConfidence">
+      <option value="clear"${synthesis.confidence==='clear'?' selected':''}>Clear from text</option>
+      <option value="strong-inference"${synthesis.confidence==='strong-inference'?' selected':''}>Strong inference</option>
+      <option value="tentative"${synthesis.confidence==='tentative'?' selected':''}>Tentative</option>
+      <option value="needs-study"${synthesis.confidence==='needs-study'?' selected':''}>Need more study</option>
+    </select></label>
+    <label class="synthesis-field"><span>Application</span><small>Because this passage is true, what should you believe, do, stop, trust, or remember?</small><textarea id="synthesisApplication" rows="4" placeholder="Because this is true…">${escapeHtml(synthesis.application)}</textarea></label>
+    <label class="synthesis-field"><span>Prayer</span><small>Turn what you learned into prayer.</small><textarea id="synthesisPrayer" rows="4" placeholder="Lord…">${escapeHtml(synthesis.prayer)}</textarea></label>
+  </section>`;
+  queryAll('.synthesis-field textarea').forEach((field)=>field.addEventListener('input',()=>scheduleSynthesisSave(readSynthesisForm())));
+  $('#synthesisConfidence')?.addEventListener('change',()=>scheduleSynthesisSave(readSynthesisForm(),0));
+}
+
+function scheduleSynthesisSave(value,delay=250) {
+  if(!currentScripture)return;
+  const passage=structuredClone(currentScripture.passage);
+  const studyIdAtEdit=currentStudy?.id;
+  setSaving(true);
+  clearTimeout(synthesisSaveTimer);
+  synthesisSaveTimer=setTimeout(async()=>{
+    try {
+      if(!synthesisHasContent(value)&&!studyIdAtEdit) { setSaving(false); return; }
+      let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await getStudyForPassage(passage);
+      if(!study)study=await studyService.create(passage);
+      const updatedAt=Date.now();
+      await repo.putStudySynthesis({studyId:study.id,...value,updatedAt});
+      await studyService.touch(study.id);
+      if(currentScripture&&samePassage(currentScripture.passage,passage)){
+        currentStudy=study;
+        if(workspace&&workspace.studyId!==study.id){
+          workspace={...workspace,studyId:study.id,updatedAt};
+          await repo.putWorkspace(workspace);
+          await workspaceService.markLastOpened(workspace);
+        }
+        setSaving(false);
+      }
+    } catch {
+      if(currentScripture&&samePassage(currentScripture.passage,passage))elements.saveState.textContent='synthesis not saved';
+    }
+  },delay);
+}
+
 async function renderReferences() {
   elements.studyContent.innerHTML='<div class="loading">Loading references…</div>';
   try {
@@ -542,6 +612,7 @@ async function renderActiveTab() {
   if(!currentScripture)return;
   if(activeTab==='guide')return renderGuide();
   if(activeTab==='notes')return renderNotes();
+  if(activeTab==='synthesis')return renderSynthesis();
   if(activeTab==='references')return renderReferences();
   if(activeTab==='words')return renderWords();
   if(activeTab==='compare')return renderCompare();
@@ -733,7 +804,7 @@ $('#restoreInput').addEventListener('change',async(event)=>{const file=event.tar
 $('#peekClose').addEventListener('click',()=>elements.peek.hidden=true);
 $('#peekOpen').addEventListener('click',async()=>{if(activePeekPassage){elements.peek.hidden=true;await navigateResearch(activePeekPassage);}});
 $('#exportBtn').addEventListener('click',()=>elements.exportDialog.showModal());
-$('#copyExportBtn').addEventListener('click',async()=>{if(!currentStudy){toast('Write or annotate first so there is a study to export.');return;}const markdown=exportStudyContextMarkdown({study:currentStudy,scripture:currentScripture,annotations:await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id),document:await repo.getStudyDocument(currentStudy.id),options:{includeScripture:$('#exportScripture').checked,includeAnnotations:$('#exportAnnotations').checked,includeDocument:$('#exportDocument').checked,tutorPrompt:$('#exportTutor').value}});await navigator.clipboard.writeText(markdown);elements.exportDialog.close();toast('Study context copied.');});
+$('#copyExportBtn').addEventListener('click',async()=>{if(!currentStudy){toast('Write or annotate first so there is a study to export.');return;}const markdown=exportStudyContextMarkdown({study:currentStudy,scripture:currentScripture,annotations:await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id),document:await repo.getStudyDocument(currentStudy.id),synthesis:await repo.getStudySynthesis(currentStudy.id),options:{includeScripture:$('#exportScripture').checked,includeAnnotations:$('#exportAnnotations').checked,includeDocument:$('#exportDocument').checked,includeSynthesis:$('#exportSynthesis').checked,tutorPrompt:$('#exportTutor').value}});await navigator.clipboard.writeText(markdown);elements.exportDialog.close();toast('Study context copied.');});
 
 elements.scripture.addEventListener('click',async(event)=>{
   const verseButton=event.target.closest('.verse-number');if(verseButton){const verse=verseButton.closest('.verse');context.patch({activeVerse:{book:verse.dataset.book,chapter:Number(verse.dataset.chapter),verse:Number(verse.dataset.verse)}});return;}
