@@ -448,3 +448,11 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .book-understanding-field textarea{width:100%;max-height:240px;resize:vertical;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);padding:11px 12px;font:14px/1.6 Georgia,serif;outline:0}
 .book-understanding-field textarea:focus{border-color:var(--accent)}
 @media(max-width:760px){.book-overview-dialog{width:calc(100vw - 18px)}.book-question{grid-template-columns:1fr}.book-understanding-field textarea{max-height:180px}}
+
+
+.literary-mode-control{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:16px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2)}
+.literary-mode-control label{display:flex;align-items:center;gap:9px}
+.literary-mode-control label>span{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.literary-mode-control select{border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);padding:6px 8px;font-size:10px}
+.literary-mode-control p{max-width:38ch;margin:0;color:var(--muted);font-size:9px;line-height:1.5}
+@media(max-width:760px){.literary-mode-control{flex-direction:column}.literary-mode-control label{justify-content:space-between;width:100%}}
