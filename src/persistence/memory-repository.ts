@@ -2,6 +2,7 @@ import type { PhrasingDocument } from '../bible/phrasing/model.js';
 import type { ReviewCard } from '../review/types.js';
 import type { StudyOutline } from '../study/outline/types.js';
 import type { BookSynthesis } from '../study/book-synthesis/types.js';
+import type { InterpretationClaim } from '../study/claims/types.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis, WorkspaceState } from '../domain/studies/types.js';
 import { defaultMetadata, defaultSettings } from './defaults.js';
 import type { SelahMetadata, SelahRepository, SelahSettings, SelahSnapshot } from './types.js';
@@ -16,6 +17,7 @@ export class MemorySelahRepository implements SelahRepository {
   #syntheses = new Map<string, StudySynthesis>();
   #outlines = new Map<string, StudyOutline>();
   #bookSyntheses = new Map<string, BookSynthesis>();
+  #claims = new Map<string, InterpretationClaim>();
   #review = new Map<string, ReviewCard>();
   #annotations = new Map<string, Annotation>();
   #workspaces = new Map<string, WorkspaceState>();
@@ -30,7 +32,7 @@ export class MemorySelahRepository implements SelahRepository {
   async listStudies() { return [...this.#studies.values()].map(clone); }
   async getStudy(id: string) { const v = this.#studies.get(id); return v ? clone(v) : undefined; }
   async putStudy(value: Study) { this.#studies.set(value.id, clone(value)); }
-  async deleteStudy(id: string) { this.#studies.delete(id); this.#documents.delete(id); this.#syntheses.delete(id); this.#outlines.delete(id); for(const [cardId,card] of this.#review)if(card.studyId===id)this.#review.delete(cardId); }
+  async deleteStudy(id: string) { this.#studies.delete(id); this.#documents.delete(id); this.#syntheses.delete(id); this.#outlines.delete(id); for(const [claimId,claim] of this.#claims)if(claim.studyId===id)this.#claims.delete(claimId); for(const [cardId,card] of this.#review)if(card.studyId===id)this.#review.delete(cardId); }
 
   async getStudyDocument(id: string) { const v = this.#documents.get(id); return v ? clone(v) : undefined; }
   async putStudyDocument(value: StudyDocument) { this.#documents.set(value.studyId, clone(value)); }
@@ -41,6 +43,10 @@ export class MemorySelahRepository implements SelahRepository {
   async listBookSyntheses() { return [...this.#bookSyntheses.values()].map(clone); }
   async getBookSynthesis(bookId: string) { const v=this.#bookSyntheses.get(bookId); return v ? clone(v) : undefined; }
   async putBookSynthesis(value: BookSynthesis) { this.#bookSyntheses.set(value.bookId, clone(value)); }
+  async listInterpretationClaims(studyId?: string) { return [...this.#claims.values()].filter((claim)=>!studyId||claim.studyId===studyId).map(clone); }
+  async getInterpretationClaim(id: string) { const v=this.#claims.get(id); return v ? clone(v) : undefined; }
+  async putInterpretationClaim(value: InterpretationClaim) { this.#claims.set(value.id,clone(value)); }
+  async deleteInterpretationClaim(id: string) { this.#claims.delete(id); }
   async listReviewCards(studyId?: string) { return [...this.#review.values()].filter((card)=>!studyId||card.studyId===studyId).map(clone); }
   async getReviewCard(id: string) { const v=this.#review.get(id); return v ? clone(v) : undefined; }
   async putReviewCard(value: ReviewCard) { this.#review.set(value.id,clone(value)); }
@@ -71,6 +77,7 @@ export class MemorySelahRepository implements SelahRepository {
       studySyntheses: [...this.#syntheses.values()].map(clone),
       studyOutlines: [...this.#outlines.values()].map(clone),
       bookSyntheses: [...this.#bookSyntheses.values()].map(clone),
+      interpretationClaims: [...this.#claims.values()].map(clone),
       reviewCards: [...this.#review.values()].map(clone),
       annotations: await this.listAnnotations(),
       workspaceStates: await this.listWorkspaces(),
@@ -85,6 +92,7 @@ export class MemorySelahRepository implements SelahRepository {
       this.#syntheses.clear();
       this.#outlines.clear();
       this.#bookSyntheses.clear();
+      this.#claims.clear();
       this.#review.clear();
       this.#annotations.clear();
       this.#workspaces.clear();
@@ -97,6 +105,7 @@ export class MemorySelahRepository implements SelahRepository {
     for (const item of snapshot.studySyntheses ?? []) this.#syntheses.set(item.studyId, clone(item));
     for (const item of snapshot.studyOutlines ?? []) this.#outlines.set(item.studyId, clone(item));
     for (const item of snapshot.bookSyntheses ?? []) this.#bookSyntheses.set(item.bookId, clone(item));
+    for (const item of snapshot.interpretationClaims ?? []) this.#claims.set(item.id, clone(item));
     for (const item of snapshot.reviewCards ?? []) this.#review.set(item.id, clone(item));
     for (const item of snapshot.annotations) this.#annotations.set(item.id, clone(item));
     for (const item of snapshot.workspaceStates) this.#workspaces.set(item.id, clone(item));
