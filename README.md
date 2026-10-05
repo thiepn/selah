@@ -30,7 +30,7 @@ Implemented and wired into the deployable static application:
 - native IndexedDB persistence with schema migration
 - Study / Workspace / Research Trail separation
 - reference, text, and original-token annotation anchors
-- notes, highlights, and answerable passage-anchored questions
+- notes, highlights, and answerable passage-anchored questions with unresolved-question continuity into Guide and Synthesis
 - persistent Study Document
 - durable Passage Outline with validated non-overlapping verse sections, selection-to-outline, editorial-heading seeding, and in-Scripture boundaries
 - text-derived observation questions that highlight their evidence without supplying interpretations
@@ -43,8 +43,10 @@ Implemented and wired into the deployable static application:
 - lexicon, morphology, concordance, and original-language composition layer
 - provider-driven translation comparison
 - Scripture search and personal-study search
+- Books / Topics archive views with manually curated, normalized study topics
 - external study-resource providers
 - copyable external-AI study context with no API dependency
+- study title/topic metadata editing with topic-aware search and Markdown export
 - version-aware full backup/restore
 - PWA shell with network-first freshness and offline fallback
 - responsive Bible-first desktop/mobile workspace
