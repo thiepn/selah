@@ -32,7 +32,7 @@ export class MemorySelahRepository implements SelahRepository {
   async listStudies() { return [...this.#studies.values()].map(clone); }
   async getStudy(id: string) { const v = this.#studies.get(id); return v ? clone(v) : undefined; }
   async putStudy(value: Study) { this.#studies.set(value.id, clone(value)); }
-  async deleteStudy(id: string) { this.#studies.delete(id); this.#documents.delete(id); this.#syntheses.delete(id); this.#outlines.delete(id); for(const [claimId,claim] of this.#claims)if(claim.studyId===id)this.#claims.delete(claimId); for(const [cardId,card] of this.#review)if(card.studyId===id)this.#review.delete(cardId); }
+  async deleteStudy(id: string) { this.#studies.delete(id); this.#documents.delete(id); this.#syntheses.delete(id); this.#outlines.delete(id); for(const [claimId,claim] of this.#claims)if(claim.studyId===id)this.#claims.delete(claimId); for(const [cardId,card] of this.#review)if(card.studyId===id)this.#review.delete(cardId); for(const [annotationId,annotation] of this.#annotations)if(annotation.studyId===id)this.#annotations.delete(annotationId); for(const [documentId,document] of this.#phrasing)if(document.studyId===id)this.#phrasing.delete(documentId); for(const [workspaceId,workspace] of this.#workspaces)if(workspace.studyId===id)this.#workspaces.delete(workspaceId); }
 
   async getStudyDocument(id: string) { const v = this.#documents.get(id); return v ? clone(v) : undefined; }
   async putStudyDocument(value: StudyDocument) { this.#documents.set(value.studyId, clone(value)); }
