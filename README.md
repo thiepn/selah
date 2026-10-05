@@ -6,7 +6,7 @@ It intentionally has no Today page, dashboard, streaks, reading-plan layer, pray
 
 ## Product model
 
-Selah is built around eight primitives:
+Selah is built around ten primitives:
 
 1. canonical Scripture references
 2. shared passage/selection context
@@ -14,8 +14,10 @@ Selah is built around eight primitives:
 4. durable annotation anchors
 5. studies, freeform study documents, passage outlines, and structured synthesis
 6. recoverable workspace/research state
-7. study-derived spaced review cards
-8. versioned local persistence, backup, and migration
+7. study-derived and custom spaced review cards
+8. study snapshots for fast revisitation
+9. derived book overviews with one evolving personal book understanding
+10. versioned local persistence, backup, and migration
 
 Every study tool consumes those primitives instead of maintaining its own competing state.
 
@@ -27,7 +29,7 @@ Implemented and wired into the deployable static application:
 - exact verse-bound validation when the full data pack is present
 - BSB Scripture provider with stable token IDs and original-language tokens
 - passage context engine
-- native IndexedDB persistence with schema migration
+- native IndexedDB persistence with schema-v6 migration
 - Study / Workspace / Research Trail separation
 - reference, text, and original-token annotation anchors
 - notes, highlights, and answerable passage-anchored questions with unresolved-question continuity into Guide and Synthesis
@@ -36,6 +38,9 @@ Implemented and wired into the deployable static application:
 - text-derived observation questions that highlight their evidence without supplying interpretations
 - structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
 - study-derived Review cards with Forgot / Difficult / Good scheduling, including completed passage structure
+- custom review cards that remain independent from Synthesis-derived cards
+- automatic reconciliation of opted-in derived cards after Synthesis/Outline edits without silently creating new cards
+- study-scoped review queues, review-to-source-study remediation, and read-only Study Snapshots
 - persistent Phrasing (token-preserving clause splitting, merging, indentation) documents
 - textual and Strong's pattern analysis
 - cross-reference provider and in-workspace Peek model
@@ -44,8 +49,10 @@ Implemented and wired into the deployable static application:
 - provider-driven translation comparison
 - Scripture search and personal-study search
 - Books / Topics archive views with manually curated, normalized study topics
+- personal Book Overviews derived from actual passage studies, recurring topics, main ideas, and unresolved questions
+- one autosaved, searchable personal understanding field per canonical Bible book
 - external study-resource providers
-- copyable external-AI study context with no API dependency
+- copyable external-AI study context with no API dependency, plus optional Copy & open ChatGPT handoff
 - study title/topic metadata editing with topic-aware search and Markdown export
 - version-aware full backup/restore
 - PWA shell with network-first freshness and offline fallback
