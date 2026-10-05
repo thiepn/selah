@@ -1,9 +1,10 @@
 import type { PhrasingDocument } from '../bible/phrasing/model.js';
 import type { ReviewCard } from '../review/types.js';
 import type { StudyOutline } from '../study/outline/types.js';
+import type { BookSynthesis } from '../study/book-synthesis/types.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis, WorkspaceState } from '../domain/studies/types.js';
 
-export const APP_SCHEMA_VERSION = 5;
+export const APP_SCHEMA_VERSION = 6;
 export const DATA_SCHEMA_VERSION = 1;
 
 export interface SelahSettings {
@@ -29,6 +30,7 @@ export interface SelahSnapshot {
   studyDocuments: StudyDocument[];
   studySyntheses: StudySynthesis[];
   studyOutlines: StudyOutline[];
+  bookSyntheses: BookSynthesis[];
   reviewCards: ReviewCard[];
   annotations: Annotation[];
   workspaceStates: WorkspaceState[];
@@ -53,6 +55,9 @@ export interface SelahRepository {
   putStudySynthesis(synthesis: StudySynthesis): Promise<void>;
   getStudyOutline(studyId: string): Promise<StudyOutline | undefined>;
   putStudyOutline(outline: StudyOutline): Promise<void>;
+  listBookSyntheses(): Promise<BookSynthesis[]>;
+  getBookSynthesis(bookId: string): Promise<BookSynthesis | undefined>;
+  putBookSynthesis(synthesis: BookSynthesis): Promise<void>;
 
   listReviewCards(studyId?: string): Promise<ReviewCard[]>;
   getReviewCard(id: string): Promise<ReviewCard | undefined>;
