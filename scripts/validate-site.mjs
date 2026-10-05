@@ -4,13 +4,14 @@ import { fileURLToPath } from 'node:url';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const site=join(root,'site');
-for(const file of ['index.html','app.js','book-overview.js','guide-literary-mode.js','translation-compare.js','personal-reference-ui.js','search-worker.js','styles.css','sw.js','manifest.webmanifest','core/domain/references/index.js','core/persistence/index.js']) await access(join(site,file));
+for(const file of ['index.html','app.js','book-overview.js','topic-overview.js','guide-literary-mode.js','translation-compare.js','personal-reference-ui.js','search-worker.js','styles.css','sw.js','manifest.webmanifest','core/domain/references/index.js','core/persistence/index.js']) await access(join(site,file));
 try { await access(join(site,'data/bsb/display/PHP/PHP2.json')); } catch { await access(join(site,'data/bsb/display/PHP/PHP2.jsonl')); }
 await access(join(site,'data/web/display/PHP/PHP2.json'));
 const html=await readFile(join(site,'index.html'),'utf8');
 const app=await readFile(join(site,'app.js'),'utf8');
 const css=await readFile(join(site,'styles.css'),'utf8');
 const bookOverview=await readFile(join(site,'book-overview.js'),'utf8');
+const topicOverview=await readFile(join(site,'topic-overview.js'),'utf8');
 const literaryModeUi=await readFile(join(site,'guide-literary-mode.js'),'utf8');
 const personalReferenceUi=await readFile(join(site,'personal-reference-ui.js'),'utf8');
 const claimsUi=await readFile(join(site,'interpretation-claims.js'),'utf8');
@@ -31,13 +32,16 @@ if(/id="referenceInput"[^>]+value="[^"]+"/.test(html)||!app.includes('renderPass
 if(!html.includes('id="scripture"')||!html.includes('data-tab="guide"')) throw new Error('Core study workspace missing');
 if(!app.includes('IndexedDbSelahRepository')||!app.includes('PassageGuideService')) throw new Error('Web UI is not wired to Selah core services');
 if(!app.includes("from './book-overview.js'")||!bookOverview.includes('bookOverviewContentHtml')) throw new Error('Book overview UI module is not wired into the study archive');
+if(!app.includes("from './topic-overview.js'")||!app.includes('createTopicOverviewController({repo')||!topicOverview.includes('TopicOverviewService')||!topicOverview.includes('topicOverviewContentHtml')) throw new Error('Topic overview UI module is not wired into the study archive');
+if(!html.includes('id="topicOverviewDialog"')||!app.includes('data-topic-overview=')||!bookOverview.includes('data-topic-overview=')) throw new Error('Topic overview entry points regressed');
+if(!topicOverview.includes('does not infer additional topical relationships')||!topicOverview.includes('data-topic-study-id')||!topicOverview.includes('data-topic-reference')) throw new Error('Topic overview must remain derived, traceable, and navigable');
 if(!app.includes("from './guide-literary-mode.js'")||!literaryModeUi.includes('modeControlHtml')) throw new Error('Literary-mode Guide UI module is not wired into the study workspace');
 if(!app.includes("from './translation-compare.js'")||!translationCompare.includes('createTranslationRegistry')||!translationCompare.includes('comparisonPanelHtml')) throw new Error('Translation comparison UI module is not wired into the study workspace');
 if(!app.includes("from './personal-reference-ui.js'")||!personalReferenceUi.includes('connectedReferenceCardHtml')||!personalReferenceUi.includes('personalStudyLinksHtml')||!app.includes('studiesOverlappingPassage')) throw new Error('Personal-reference UI module is not wired into Scripture connections');
 if(!app.includes('personalStudyLinksHtml(priorStudies')||!app.includes('Prior studies')) throw new Error('Reference Peek multi-study recall regressed');
 if(!app.includes('Prior studies overlapping this passage')||!app.includes('study.id!==currentStudy?.id')||!app.includes('wirePersonalStudyReferences(elements.studyContent)')) throw new Error('Passage Guide contextual study recall regressed');
 if(!personalReferenceUi.includes("new Set()")||!personalReferenceUi.includes("data-personal-overflow hidden")||!personalReferenceUi.includes("data-personal-expand")||!personalReferenceUi.includes("+${remaining} more")) throw new Error('Contextual prior-study recall must deduplicate and expose accessible overflow');
-if(!app.includes("querySelectorAll('[data-personal-expand]')")||!app.includes("querySelectorAll('[data-personal-overflow]')")) throw new Error('Contextual prior-study overflow expansion is not wired');
+if(!personalReferenceUi.includes("querySelectorAll('[data-personal-expand]')")||!personalReferenceUi.includes("querySelectorAll('[data-personal-overflow]')")||!app.includes('wirePersonalStudyReferenceUi')) throw new Error('Contextual prior-study overflow expansion is not wired');
 if(!app.includes("new Worker('./search-worker.js'")||!searchWorker.includes('ScriptureSearchIndex')) throw new Error('Scripture search worker is not wired into the deployable study workspace');
 if(app.includes("const tokenEls = $('.token');")) throw new Error('Highlight renderer regressed to a single-element token selector');
 if(/(?<!\\$)\\$\\([^\\n;]*\\)\\.(?:forEach|map|filter|findIndex|indexOf|some|every|reduce|slice|at)\\b/.test(app)) throw new Error('A single-element DOM helper is used with an array method');
