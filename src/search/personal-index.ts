@@ -1,8 +1,9 @@
 import { formatPassage } from '../domain/references/reference.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis } from '../domain/studies/types.js';
 import type { ReviewCard } from '../review/types.js';
+import type { StudyOutline } from '../study/outline/types.js';
 
-export type PersonalSearchKind = 'study' | 'document' | 'synthesis' | 'review' | 'annotation';
+export type PersonalSearchKind = 'study' | 'document' | 'outline' | 'synthesis' | 'review' | 'annotation';
 export interface PersonalSearchResult {
   kind: PersonalSearchKind;
   studyId?: string;
@@ -20,7 +21,7 @@ interface IndexedItem extends PersonalSearchResult { normalized: string; }
 export class PersonalStudySearchIndex {
   #items: IndexedItem[] = [];
 
-  rebuild(input: { studies: Study[]; documents: StudyDocument[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
+  rebuild(input: { studies: Study[]; documents: StudyDocument[]; outlines?: StudyOutline[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
     const studies = new Map(input.studies.map((study)=>[study.id,study]));
     this.#items = [];
     for (const study of input.studies) {
@@ -32,6 +33,13 @@ export class PersonalStudySearchIndex {
       const study=studies.get(document.studyId);
       const title=study?.title??(study?formatPassage(study.primaryPassage):'Study document');
       this.#items.push({kind:'document',studyId:document.studyId,title,excerpt:document.plainText.slice(0,240),score:0,normalized:normalize(`${title} ${document.plainText}`)});
+    }
+    for (const outline of input.outlines ?? []) {
+      const study=studies.get(outline.studyId);
+      const title=study?.title??(study?formatPassage(study.primaryPassage):'Study outline');
+      const parts=outline.sections.map((section)=>`${formatPassage(section.passage)} ${section.label}`);
+      const excerpt=outline.sections.slice(0,3).map((section)=>`${formatPassage(section.passage)} — ${section.label||'Untitled section'}`).join(' · ');
+      this.#items.push({kind:'outline',studyId:outline.studyId,title,excerpt,score:0,normalized:normalize(`${title} ${parts.join(' ')}`)});
     }
     for (const synthesis of input.syntheses ?? []) {
       const study=studies.get(synthesis.studyId);
