@@ -127,6 +127,15 @@
 - search extraction reduced the main controller below its 100 KB budget while retaining a separate UI-module budget
 - Claims-to-Synthesis presentation remains read-only: Selah never promotes or rewrites the user's interpretation automatically
 
+### P30 — study flow & recall coherence
+
+- Claims now precede Synthesis in keyboard and visual tab order
+- static release guard prevents regression back to Synthesis-before-Claims
+- Synthesis displays exact Claims upstream and treats its free-text evidence field as an optional decisive-evidence summary rather than a second evidence database
+- Study Snapshot includes support-classified claims and their Scripture evidence references
+- claim recall rendering stays in the extracted Claims UI module rather than duplicating interpretation markup in the main controller
+- no schema change: Snapshot content is derived from existing schema-v7 Claims/Synthesis/Outline data
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -166,7 +175,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **157.43 MiB / 4,879 files**
-- current application code remains small relative to data: **97,759 B app JS + 16,190 B focused UI modules + 45,837 B CSS + 140,348 B core JS** before compression
+- current application code remains small relative to data: **98,006 B app JS + 16,737 B focused UI modules + 46,538 B CSS + 140,348 B core JS** before compression
 
 ## Open qualification work
 
