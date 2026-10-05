@@ -65,6 +65,7 @@ let phrasingSplitNodeId;
 let noteSaveTimer;
 let synthesisSaveTimer;
 let outlineDraftPassage;
+let focusedObservationPromptId;
 let pendingAnnotationKind='note';
 let showArchivedStudies=false;
 let scriptureSearchIndexPromise;
@@ -223,6 +224,7 @@ async function setCurrentScripture(scripture) {
   currentScripture = scripture;
   selectedToken = undefined;
   selectedRangeInfo = undefined;
+  focusedObservationPromptId = undefined;
   patternTokenIds.clear();
   phrasingDocument = undefined;
   context.set({ primaryPassage: scripture.passage, translationId: scripture.translationId });
@@ -373,6 +375,7 @@ async function renderGuide() {
     elements.studyContent.innerHTML = `<section class="panel">
       <span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2>
       <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
+      <section class="panel-section observation-guide"><h3>Observe the text</h3><p class="quiet">These questions come from visible textual signals. Selah asks; it does not supply the interpretation.</p><div class="observation-prompts">${guide.observationPrompts.map((prompt,index)=>`<article class="observation-prompt"><span class="observation-category">${escapeHtml(prompt.category)}</span><p>${escapeHtml(prompt.prompt)}</p><div class="observation-actions">${prompt.tokenIds.length?`<button class="text-button" type="button" data-observation-focus="${index}">Show in text</button>`:''}<button class="text-button" type="button" data-observation-save="${index}">Save question</button></div></article>`).join('')}</div></section>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.literaryContext.length?`<div class="literary-context"><span class="mini-label">Literary context</span>${guide.literaryContext.map((section)=>`<button type="button" class="context-section ${section.role}" data-reference="${escapeHtml(formatPassage(section.passage))}"><span>${section.role}</span><strong>${escapeHtml(section.heading)}</strong><small>${escapeHtml(formatPassage(section.passage))}</small></button>`).join('')}</div>`:''}${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Headings inside selection</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
       <section class="panel-section"><div class="section-heading-row"><h3>Your structure</h3><button class="text-button" id="guideOutlineBtn" type="button">${outline?.sections.length?'Edit outline':'Outline passage'}</button></div>${outlineHtml}</section>
       <section class="panel-section"><h3>Repeated signals</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
@@ -384,6 +387,28 @@ async function renderGuide() {
     </section>`;
     wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
     $('#guideOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
+    queryAll('[data-observation-focus]').forEach((button)=>button.addEventListener('click',async()=>{
+      const prompt=guide.observationPrompts[Number(button.dataset.observationFocus)];
+      if(!prompt)return;
+      const clearing=focusedObservationPromptId===prompt.id;
+      focusedObservationPromptId=clearing?undefined:prompt.id;
+      patternTokenIds.clear();
+      if(!clearing)for(const tokenId of prompt.tokenIds)patternTokenIds.add(tokenId);
+      await renderScripture();
+      if(!clearing&&prompt.tokenIds[0])document.querySelector(`[data-token-id="${CSS.escape(prompt.tokenIds[0])}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});
+      toast(clearing?'Observation focus cleared.':'Textual cue highlighted.');
+    }));
+    queryAll('[data-observation-save]').forEach((button)=>button.addEventListener('click',async()=>{
+      const prompt=guide.observationPrompts[Number(button.dataset.observationSave)];
+      if(!prompt)return;
+      const study=await ensureStudy();
+      const existing=await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,study.id);
+      if(existing.some((annotation)=>annotation.kind==='question'&&annotation.body?.trim()===prompt.prompt.trim())){toast('Question already saved.');return;}
+      await annotationService.createQuestion(currentScripture.passage,prompt.prompt,study.id);
+      await studyService.touch(study.id);
+      toast('Observation question saved.');
+      await renderGuide();
+    }));
   } catch (error) { renderToolError('Guide unavailable',error); }
 }
 
