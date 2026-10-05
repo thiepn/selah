@@ -384,10 +384,16 @@ async function ensureStudy() {
 async function renderGuide() {
   elements.studyContent.innerHTML='<div class="loading">Building passage guide…</div>';
   try {
-    const [guide,outline] = await Promise.all([
+    const [guide,outline,studyAnnotations] = await Promise.all([
       guideService.build(currentScripture),
       currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
+      currentStudy ? annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id) : Promise.resolve([]),
     ]);
+    const questions=studyAnnotations.filter((annotation)=>annotation.kind==='question');
+    const unansweredQuestions=questions.filter((annotation)=>!annotation.response?.trim());
+    const questionsHtml=questions.length
+      ? `<div class="study-question-summary">${[...questions].sort((a,b)=>Number(Boolean(a.response?.trim()))-Number(Boolean(b.response?.trim()))).slice(0,8).map((question)=>`<div class="${question.response?.trim()?'answered':'unanswered'}"><span>${question.response?.trim()?'Answered':'Unanswered'}</span><p>${escapeHtml(question.body??'Question')}</p></div>`).join('')}</div><div class="question-summary-footer"><span>${unansweredQuestions.length} unresolved</span><button class="text-button" type="button" data-open-study-questions>Open in Notes</button></div>`
+      : '<p class="quiet">No saved study questions yet.</p>';
     const book = BOOK_BY_ID.get(currentScripture.passage.start.book);
     const outlineHtml=outline?.sections.length
       ? `<div class="guide-outline">${outline.sections.map((section)=>`<div><span>${escapeHtml(formatPassage(section.passage))}</span><strong>${escapeHtml(section.label||'Untitled section')}</strong></div>`).join('')}</div>`
@@ -398,6 +404,7 @@ async function renderGuide() {
       <section class="panel-section observation-guide"><h3>Observe the text</h3><p class="quiet">These questions come from visible textual signals. Selah asks; it does not supply the interpretation.</p><div class="observation-prompts">${guide.observationPrompts.map((prompt,index)=>`<article class="observation-prompt"><span class="observation-category">${escapeHtml(prompt.category)}</span><p>${escapeHtml(prompt.prompt)}</p><div class="observation-actions">${prompt.tokenIds.length?`<button class="text-button" type="button" data-observation-focus="${index}">Show in text</button>`:''}<button class="text-button" type="button" data-observation-save="${index}">Save question</button></div></article>`).join('')}</div></section>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.literaryContext.length?`<div class="literary-context"><span class="mini-label">Literary context</span>${guide.literaryContext.map((section)=>`<button type="button" class="context-section ${section.role}" data-reference="${escapeHtml(formatPassage(section.passage))}"><span>${section.role}</span><strong>${escapeHtml(section.heading)}</strong><small>${escapeHtml(formatPassage(section.passage))}</small></button>`).join('')}</div>`:''}${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Headings inside selection</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
       <section class="panel-section"><div class="section-heading-row"><h3>Your structure</h3><button class="text-button" id="guideOutlineBtn" type="button">${outline?.sections.length?'Edit outline':'Outline passage'}</button></div>${outlineHtml}</section>
+      <section class="panel-section"><div class="section-heading-row"><h3>Your questions</h3>${questions.length?`<span class="question-count">${questions.length}</span>`:''}</div>${questionsHtml}</section>
       <section class="panel-section"><h3>Repeated signals</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
       <section class="panel-section"><h3>Discourse markers</h3><div class="metric-row">${guide.structuralMarkers.slice(0,12).map((marker)=>`<span class="metric">${escapeHtml(marker.label)} · ${escapeHtml(marker.category.replace('purpose-result','purpose/result'))}</span>`).join('')||'<span class="quiet">No explicit discourse markers detected in this selection.</span>'}</div><p class="quiet">These are textual signals in the English translation, not automatic interpretations of the argument.</p></section>
       <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section>
@@ -407,6 +414,7 @@ async function renderGuide() {
     </section>`;
     wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
     $('#guideOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
+    queryAll('[data-open-study-questions]').forEach((button)=>button.addEventListener('click',async()=>{activeTab='notes';await renderActiveTab();}));
     queryAll('[data-observation-focus]').forEach((button)=>button.addEventListener('click',async()=>{
       const prompt=guide.observationPrompts[Number(button.dataset.observationFocus)];
       if(!prompt)return;
@@ -659,15 +667,20 @@ function synthesisHasContent(value) {
 }
 
 async function renderSynthesis() {
-  const [saved,outline]=await Promise.all([
+  const [saved,outline,studyAnnotations]=await Promise.all([
     currentStudy ? repo.getStudySynthesis(currentStudy.id) : Promise.resolve(undefined),
     currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
+    currentStudy ? annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id) : Promise.resolve([]),
   ]);
+  const unresolvedQuestions=studyAnnotations.filter((annotation)=>annotation.kind==='question'&&!annotation.response?.trim());
   const synthesis=saved??emptySynthesis(currentStudy?.id);
   const structureSummary=outline?.sections.length
     ? `<section class="synthesis-structure"><div class="section-heading-row"><span class="mini-label">PASSAGE STRUCTURE</span><button class="text-button" id="synthesisOutlineBtn" type="button">Edit outline</button></div>${outline.sections.map((section)=>`<div><span>${escapeHtml(formatPassage(section.passage))}</span><strong>${escapeHtml(section.label||'Untitled section')}</strong></div>`).join('')}</section>`
     : `<section class="synthesis-structure empty"><span class="mini-label">PASSAGE STRUCTURE</span><p>No outline yet. Structure the passage before finalizing its main idea if that would help.</p><button class="text-button" id="synthesisOutlineBtn" type="button">Outline passage</button></section>`;
-  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>${structureSummary}
+  const unresolvedHtml=unresolvedQuestions.length
+    ? `<section class="synthesis-unresolved"><div><span class="mini-label">UNRESOLVED QUESTIONS · ${unresolvedQuestions.length}</span>${unresolvedQuestions.slice(0,4).map((question)=>`<p>${escapeHtml(question.body??'Question')}</p>`).join('')}</div><button class="text-button" id="synthesisQuestionsBtn" type="button">Open in Notes</button></section>`
+    : '';
+  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>${structureSummary}${unresolvedHtml}
     <label class="synthesis-field synthesis-main"><span>Main idea</span><small>One sentence: what is the author saying here?</small><textarea id="synthesisMainIdea" rows="2" placeholder="The main point of this passage is…">${escapeHtml(synthesis.mainIdea)}</textarea></label>
     <label class="synthesis-field"><span>Explain it</span><small>Explain the passage in your own words as if teaching someone else.</small><textarea id="synthesisExplanation" rows="7" placeholder="In context, the author is arguing…">${escapeHtml(synthesis.explanation)}</textarea></label>
     <label class="synthesis-field"><span>Textual evidence</span><small>Which verses, words, structure, or connections support your reading?</small><textarea id="synthesisEvidence" rows="4" placeholder="v. 6…; the therefore in v. 9…">${escapeHtml(synthesis.evidence)}</textarea></label>
@@ -684,6 +697,7 @@ async function renderSynthesis() {
   queryAll('.synthesis-field textarea').forEach((field)=>field.addEventListener('input',()=>scheduleSynthesisSave(readSynthesisForm())));
   $('#synthesisConfidence')?.addEventListener('change',()=>scheduleSynthesisSave(readSynthesisForm(),0));
   $('#synthesisOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
+  $('#synthesisQuestionsBtn')?.addEventListener('click',async()=>{activeTab='notes';await renderActiveTab();});
   $('#syncReviewCards')?.addEventListener('click',async()=>{
     const value=readSynthesisForm();
     if(!synthesisHasContent(value)){toast('Write your synthesis before creating review cards.');return;}
