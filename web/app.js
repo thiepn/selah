@@ -18,7 +18,7 @@ import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
 import { claimsUI, claimsSummaryHtml, claimsSnapshotHtml } from './interpretation-claims.js';
 import { searchWorkspaceUI } from './search-workspace.js';
-import { drawerController, regionController } from './a11y-overlays.js';
+import { drawerController, regionController, mobileSheetController } from './a11y-overlays.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -35,6 +35,7 @@ const elements = {
 const studiesDrawerCtl=drawerController(elements.studiesDrawer,{initialFocus:()=>elements.studySearch});
 const reviewDrawerCtl=drawerController(elements.reviewDrawer,{initialFocus:()=>$('#reviewClose')});
 const peekCtl=regionController(elements.peek,{initialFocus:()=>$('#peekClose')});
+const mobileStudyCtl=mobileSheetController($('#studyPane'),$('#mobileStudyToggle'));
 
 const repo = new IndexedDbSelahRepository();
 await repo.initialize();
@@ -1198,7 +1199,7 @@ $('#backBtn').addEventListener('click',async()=>{workspace=await workspaceServic
 $('#prevChapterBtn').addEventListener('click',()=>openAdjacentChapter(-1));
 $('#nextChapterBtn').addEventListener('click',()=>openAdjacentChapter(1));
 $('#forwardBtn').addEventListener('click',async()=>{workspace=await workspaceService.forward(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
-$('#studyTabs').addEventListener('click',async(event)=>{const tab=event.target.closest('[data-tab]');if(!tab)return;activeTab=tab.dataset.tab;await renderActiveTab();if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');});
+$('#studyTabs').addEventListener('click',async(event)=>{const tab=event.target.closest('[data-tab]');if(!tab)return;activeTab=tab.dataset.tab;await renderActiveTab();mobileStudyCtl.open();});
 $('#studyTabs').addEventListener('keydown',(event)=>{
   const tabs=queryAll('#studyTabs [role="tab"]:not([hidden])');
   const current=tabs.indexOf(document.activeElement);
@@ -1363,7 +1364,7 @@ document.addEventListener('keydown',async(event)=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();return;}
   if(event.altKey&&event.key==='ArrowLeft'){event.preventDefault();$('#backBtn').click();return;}
   if(event.altKey&&event.key==='ArrowRight'){event.preventDefault();$('#forwardBtn').click();return;}
-  if(event.key==='Escape'){peekCtl.close();studiesDrawerCtl.close();reviewDrawerCtl.close();return;}
+  if(event.key==='Escape'){if(mobileStudyCtl.close(true))return;peekCtl.close();studiesDrawerCtl.close();reviewDrawerCtl.close();return;}
   const target=event.target;
   const editing=target instanceof Element&&Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
   if(editing||event.ctrlKey||event.metaKey||event.altKey)return;
