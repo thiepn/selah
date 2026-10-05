@@ -283,7 +283,14 @@ function verseByTokenId(id) { return currentScripture?.verses.find((verse)=>vers
 
 async function renderScripture() {
   if (!currentScripture) return;
-  const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
+  const [annotations,outline] = await Promise.all([
+    annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id),
+    currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
+  ]);
+  const outlineStarts=new Map((outline?.sections??[]).map((section)=>[
+    `${section.passage.start.book}.${section.passage.start.chapter}.${section.passage.start.verse}`,
+    section,
+  ]));
   const noteVerses = new Set();
   for (const annotation of annotations) {
     if (annotation.kind !== 'note' && annotation.kind !== 'question') continue;
@@ -305,17 +312,26 @@ async function renderScripture() {
       previousChapter = verse.ref.chapter;
       previousHeading = undefined;
     }
+    const refKey = `${verse.ref.book}.${verse.ref.chapter}.${verse.ref.verse}`;
+    const userSection=outlineStarts.get(refKey);
+    if(userSection){
+      html.push(`<button class="user-outline-boundary" data-open-outline-from-scripture type="button"><span>YOUR OUTLINE · ${escapeHtml(formatPassage(userSection.passage))}</span><strong>${escapeHtml(userSection.label||'Untitled section')}</strong></button>`);
+    }
     if (verse.heading && verse.heading !== previousHeading) {
       html.push(`<p class="section-heading">${escapeHtml(verse.heading)}</p>`);
       previousHeading = verse.heading;
     }
-    const refKey = `${verse.ref.book}.${verse.ref.chapter}.${verse.ref.verse}`;
     const hasNote = noteVerses.has(refKey) ? ' has-note' : '';
     const tokenHtml = verse.tokens.map((token)=>`<span class="token${patternTokenIds.has(token.id)?' pattern-hit':''}" data-token-id="${escapeHtml(token.id)}"${token.strongs?` data-strongs="${escapeHtml(token.strongs)}"`:''}>${escapeHtml(token.text)}</span>`).join('');
     html.push(`<p class="verse${hasNote}" data-book="${verse.ref.book}" data-chapter="${verse.ref.chapter}" data-verse="${verse.ref.verse}"><button class="verse-number" type="button" aria-label="Verse ${verse.ref.verse}">${verse.ref.verse}</button>${tokenHtml}</p>`);
   }
   elements.scripture.innerHTML = html.join('');
   applyAnnotationHighlights(annotations);
+  queryAll('[data-open-outline-from-scripture]').forEach((button)=>button.addEventListener('click',async()=>{
+    activeTab='outline';
+    await renderActiveTab();
+    if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');
+  }));
 }
 
 function applyAnnotationHighlights(annotations) {
