@@ -11,12 +11,13 @@ import { OriginalLanguageService } from './core/research/original-language/index
 import { analyzePatterns, analyzeStructuralMarkers } from './core/bible/patterns/index.js';
 import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePhraseWithPrevious } from './core/bible/phrasing/index.js';
 import { exportStudyContextMarkdown } from './core/export/index.js';
-import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
+import { ScriptureSearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
 import { claimsUI, claimsSummaryHtml } from './interpretation-claims.js';
+import { searchWorkspaceUI } from './search-workspace.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -183,15 +184,8 @@ async function searchScripture(query,limit=30) {
   });
 }
 
-async function renderSearchResults(query) {
-  elements.studyContent.innerHTML='<div class="loading">Searching Scripture and studies…</div>';
-  const [scriptureResults,snapshot]=await Promise.all([searchScripture(query,30).catch(()=>[]),repo.exportSnapshot()]);
-  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,outlines:snapshot.studyOutlines,claims:snapshot.interpretationClaims,bookSyntheses:snapshot.bookSyntheses,syntheses:snapshot.studySyntheses,reviewCards:snapshot.reviewCards,annotations:snapshot.annotations});
-  const personalResults=personal.search(query,30);
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}${result.bookId?` data-book-id="${escapeHtml(result.bookId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
-  queryAll('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
-  queryAll('.search-personal[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{await openStudyById(button.dataset.studyId);}));
-  queryAll('.search-personal[data-book-id]').forEach((button)=>button.addEventListener('click',async()=>{await openBookOverview(button.dataset.bookId);}));
+async function renderSearchResults(query){
+  return searchWorkspaceUI(elements.studyContent,query,{searchScripture,repo,resolveReference:resolveReferenceInput,switchPassage:switchPrimaryPassage,openStudy:openStudyById,openBook:openBookOverview});
 }
 
 async function resolveReferenceInput(input) {
@@ -1009,10 +1003,11 @@ async function openBookOverview(bookId){
   queryAll('#bookOverviewContent [data-book-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.dataset.bookStudyId;await flushBookUnderstandingSave().catch(()=>{});$('#bookOverviewDialog').close();await openStudyById(id);}));
   $('#bookOverviewDialog').showModal();
 }
-async function openStudyById(id) {
+async function openStudyById(id,tab) {
   const study=await repo.getStudy(id);
   if(!study)return;
   currentStudy=study;
+  if(tab)activeTab=tab;
   const existing=(await repo.listWorkspaces()).find((workspace)=>workspace.studyId===study.id);
   workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);
   await workspaceService.markLastOpened(workspace);
