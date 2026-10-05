@@ -86,6 +86,15 @@ export class StudyService {
     return updated;
   }
 
+  async setLiteraryMode(id: string, literaryMode: Study['literaryMode']): Promise<Study> {
+    const existing=await this.repository.getStudy(id);
+    if(!existing)throw new Error(`Study not found: ${id}`);
+    const updated:Study={...existing,...(literaryMode?{literaryMode}:{}),updatedAt:this.#now()};
+    if(!literaryMode)delete updated.literaryMode;
+    await this.repository.putStudy(updated);
+    return updated;
+  }
+
   async setArchived(id: string, archived: boolean): Promise<Study> {
     const existing = await this.repository.getStudy(id);
     if (!existing) throw new Error(`Study not found: ${id}`);
