@@ -335,3 +335,20 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .user-outline-boundary span{font:800 9px/1.3 ui-sans-serif,system-ui;letter-spacing:.1em;color:var(--accent)}
 .user-outline-boundary strong{font:600 13px/1.4 ui-sans-serif,system-ui;color:var(--ink)}
 .user-outline-boundary:hover strong{text-decoration:underline;text-underline-offset:3px}
+
+
+#studiesDrawer{grid-template-rows:auto auto auto minmax(0,1fr) auto}
+.study-view-switch{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2);margin:0 0 10px}
+.study-view-switch button{border:0;background:transparent;color:var(--muted);padding:6px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.study-view-switch button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.study-topic-chips{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0 0}
+.study-topic-chips button{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:2px 7px;font-size:9px}
+.study-topic-chips button:hover{border-color:var(--accent);color:var(--accent)}
+.study-topic-group.untagged>header strong{font-style:italic}
+.study-meta-dialog{width:min(430px,calc(100vw - 28px));border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:0;box-shadow:var(--shadow)}
+.study-meta-dialog::backdrop{background:rgba(0,0,0,.35)}
+.study-meta-dialog form{display:grid;gap:14px;padding:18px}
+.study-meta-dialog header,.study-meta-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.study-meta-dialog label{display:grid;gap:6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.study-meta-dialog input{width:100%;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);padding:10px 11px;font-size:12px;outline:0;text-transform:none;letter-spacing:normal;font-weight:400}
+.study-meta-dialog input:focus{border-color:var(--accent)}
