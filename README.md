@@ -39,12 +39,14 @@ Implemented and wired into the deployable static application:
 - text-derived observation questions that highlight their evidence without supplying interpretations
 - genre-aware observation calibration across Narrative, Gospel, Law, Poetry, Wisdom, Prophecy, Epistle, and Apocalyptic lenses, with reversible per-study overrides
 - interpretation Claims workspace with Explicit / Strong inference / Tentative / Disputed support levels and exact in-passage Scripture evidence
-- Claims remain visible inside Synthesis so final explanations stay traceable to explicit user-authored reasoning
+- Claims precede Synthesis in the visible study workflow and remain visible inside Synthesis so final explanations stay traceable to explicit user-authored reasoning
+- detailed verse evidence lives in Claims; Synthesis keeps only an optional decisive-evidence summary to avoid duplicate data entry
 - structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
 - study-derived Review cards with Forgot / Difficult / Good scheduling, including completed passage structure
 - custom review cards that remain independent from Synthesis-derived cards
 - automatic reconciliation of opted-in derived cards after Synthesis/Outline edits without silently creating new cards
 - study-scoped review queues, review-to-source-study remediation, and read-only Study Snapshots
+- Study Snapshots now retain support-classified interpretation claims and their evidence references alongside structure and main idea
 - persistent Phrasing (token-preserving clause splitting, merging, indentation) documents
 - textual and Strong's pattern analysis
 - cross-reference provider and in-workspace Peek model
