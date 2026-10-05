@@ -24,7 +24,7 @@ function validateSnapshotShape(value: unknown): asserts value is Partial<SelahSn
   if (!['light','dark','system'].includes(String(value.settings.theme))) throw new Error('Invalid Selah backup: theme setting is malformed');
   if (typeof value.settings.primaryTranslationId !== 'string') throw new Error('Invalid Selah backup: primary translation is malformed');
   if (typeof value.settings.fontScale !== 'number' || !Number.isFinite(value.settings.fontScale)) throw new Error('Invalid Selah backup: font scale is malformed');
-  for (const key of ['studies','studyDocuments','studySyntheses','annotations','workspaceStates','phrasingDocuments'] as const) {
+  for (const key of ['studies','studyDocuments','studySyntheses','reviewCards','annotations','workspaceStates','phrasingDocuments'] as const) {
     const item=value[key];
     if (item !== undefined) requireArray(item,key);
   }
@@ -48,6 +48,7 @@ export function migrateSnapshot(snapshot: SelahSnapshot | (Partial<SelahSnapshot
     studies: structuredClone(snapshot.studies ?? []),
     studyDocuments: structuredClone(snapshot.studyDocuments ?? []),
     studySyntheses: structuredClone(snapshot.studySyntheses ?? []),
+    reviewCards: structuredClone(snapshot.reviewCards ?? []),
     annotations: structuredClone(snapshot.annotations ?? []),
     workspaceStates: structuredClone(snapshot.workspaceStates ?? []),
     phrasingDocuments: structuredClone(snapshot.phrasingDocuments ?? []),
