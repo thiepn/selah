@@ -1,4 +1,4 @@
-import { formatPassage } from '../domain/references/reference.js';
+import { compareVerseRefs, formatPassage } from '../domain/references/reference.js';
 import type { PassageRef } from '../domain/references/types.js';
 import type { Study } from '../domain/studies/types.js';
 import type { SelahRepository } from '../persistence/types.js';
@@ -17,6 +17,13 @@ export function normalizeStudyTags(tags: string[]): string[] {
     if (cleaned.length > 12) throw new Error('A study can have at most 12 topics');
   }
   return cleaned;
+}
+
+export function studiesOverlappingPassage(studies: Study[], passage: PassageRef): Study[] {
+  return studies
+    .filter((study)=>!study.archived)
+    .filter((study)=>compareVerseRefs(study.primaryPassage.end,passage.start)>=0&&compareVerseRefs(study.primaryPassage.start,passage.end)<=0)
+    .sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)||compareVerseRefs(a.primaryPassage.end,b.primaryPassage.end)||b.updatedAt-a.updatedAt);
 }
 
 export interface StudyServiceOptions {
