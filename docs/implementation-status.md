@@ -116,6 +116,17 @@
 - Claims UI is an extracted, syntax-checked, offline-precached, bundle-budgeted module
 - deleting a study now cascades all study-owned durable records consistently in memory and IndexedDB while preserving book-level synthesis
 
+### P29 — interpretation coherence & evidence traceability
+
+- Synthesis displays the user's Interpretation Claims, support classifications, and evidence references before final explanation/application
+- new Claims default to **Tentative** instead of implicitly asserting certainty
+- **Explicit** and **Strong inference** claims cannot be saved without textual evidence
+- exact claim-evidence references resolve through Selah's canonical Scripture validator before persistence
+- personal search is extracted into an offline-precached focused UI module
+- personal search results are labeled by source type and return directly to Claims, Outline, Synthesis, Notes, or Book Overview as appropriate
+- search extraction reduced the main controller below its 100 KB budget while retaining a separate UI-module budget
+- Claims-to-Synthesis presentation remains read-only: Selah never promotes or rewrites the user's interpretation automatically
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -137,7 +148,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **84/84 passing** on the current P28-qualified head
+- automated Node test suite: **85/85 passing** on the current P29-qualified head
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -155,7 +166,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **157.43 MiB / 4,879 files**
-- current application code remains small relative to data: **99,725 B app JS + 12,281 B focused UI modules + 44,663 B CSS + 139,901 B core JS** before compression
+- current application code remains small relative to data: **97,759 B app JS + 16,190 B focused UI modules + 45,837 B CSS + 140,348 B core JS** before compression
 
 ## Open qualification work
 
