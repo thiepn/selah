@@ -473,7 +473,17 @@ function backlinkButtonHtml(ref,studies=[]) {
   const source=formatPassage(ref.source);
   return connectedReferenceCardHtml({label:source,detail:'Points to this passage',reference:source,studies});
 }
-function wirePersonalStudyReferences(root=document){root.querySelectorAll('[data-personal-snapshot]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();openStudySnapshot(button.dataset.personalSnapshot);}));}
+function wirePersonalStudyReferences(root=document){
+  root.querySelectorAll('[data-personal-snapshot]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();openStudySnapshot(button.dataset.personalSnapshot);}));
+  root.querySelectorAll('[data-personal-expand]').forEach((button)=>button.addEventListener('click',(event)=>{
+    event.stopPropagation();
+    const group=button.closest('.reference-personal');
+    if(!group)return;
+    group.querySelectorAll('[data-personal-overflow]').forEach((item)=>{item.hidden=false;});
+    button.setAttribute('aria-expanded','true');
+    button.remove();
+  }));
+}
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
 async function renderNotes() {

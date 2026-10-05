@@ -9,10 +9,13 @@ export function personalStudyLinksHtml(studies=[],fallbackLabel='',limit=3){
     unique.push(study);
   }
   if(!unique.length)return '';
-  const visible=unique.slice(0,Math.max(1,limit));
-  const links=visible.map((study)=>`<button type="button" data-personal-snapshot="${e(study.id)}">Studied · ${e(study.title||fallbackLabel)}</button>`).join('');
-  const remaining=unique.length-visible.length;
-  return `<div class="reference-personal">${links}${remaining>0?`<small>+${remaining} more</small>`:''}</div>`;
+  const visibleLimit=Math.max(1,limit);
+  const studyButton=(study,overflow=false)=>`<button type="button" data-personal-snapshot="${e(study.id)}"${overflow?' data-personal-overflow hidden':''}>Studied · ${e(study.title||fallbackLabel)}</button>`;
+  const visible=unique.slice(0,visibleLimit).map((study)=>studyButton(study)).join('');
+  const overflow=unique.slice(visibleLimit).map((study)=>studyButton(study,true)).join('');
+  const remaining=Math.max(0,unique.length-visibleLimit);
+  const expand=remaining>0?`<button type="button" data-personal-expand aria-expanded="false" aria-label="Show ${remaining} more prior studies">+${remaining} more</button>`:'';
+  return `<div class="reference-personal">${visible}${overflow}${expand}</div>`;
 }
 
 export function connectedReferenceCardHtml({label,detail,reference,studies=[]}){

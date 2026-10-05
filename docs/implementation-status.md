@@ -169,11 +169,13 @@
 - contextual Scripture connections now preserve **multiple** overlapping prior Studies instead of silently collapsing recall to the first match
 - duplicate Study IDs are removed at the focused UI boundary before rendering
 - cross-reference and backlink cards surface up to three directly recallable Study Snapshot actions, with explicit overflow count when more matches exist
+- overflow is actionable rather than decorative: **+N more** expands the remaining matching studies in place so every recalled Study remains reachable
 - Reference Peek now gives the peeked passage its own **Prior studies** recall section using the same shared renderer
 - Passage Guide also surfaces overlapping prior Studies in Context, excluding the currently open Study so recall remains useful rather than self-referential
 - Study Snapshot remains the only recall destination; P33 does not introduce a second summary surface, graph database, relationship table, or inferred theological connection
 - archived-study exclusion and canonical passage-overlap ownership continue to come from the P32 domain behavior
-- deployment validation now guards multi-study recall wiring, deduplication, overflow surfacing, and Reference Peek integration
+- deployment validation now guards multi-study recall wiring, deduplication, expandable overflow, and Reference Peek integration
+- focused Node regression coverage verifies deduplication, complete overflow reachability, and HTML escaping in the personal-reference renderer
 - P33 stays local-first and offline-capable with no new schema, network dependency, or built-in AI behavior
 
 ## Production data pipeline
