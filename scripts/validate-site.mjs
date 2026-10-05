@@ -12,6 +12,7 @@ const app=await readFile(join(site,'app.js'),'utf8');
 const css=await readFile(join(site,'styles.css'),'utf8');
 const bookOverview=await readFile(join(site,'book-overview.js'),'utf8');
 const literaryModeUi=await readFile(join(site,'guide-literary-mode.js'),'utf8');
+const personalReferenceUi=await readFile(join(site,'personal-reference-ui.js'),'utf8');
 const claimsUi=await readFile(join(site,'interpretation-claims.js'),'utf8');
 const searchWorkspace=await readFile(join(site,'search-workspace.js'),'utf8');
 const a11yOverlays=await readFile(join(site,'a11y-overlays.js'),'utf8');
