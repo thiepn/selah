@@ -1,16 +1,18 @@
 import type { PhrasingDocument } from '../bible/phrasing/model.js';
 import type { ReviewCard } from '../review/types.js';
+import type { StudyOutline } from '../study/outline/types.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis, WorkspaceState } from '../domain/studies/types.js';
 import { defaultMetadata, defaultSettings } from './defaults.js';
 import type { SelahMetadata, SelahRepository, SelahSettings, SelahSnapshot } from './types.js';
 
 const DB_NAME = 'selah';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORES = {
   system: 'system',
   studies: 'studies',
   documents: 'studyDocuments',
   syntheses: 'studySyntheses',
+  outlines: 'studyOutlines',
   review: 'reviewCards',
   annotations: 'annotations',
   workspaces: 'workspaceStates',
@@ -44,6 +46,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
       if (!db.objectStoreNames.contains(STORES.studies)) db.createObjectStore(STORES.studies, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORES.documents)) db.createObjectStore(STORES.documents, { keyPath: 'studyId' });
       if (!db.objectStoreNames.contains(STORES.syntheses)) db.createObjectStore(STORES.syntheses, { keyPath: 'studyId' });
+      if (!db.objectStoreNames.contains(STORES.outlines)) db.createObjectStore(STORES.outlines, { keyPath: 'studyId' });
       if (!db.objectStoreNames.contains(STORES.review)) {
         const store=db.createObjectStore(STORES.review,{keyPath:'id'});
         store.createIndex('studyId','studyId',{unique:false});
@@ -63,7 +66,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
     const store = tx.objectStore(STORES.system);
     const metadata = (await requestResult(store.get('metadata'))) as SelahMetadata | undefined;
     if (!metadata) store.put(defaultMetadata());
-    else if (metadata.appSchemaVersion !== 4) store.put({ ...metadata, appSchemaVersion: 4, updatedAt: Date.now() });
+    else if (metadata.appSchemaVersion !== 5) store.put({ ...metadata, appSchemaVersion: 5, updatedAt: Date.now() });
     if (!(await requestResult(store.get('settings')))) store.put(defaultSettings());
     await transactionDone(tx);
   }
@@ -107,6 +110,8 @@ export class IndexedDbSelahRepository implements SelahRepository {
   async putStudyDocument(v: StudyDocument) { await this.#put(STORES.documents, v); }
   async getStudySynthesis(id: string) { return this.#get<StudySynthesis>(STORES.syntheses, id); }
   async putStudySynthesis(v: StudySynthesis) { await this.#put(STORES.syntheses, v); }
+  async getStudyOutline(id: string) { return this.#get<StudyOutline>(STORES.outlines, id); }
+  async putStudyOutline(v: StudyOutline) { await this.#put(STORES.outlines, v); }
   async listReviewCards(studyId?: string) {
     if(!studyId)return this.#all<ReviewCard>(STORES.review);
     const tx=this.#requireDb().transaction(STORES.review,'readonly');
@@ -142,6 +147,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
       studies: await this.listStudies(),
       studyDocuments: await this.#all<StudyDocument>(STORES.documents),
       studySyntheses: await this.#all<StudySynthesis>(STORES.syntheses),
+      studyOutlines: await this.#all<StudyOutline>(STORES.outlines),
       reviewCards: await this.#all<ReviewCard>(STORES.review),
       annotations: await this.listAnnotations(),
       workspaceStates: await this.listWorkspaces(),
@@ -161,6 +167,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
     for (const v of snapshot.studies) tx.objectStore(STORES.studies).put(v);
     for (const v of snapshot.studyDocuments) tx.objectStore(STORES.documents).put(v);
     for (const v of snapshot.studySyntheses ?? []) tx.objectStore(STORES.syntheses).put(v);
+    for (const v of snapshot.studyOutlines ?? []) tx.objectStore(STORES.outlines).put(v);
     for (const v of snapshot.reviewCards ?? []) tx.objectStore(STORES.review).put(v);
     for (const v of snapshot.annotations) tx.objectStore(STORES.annotations).put(v);
     for (const v of snapshot.workspaceStates) tx.objectStore(STORES.workspaces).put(v);
