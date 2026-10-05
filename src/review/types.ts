@@ -30,10 +30,11 @@ export interface ReviewCardDraft {
 
 export function reviewCardDrafts(study: Study, synthesis: StudySynthesis): ReviewCardDraft[] {
   const reference=formatPassage(study.primaryPassage);
-  return [
+  const drafts: ReviewCardDraft[] = [
     {source:'main-idea',prompt:`What is the main idea of ${reference}?`,answer:synthesis.mainIdea.trim()},
     {source:'explanation',prompt:`How would you explain ${reference} in your own words?`,answer:synthesis.explanation.trim()},
     {source:'evidence',prompt:`What textual evidence supports your reading of ${reference}?`,answer:synthesis.evidence.trim()},
     {source:'application',prompt:`What application did you draw from ${reference}?`,answer:synthesis.application.trim()},
-  ].filter((card)=>card.answer);
+  ];
+  return drafts.filter((card)=>card.answer);
 }
