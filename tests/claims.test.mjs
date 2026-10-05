@@ -52,7 +52,7 @@ test('claim service rejects invalid runtime support values and oversized inputs'
   await repo.putStudy(study);
   const service=new InterpretationClaimService(repo,{idFactory:()=> 'c3',now:()=>1});
   await assert.rejects(()=>service.create('s1',{statement:'A claim',confidence:'certain',evidence:[]}),/support level is invalid/);
-  await assert.rejects(()=>service.create('s1',{statement:'x'.repeat(2001),confidence:'explicit',evidence:[]}),/2,000 characters/);
+  await assert.rejects(()=>service.create('s1',{statement:'x'.repeat(2001),confidence:'explicit',evidence:[{passage:p('Phil 2:5')}]}),/2,000 characters/);
   await assert.rejects(()=>service.create('s1',{statement:'A claim',confidence:'explicit',evidence:[{passage:p('Phil 2:5'),note:'x'.repeat(501)}]}),/500 characters/);
 });
 
