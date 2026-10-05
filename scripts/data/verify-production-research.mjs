@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { BsbScriptureProvider } from '../../dist/src/data/bsb/provider.js';
 import { BsbResearchProvider } from '../../dist/src/data/bsb/research-provider.js';
 import { parseReference, canonicalVerseId } from '../../dist/src/domain/references/index.js';
+import { buildObservationPrompts, defaultLiteraryMode } from '../../dist/src/study/observation/index.js';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const dataRoot=process.env.SELAH_BSB_OUTPUT??join(root,'.generated/data/bsb');
@@ -14,12 +15,27 @@ const research=new BsbResearchProvider(loader);
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 const p=(value)=>parseReference(value).passage;
 
-const genreSamples=['Gen 1:1-5','Ps 23:1-6','Prov 3:1-6','Isa 53:1-6','John 15:1-8','Rom 8:1-4','Rev 21:1-5'];
-for(const reference of genreSamples){
+const genreSamples=[
+  ['Gen 1:1-5','narrative'],
+  ['Exod 20:1-6','law'],
+  ['Ps 23:1-6','poetry'],
+  ['Prov 3:1-6','wisdom'],
+  ['Isa 53:1-6','prophecy'],
+  ['John 15:1-8','gospel'],
+  ['Rom 8:1-4','epistle'],
+  ['Rev 21:1-5','apocalyptic'],
+];
+for(const [reference,expectedMode] of genreSamples){
   const passage=p(reference);
   const loaded=await scripture.getPassage(passage);
   assert(loaded.verses.length>0,`No Scripture loaded for ${reference}`);
   assert(loaded.verses.every((verse)=>verse.tokens.length>0),`Empty Scripture tokens in ${reference}`);
+  const mode=defaultLiteraryMode(passage);
+  assert(mode===expectedMode,`Unexpected literary-mode default for ${reference}: ${mode}`);
+  const prompts=buildObservationPrompts(loaded,mode);
+  assert(prompts.some((prompt)=>prompt.category==='literary'),`No genre-aware observation prompts for ${reference}`);
+  assert(prompts.at(-1)?.category==='limits',`Anti-assumption prompt missing for ${reference}`);
+  assert(!prompts.some((prompt)=>/the passage teaches|this symbolizes|therefore means/i.test(prompt.prompt)),`Interpretive claim leaked into observation prompts for ${reference}`);
 }
 
 const hebrew=await scripture.getOriginalVerse(p('Gen 1:1').start);
@@ -44,4 +60,4 @@ assert(lexicon?.lemma,'Lexicon lookup failed for G3444');
 const occurrences=await research.versesForStrongs('G3444');
 assert(occurrences.some((ref)=>canonicalVerseId(ref)==='Phil.2.6'),'Concordance does not include Philippians 2:6 for G3444');
 
-console.log(`Production research smoke passed across ${genreSamples.length} genre samples, Hebrew/Greek tokens, morphology, lexical data, concordance, and bidirectional cross-references.`);
+console.log(`Production research smoke passed across ${genreSamples.length} literary modes, genre-aware observation prompts, Hebrew/Greek tokens, morphology, lexical data, concordance, and bidirectional cross-references.`);
