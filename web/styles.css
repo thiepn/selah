@@ -323,3 +323,9 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .observation-category{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
 .observation-actions{display:flex;gap:10px;align-items:center}
 .observation-actions .text-button{padding:0;font-size:10px}
+
+
+.question-item>p{font-weight:600}
+.question-response{margin-top:10px;padding:10px 12px;border-left:2px solid var(--accent);background:var(--surface-2)}
+.question-response>span{display:block;margin-bottom:5px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.question-response>p{margin:0!important;white-space:pre-wrap;font-size:12px;line-height:1.6;font-weight:400}
