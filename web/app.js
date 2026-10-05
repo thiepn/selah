@@ -1138,8 +1138,9 @@ $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidde
 $('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
 $('#studySnapshotOpen').addEventListener('click',async()=>{
   if(!snapshotStudyId)return;
+  const id=snapshotStudyId;
   $('#studySnapshotDialog').close();
-  await openStudyById(snapshotStudyId);
+  await openStudyById(id);
 });
 $('#studySnapshotDialog').addEventListener('close',()=>{snapshotStudyId=undefined;});
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
