@@ -32,6 +32,10 @@ function normalizeEvidence(items:InterpretationEvidence[],studyPassage:PassageRe
   return result;
 }
 
+function validateSupport(confidence:InterpretationConfidence,evidence:InterpretationEvidence[]):void{
+  if((confidence==='explicit'||confidence==='strong-inference')&&!evidence.length)throw new Error('Explicit and strong-inference claims require textual evidence');
+}
+
 function normalizeStatement(statement:string):string{
   const value=statement.trim();
   if(!value)throw new Error('Interpretation claim cannot be empty');
@@ -56,12 +60,15 @@ export class InterpretationClaimService {
     const study=await this.repository.getStudy(studyId);
     if(!study)throw new Error(`Study not found: ${studyId}`);
     const now=this.#now();
+    const confidence=normalizeConfidence(input.confidence);
+    const evidence=normalizeEvidence(input.evidence??[],study.primaryPassage);
+    validateSupport(confidence,evidence);
     const claim:InterpretationClaim={
       id:this.#idFactory(),
       studyId,
       statement:normalizeStatement(input.statement),
-      confidence:normalizeConfidence(input.confidence),
-      evidence:normalizeEvidence(input.evidence??[],study.primaryPassage),
+      confidence,
+      evidence,
       createdAt:now,
       updatedAt:now,
     };
@@ -74,11 +81,14 @@ export class InterpretationClaimService {
     if(!existing)throw new Error(`Interpretation claim not found: ${id}`);
     const study=await this.repository.getStudy(existing.studyId);
     if(!study)throw new Error(`Study not found: ${existing.studyId}`);
+    const confidence=input.confidence!==undefined?normalizeConfidence(input.confidence):existing.confidence;
+    const evidence=input.evidence!==undefined?normalizeEvidence(input.evidence,study.primaryPassage):existing.evidence;
+    validateSupport(confidence,evidence);
     const updated:InterpretationClaim={
       ...existing,
       ...(input.statement!==undefined?{statement:normalizeStatement(input.statement)}:{}),
-      ...(input.confidence!==undefined?{confidence:normalizeConfidence(input.confidence)}:{}),
-      ...(input.evidence!==undefined?{evidence:normalizeEvidence(input.evidence,study.primaryPassage)}:{}),
+      confidence,
+      evidence,
       updatedAt:this.#now(),
     };
     await this.repository.putInterpretationClaim(updated);
