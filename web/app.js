@@ -67,6 +67,7 @@ let noteSaveTimer;
 let synthesisSaveTimer;
 let reviewReconcileTimer;
 let bookOverviewSaveTimer;
+let pendingBookUnderstandingSave;
 let outlineDraftPassage;
 let focusedObservationPromptId;
 let pendingAnnotationKind='note';
@@ -964,6 +965,69 @@ async function renderReview(studyId=reviewStudyFilter) {
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
 
+async function persistBookUnderstanding(bookId,value) {
+  await bookSynthesisService.save(bookId,value);
+  if(activeBookId===bookId)$('#bookOverviewSaveState').textContent='saved locally';
+}
+
+function scheduleBookUnderstandingSave(bookId,value,delay=350) {
+  pendingBookUnderstandingSave={bookId,value};
+  $('#bookOverviewSaveState').textContent='saving…';
+  clearTimeout(bookOverviewSaveTimer);
+  bookOverviewSaveTimer=setTimeout(async()=>{
+    const pending=pendingBookUnderstandingSave;
+    pendingBookUnderstandingSave=undefined;
+    if(!pending)return;
+    try{await persistBookUnderstanding(pending.bookId,pending.value);}catch{if(activeBookId===pending.bookId)$('#bookOverviewSaveState').textContent='not saved';}
+  },delay);
+}
+
+async function flushBookUnderstandingSave() {
+  clearTimeout(bookOverviewSaveTimer);
+  const pending=pendingBookUnderstandingSave;
+  pendingBookUnderstandingSave=undefined;
+  if(!pending)return;
+  await persistBookUnderstanding(pending.bookId,pending.value);
+}
+
+async function openBookOverview(bookId) {
+  const book=BOOK_BY_ID.get(bookId);
+  if(!book)return;
+  await flushBookUnderstandingSave().catch(()=>{});
+  activeBookId=bookId;
+  const studies=(await repo.listStudies()).filter((study)=>!study.archived&&study.primaryPassage.start.book===bookId);
+  const [saved,synthesisEntries,annotationEntries]=await Promise.all([
+    bookSynthesisService.get(bookId),
+    Promise.all(studies.map(async(study)=>({study,synthesis:await repo.getStudySynthesis(study.id)}))),
+    Promise.all(studies.map(async(study)=>({study,annotations:await repo.listAnnotations(study.id)}))),
+  ]);
+  const synthesisByStudy=new Map(synthesisEntries.map((entry)=>[entry.study.id,entry.synthesis]));
+  const topicCounts=new Map();
+  for(const study of studies)for(const tag of study.tags){
+    const key=tag.toLocaleLowerCase('en');
+    const current=topicCounts.get(key)??{label:tag,count:0};
+    current.count+=1;
+    topicCounts.set(key,current);
+  }
+  const unresolved=[];
+  for(const entry of annotationEntries)for(const annotation of entry.annotations){
+    if(annotation.kind==='question'&&!annotation.response?.trim())unresolved.push({study:entry.study,question:annotation});
+  }
+  const topics=[...topicCounts.values()].sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,undefined,{sensitivity:'base'}));
+  const topicHtml=topics.length?`<div class="book-topic-summary">${topics.map((topic)=>`<span>${escapeHtml(topic.label)}${topic.count>1?` × ${topic.count}`:''}</span>`).join('')}</div>`:'<p class="quiet">No study topics assigned in this book yet.</p>';
+  const studiesHtml=studies.length?studies.sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)||compareVerseRefs(a.primaryPassage.end,b.primaryPassage.end)).map((study)=>{
+    const synthesis=synthesisByStudy.get(study.id);
+    const mainIdea=synthesis?.mainIdea?.trim();
+    return `<button class="book-study-card" data-book-study-id="${escapeHtml(study.id)}" type="button"><span>${escapeHtml(formatPassage(study.primaryPassage))}</span><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong>${mainIdea?`<p>${escapeHtml(mainIdea)}</p>`:''}</button>`;
+  }).join(''):'<p class="quiet">No active passage studies in this book yet.</p>';
+  const unresolvedHtml=unresolved.length?unresolved.slice(0,8).map(({study,question})=>`<div class="book-question"><span>${escapeHtml(formatPassage(study.primaryPassage))}</span><p>${escapeHtml(question.body??'Question')}</p></div>`).join(''):'<p class="quiet">No unresolved saved questions in this book.</p>';
+  $('#bookOverviewTitle').textContent=book.name;
+  $('#bookUnderstanding').value=saved?.understanding??'';
+  $('#bookOverviewSaveState').textContent='saved locally';
+  $('#bookOverviewContent').innerHTML=`<div class="book-overview-meta">${studies.length} passage ${studies.length===1?'study':'studies'} · ${unresolved.length} unresolved ${unresolved.length===1?'question':'questions'}</div><section><span class="mini-label">YOUR TOPICS</span>${topicHtml}</section><section><span class="mini-label">STUDIED PASSAGES</span><div class="book-study-list">${studiesHtml}</div></section><section><span class="mini-label">UNRESOLVED QUESTIONS · ${unresolved.length}</span><div class="book-question-list">${unresolvedHtml}</div></section>`;
+  queryAll('#bookOverviewContent [data-book-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.dataset.bookStudyId;await flushBookUnderstandingSave().catch(()=>{});$('#bookOverviewDialog').close();await openStudyById(id);}));
+  $('#bookOverviewDialog').showModal();
+}
 async function openStudyById(id) {
   const study=await repo.getStudy(id);
   if(!study)return;
@@ -1071,13 +1135,14 @@ async function renderStudies(filter='') {
     }
     html=BOOKS.filter((book)=>groups.has(book.id)).map((book)=>{
       const items=groups.get(book.id).sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)||compareVerseRefs(a.primaryPassage.end,b.primaryPassage.end));
-      return `<section class="study-book-group"><header><strong>${escapeHtml(book.name)}</strong><span>${items.length}</span></header>${items.map(studyRow).join('')}</section>`;
+      return `<section class="study-book-group"><header><button class="study-group-title" data-book-overview="${escapeHtml(book.id)}" type="button"><strong>${escapeHtml(book.name)}</strong><small>Overview</small></button><span>${items.length}</span></header>${items.map(studyRow).join('')}</section>`;
     }).join('');
   } else {
     html=`<p class="quiet">${showArchivedStudies?'No archived studies.':'No saved studies yet. Selah creates one when you first write or annotate.'}</p>`;
   }
 
   elements.studiesList.innerHTML=html;
+  queryAll('[data-book-overview]').forEach((button)=>button.addEventListener('click',async()=>{await openBookOverview(button.dataset.bookOverview);}));
   queryAll('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
     const row=button.closest('[data-study-id]');
     if(row)await openStudyById(row.dataset.studyId);
@@ -1206,6 +1271,8 @@ $('#studySnapshotReview').addEventListener('click',async()=>{
   await renderReview(id);
 });
 $('#studySnapshotDialog').addEventListener('close',()=>{snapshotStudyId=undefined;});
+$('#bookUnderstanding').addEventListener('input',(event)=>{if(activeBookId)scheduleBookUnderstandingSave(activeBookId,event.target.value);});
+$('#bookOverviewDialog').addEventListener('close',()=>{flushBookUnderstandingSave().catch(()=>{});activeBookId=undefined;});
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
 queryAll('[data-study-view]').forEach((button)=>button.addEventListener('click',async()=>{
   studyArchiveView=button.dataset.studyView;
