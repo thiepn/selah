@@ -164,3 +164,53 @@ test('dueForStudy isolates a study review queue',async()=>{
   assert.equal(scoped.every((card)=>card.studyId==='s1'),true);
   assert.equal((await service.due(100)).length,8);
 });
+
+
+test('custom review cards survive synthesis synchronization and keep review progress',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  let now=100;
+  let seq=0;
+  const service=new ReviewService(repo,{now:()=>now,idFactory:()=>`r${++seq}`});
+  const custom=await service.createCustom('s1','Why does v. 9 follow vv. 5-8?','Because exaltation follows Christ\'s obedient humiliation.');
+  const rated=await service.rate(custom.id,'good');
+  assert.equal(rated.stage,1);
+  now=200;
+  await service.syncFromSynthesis(study,synthesis);
+  const preserved=await repo.getReviewCard(custom.id);
+  assert.equal(preserved.source,'custom');
+  assert.equal(preserved.prompt,custom.prompt);
+  assert.equal(preserved.stage,1);
+  assert.equal(preserved.history.length,1);
+  await service.reconcileExisting(study,{...synthesis,mainIdea:'Revised main idea'});
+  const afterReconcile=await repo.getReviewCard(custom.id);
+  assert.equal(afterReconcile.answer,custom.answer);
+  assert.equal(afterReconcile.stage,1);
+});
+
+test('custom review cards can be edited directly but derived cards cannot',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  let seq=0;
+  const service=new ReviewService(repo,{now:()=>10,idFactory:()=>`c${++seq}`});
+  const custom=await service.createCustom('s1','  What is the hinge?  ','  Therefore in v. 9.  ');
+  assert.equal(custom.prompt,'What is the hinge?');
+  assert.equal(custom.answer,'Therefore in v. 9.');
+  const revised=await service.updateCustom(custom.id,'What marks the transition?','The therefore in v. 9.');
+  assert.equal(revised.prompt,'What marks the transition?');
+  await service.syncFromSynthesis(study,synthesis);
+  const derived=(await repo.listReviewCards('s1')).find((card)=>card.source==='main-idea');
+  await assert.rejects(()=>service.updateCustom(derived.id,'x','y'),/Only custom review cards/);
+});
+
+test('custom review-card validation rejects empty and oversized content',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  const service=new ReviewService(repo,{now:()=>1,idFactory:()=> 'custom-1'});
+  await assert.rejects(()=>service.createCustom('s1','','answer'),/question cannot be empty/i);
+  await assert.rejects(()=>service.createCustom('s1','question',''),/answer cannot be empty/i);
+  await assert.rejects(()=>service.createCustom('s1','x'.repeat(301),'answer'),/300 characters/);
+});
