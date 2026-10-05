@@ -4,7 +4,7 @@ import { createResearchTrail, extractStudyDocumentScriptureLinks } from './core/
 import { IndexedDbSelahRepository, createBackup, parseBackup } from './core/persistence/index.js';
 import { BsbScriptureProvider, FetchTextAssetLoader, BsbResearchProvider } from './core/data/bsb/index.js';
 import { AnnotationService, annotationMatchesPassage } from './core/annotations/index.js';
-import { StudyService, WorkspaceService } from './core/study/index.js';
+import { StudyService, WorkspaceService, OutlineService } from './core/study/index.js';
 import { LensService } from './core/study/lens/index.js';
 import { PassageGuideService } from './core/study/guide/index.js';
 import { OriginalLanguageService } from './core/research/original-language/index.js';
@@ -35,6 +35,7 @@ const researchProvider = new BsbResearchProvider(loader);
 const annotationService = new AnnotationService(repo);
 const studyService = new StudyService(repo);
 const workspaceService = new WorkspaceService(repo);
+const outlineService = new OutlineService(repo);
 const reviewService = new ReviewService(repo);
 const guideService = new PassageGuideService(annotationService, researchProvider, scriptureProvider, researchProvider);
 const lensService = new LensService(annotationService, researchProvider);
@@ -63,6 +64,7 @@ let phrasingDocument;
 let phrasingSplitNodeId;
 let noteSaveTimer;
 let synthesisSaveTimer;
+let outlineDraftPassage;
 let pendingAnnotationKind='note';
 let showArchivedStudies=false;
 let scriptureSearchIndexPromise;
@@ -167,7 +169,7 @@ async function searchScripture(query,limit=30) {
 async function renderSearchResults(query) {
   elements.studyContent.innerHTML='<div class="loading">Searching Scripture and studies…</div>';
   const [scriptureResults,snapshot]=await Promise.all([searchScripture(query,30).catch(()=>[]),repo.exportSnapshot()]);
-  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,syntheses:snapshot.studySyntheses,reviewCards:snapshot.reviewCards,annotations:snapshot.annotations});
+  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,outlines:snapshot.studyOutlines,syntheses:snapshot.studySyntheses,reviewCards:snapshot.reviewCards,annotations:snapshot.annotations});
   const personalResults=personal.search(query,30);
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
   queryAll('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
@@ -396,9 +398,9 @@ async function renderNotes() {
   if(recoveredDraft)elements.saveState.textContent='recovered unsaved draft';
   const links=extractStudyDocumentScriptureLinks(documentText);
   const linkedHtml=links.length?`<section class="panel-section linked-scripture"><h3>Linked Scripture</h3><div class="metric-row">${links.map((link)=>`<button class="metric" type="button" data-reference="${escapeHtml(formatPassage(link.passage))}">${escapeHtml(link.label)}</button>`).join('')}</div><p class="quiet">Type references as <code>[[Romans 8:1-4]]</code>. Links remain ordinary plaintext and open as Peeks.</p></section>`:'';
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Write synthesis here; keep verse-specific observations anchored directly to Scripture.</p>
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Capture freeform observations, questions, context, and connections here; keep final conclusions in Synthesis.</p>
     <section class="panel-section"><h3>Anchored material</h3><div class="annotation-list">${annotations.map(annotationHtml).join('')||'<p class="quiet">Select Scripture and add a note, question, or highlight.</p>'}</div></section>
-    <textarea class="study-document" id="studyDocument" placeholder="Observations\n\nQuestions\n\nStructure\n\nInterpretation\n\nConnections\n\nSummary">${escapeHtml(documentText)}</textarea>${linkedHtml}</section>`;
+    <textarea class="study-document" id="studyDocument" placeholder="Observations\n\nQuestions\n\nContext\n\nConnections\n\nUnresolved issues">${escapeHtml(documentText)}</textarea>${linkedHtml}</section>`;
   $('#studyDocument').addEventListener('input',(event)=>{scheduleDocumentSave(event.target.value);renderStudyDocumentLinks(event.target.value);});
   wireAnnotationActions(); wireReferenceButtons();
 }
@@ -466,6 +468,108 @@ function scheduleDocumentSave(value) {
 }
 
 
+
+function outlineSectionHtml(section) {
+  return `<article class="outline-section" data-outline-id="${escapeHtml(section.id)}"><label><span>Verses</span><input data-outline-field="reference" value="${escapeHtml(formatPassage(section.passage))}" aria-label="Outline section verses"></label><label class="outline-label"><span>Section</span><input data-outline-field="label" value="${escapeHtml(section.label)}" placeholder="What is happening here?" aria-label="Outline section label"></label><button class="icon-button outline-delete" data-outline-action="delete" type="button" aria-label="Delete outline section">×</button></article>`;
+}
+
+async function parseOutlineReference(raw) {
+  const parsed=parseReference(raw);
+  if(parsed.kind!=='passage')throw new Error('Outline sections need verse ranges, for example Philippians 2:5–8.');
+  const bounds=await loadVerseBounds();
+  bounds?.validatePassage(parsed.passage);
+  return parsed.passage;
+}
+
+function outlineSectionsFromHeadings() {
+  const verses=currentScripture?.verses??[];
+  const headingIndexes=verses.map((verse,index)=>verse.heading?index:-1).filter((index)=>index>=0);
+  if(!headingIndexes.length)return [];
+  const boundaries=[0,...headingIndexes.filter((index)=>index>0)];
+  return boundaries.map((startIndex,index)=>{
+    const endIndex=(boundaries[index+1]??verses.length)-1;
+    const startVerse=verses[startIndex];
+    const endVerse=verses[endIndex];
+    return {
+      id:crypto.randomUUID(),
+      passage:{start:structuredClone(startVerse.ref),end:structuredClone(endVerse.ref)},
+      label:startVerse.heading??'',
+    };
+  });
+}
+
+async function saveOutlineSections(sections) {
+  const study=await ensureStudy();
+  setSaving(true);
+  try {
+    const outline=await outlineService.save(study,sections);
+    await studyService.touch(study.id);
+    currentStudy=study;
+    setSaving(false);
+    return outline;
+  } catch(error) {
+    setSaving(false);
+    throw error;
+  }
+}
+
+async function collectOutlineRows() {
+  const rows=queryAll('.outline-section');
+  const sections=[];
+  for(const row of rows) {
+    const passage=await parseOutlineReference(row.querySelector('[data-outline-field="reference"]').value);
+    sections.push({
+      id:row.dataset.outlineId,
+      passage,
+      label:row.querySelector('[data-outline-field="label"]').value,
+    });
+  }
+  return sections;
+}
+
+async function renderOutline() {
+  const outline=currentStudy ? await outlineService.get(currentStudy.id) : undefined;
+  const sections=outline?.sections??[];
+  const hasHeadings=currentScripture.verses.some((verse)=>Boolean(verse.heading));
+  const draftReference=outlineDraftPassage?formatPassage(outlineDraftPassage):'';
+  elements.studyContent.innerHTML=`<section class="panel outline-panel"><span class="eyebrow">PASSAGE OUTLINE</span><h2>See the flow of ${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Divide the passage into units and name what each unit contributes. This is your structure, not an automatic interpretation.</p>
+    <div class="outline-list">${sections.map(outlineSectionHtml).join('')||'<p class="quiet outline-empty">No sections yet. Start with the divisions you see in the text.</p>'}</div>
+    <section class="outline-add"><label><span>Verses</span><input id="outlineNewReference" value="${escapeHtml(draftReference)}" placeholder="${escapeHtml(formatPassage(currentScripture.passage))}"></label><label><span>Section</span><input id="outlineNewLabel" placeholder="Name this unit"></label><button class="primary-button" id="outlineAdd" type="button">Add section</button></section>
+    ${hasHeadings?`<section class="outline-seed"><div><strong>Use BSB headings as a draft</strong><p>Translation headings are editorial aids, not part of the biblical text. Use them only as a starting point and change them freely.</p></div><button class="text-button" id="outlineSeed" type="button">Seed from headings</button></section>`:''}
+  </section>`;
+
+  queryAll('.outline-section input').forEach((input)=>input.addEventListener('change',async()=>{
+    try {
+      await saveOutlineSections(await collectOutlineRows());
+      await renderOutline();
+    } catch(error){toast(error instanceof Error?error.message:'Unable to save outline');}
+  }));
+  queryAll('[data-outline-action="delete"]').forEach((button)=>button.addEventListener('click',async()=>{
+    button.closest('.outline-section')?.remove();
+    try { await saveOutlineSections(await collectOutlineRows()); await renderOutline(); }
+    catch(error){toast(error instanceof Error?error.message:'Unable to save outline');}
+  }));
+  $('#outlineAdd')?.addEventListener('click',async()=>{
+    try {
+      const passage=await parseOutlineReference($('#outlineNewReference').value.trim());
+      const next=[...sections,{id:crypto.randomUUID(),passage,label:$('#outlineNewLabel').value.trim()}];
+      await saveOutlineSections(next);
+      outlineDraftPassage=undefined;
+      await renderOutline();
+    } catch(error){toast(error instanceof Error?error.message:'Unable to add outline section');}
+  });
+  $('#outlineNewReference')?.addEventListener('keydown',(event)=>{if(event.key==='Enter'){event.preventDefault();$('#outlineNewLabel').focus();}});
+  $('#outlineNewLabel')?.addEventListener('keydown',(event)=>{if(event.key==='Enter'){event.preventDefault();$('#outlineAdd').click();}});
+  $('#outlineSeed')?.addEventListener('click',async()=>{
+    const seeded=outlineSectionsFromHeadings();
+    if(!seeded.length){toast('No editorial headings are available in this selection.');return;}
+    if(sections.length&&!confirm('Replace your current outline with a draft based on BSB headings?'))return;
+    try { await saveOutlineSections(seeded); outlineDraftPassage=undefined; await renderOutline(); }
+    catch(error){toast(error instanceof Error?error.message:'Unable to seed outline');}
+  });
+  if(outlineDraftPassage)requestAnimationFrame(()=>$('#outlineNewLabel')?.focus());
+}
+
 function emptySynthesis(studyId='') {
   return { studyId, mainIdea:'', explanation:'', evidence:'', application:'', prayer:'', confidence:'needs-study', updatedAt:0 };
 }
@@ -510,7 +614,7 @@ async function renderSynthesis() {
     clearTimeout(synthesisSaveTimer);
     const saved=await persistSynthesis(value,structuredClone(currentScripture.passage),currentStudy?.id);
     if(!saved)return;
-    const result=await reviewService.syncFromSynthesis(saved.study,saved.synthesis);
+    const result=await reviewService.syncFromSynthesis(saved.study,saved.synthesis,await outlineService.get(saved.study.id));
     await refreshReviewBadge();
     toast(result.created||result.updated?`${result.created} review card(s) created · ${result.updated} updated`:'Review cards are already up to date.');
   });
@@ -630,6 +734,7 @@ async function renderActiveTab() {
   if(!currentScripture)return;
   if(activeTab==='guide')return renderGuide();
   if(activeTab==='notes')return renderNotes();
+  if(activeTab==='outline')return renderOutline();
   if(activeTab==='synthesis')return renderSynthesis();
   if(activeTab==='references')return renderReferences();
   if(activeTab==='words')return renderWords();
@@ -850,7 +955,7 @@ $('#restoreInput').addEventListener('change',async(event)=>{const file=event.tar
 $('#peekClose').addEventListener('click',()=>elements.peek.hidden=true);
 $('#peekOpen').addEventListener('click',async()=>{if(activePeekPassage){elements.peek.hidden=true;await navigateResearch(activePeekPassage);}});
 $('#exportBtn').addEventListener('click',()=>elements.exportDialog.showModal());
-$('#copyExportBtn').addEventListener('click',async()=>{if(!currentStudy){toast('Write or annotate first so there is a study to export.');return;}const markdown=exportStudyContextMarkdown({study:currentStudy,scripture:currentScripture,annotations:await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id),document:await repo.getStudyDocument(currentStudy.id),synthesis:await repo.getStudySynthesis(currentStudy.id),options:{includeScripture:$('#exportScripture').checked,includeAnnotations:$('#exportAnnotations').checked,includeDocument:$('#exportDocument').checked,includeSynthesis:$('#exportSynthesis').checked,tutorPrompt:$('#exportTutor').value}});await navigator.clipboard.writeText(markdown);elements.exportDialog.close();toast('Study context copied.');});
+$('#copyExportBtn').addEventListener('click',async()=>{if(!currentStudy){toast('Write or annotate first so there is a study to export.');return;}const markdown=exportStudyContextMarkdown({study:currentStudy,scripture:currentScripture,annotations:await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id),document:await repo.getStudyDocument(currentStudy.id),outline:await repo.getStudyOutline(currentStudy.id),synthesis:await repo.getStudySynthesis(currentStudy.id),options:{includeScripture:$('#exportScripture').checked,includeAnnotations:$('#exportAnnotations').checked,includeDocument:$('#exportDocument').checked,includeOutline:$('#exportOutline').checked,includeSynthesis:$('#exportSynthesis').checked,tutorPrompt:$('#exportTutor').value}});await navigator.clipboard.writeText(markdown);elements.exportDialog.close();toast('Study context copied.');});
 
 elements.scripture.addEventListener('click',async(event)=>{
   const verseButton=event.target.closest('.verse-number');if(verseButton){const verse=verseButton.closest('.verse');context.patch({activeVerse:{book:verse.dataset.book,chapter:Number(verse.dataset.chapter),verse:Number(verse.dataset.verse)}});return;}
@@ -859,7 +964,7 @@ elements.scripture.addEventListener('click',async(event)=>{
 
 elements.scripture.addEventListener('pointerup',()=>{setTimeout(()=>{selectedRangeInfo=selectedTokenRange();if(!selectedRangeInfo){elements.selectionMenu.hidden=true;return;}const selection=getSelection();const rect=selection.getRangeAt(0).getBoundingClientRect();elements.selectionMenu.style.left=`${Math.max(8,Math.min(innerWidth-290,rect.left+rect.width/2-120))}px`;elements.selectionMenu.style.top=`${Math.max(60,rect.top-68)}px`;elements.selectionMenu.hidden=false;$('#selectionLensMeta').textContent='Loading context…';context.patch({selection:{range:selectedRangeInfo.passage,text:selectedRangeInfo.quotedText,tokenIds:[selectedRangeInfo.startTokenId,selectedRangeInfo.endTokenId]}});updateSelectionLens();},0);});
 
-elements.selectionMenu.addEventListener('click',async(event)=>{const action=event.target.closest('[data-action]')?.dataset.action;if(!action)return;elements.selectionMenu.hidden=true;if(action==='note'||action==='question'){pendingAnnotationKind=action;$('#noteDialogTitle').textContent=action==='question'?'Add question':'Add note';elements.noteAnchorLabel.textContent=selectedRangeInfo?.quotedText?`“${selectedRangeInfo.quotedText}”`:formatPassage(selectedRangeInfo.passage);elements.noteBody.value='';elements.noteDialog.showModal();await sleep(0);elements.noteBody.focus();}if(action==='highlight')await highlightSelection();if(action==='word'){const id=selectedRangeInfo?.startTokenId;selectedToken=tokenById(id);activeTab='words';await renderActiveTab();}if(action==='compare'){activeTab='compare';await renderActiveTab();}if(action==='copy'&&selectedRangeInfo)await navigator.clipboard.writeText(selectedRangeInfo.quotedText);});
+elements.selectionMenu.addEventListener('click',async(event)=>{const action=event.target.closest('[data-action]')?.dataset.action;if(!action)return;elements.selectionMenu.hidden=true;if(action==='note'||action==='question'){pendingAnnotationKind=action;$('#noteDialogTitle').textContent=action==='question'?'Add question':'Add note';elements.noteAnchorLabel.textContent=selectedRangeInfo?.quotedText?`“${selectedRangeInfo.quotedText}”`:formatPassage(selectedRangeInfo.passage);elements.noteBody.value='';elements.noteDialog.showModal();await sleep(0);elements.noteBody.focus();}if(action==='highlight')await highlightSelection();if(action==='outline'&&selectedRangeInfo){outlineDraftPassage=structuredClone(selectedRangeInfo.passage);activeTab='outline';await renderActiveTab();}if(action==='word'){const id=selectedRangeInfo?.startTokenId;selectedToken=tokenById(id);activeTab='words';await renderActiveTab();}if(action==='compare'){activeTab='compare';await renderActiveTab();}if(action==='copy'&&selectedRangeInfo)await navigator.clipboard.writeText(selectedRangeInfo.quotedText);});
 
 elements.noteForm.addEventListener('submit',async(event)=>{if(event.submitter?.value==='cancel')return;event.preventDefault();const body=elements.noteBody.value.trim();if(!body)return;await createAnnotationFromSelection(body);elements.noteDialog.close();});
 
@@ -872,7 +977,7 @@ document.addEventListener('keydown',async(event)=>{
   const target=event.target;
   const editing=target instanceof Element&&Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
   if(editing||event.ctrlKey||event.metaKey||event.altKey)return;
-  const shortcut={n:'note',q:'question',h:'highlight'}[event.key.toLowerCase()];
+  const shortcut={n:'note',q:'question',h:'highlight',o:'outline'}[event.key.toLowerCase()];
   if(!shortcut)return;
   const range=selectedTokenRange();
   if(!range)return;
