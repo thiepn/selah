@@ -101,6 +101,7 @@ export interface Annotation {
   kind: AnnotationKind;
   anchor: AnnotationAnchor;
   body?: string;
+  response?: string;
   highlightStyle?: string;
   tags: string[];
   createdAt: number;
