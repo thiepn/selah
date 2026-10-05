@@ -60,3 +60,21 @@ test('sync updates answers without destroying review progress',async()=>{
   assert.equal(updated.stage,1);
   assert.equal(updated.history.length,1);
 });
+
+
+test('completed outline becomes a durable structure review card',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  const outline={studyId:'s1',sections:[
+    {id:'o1',passage:parseReference('Phil 2:5-8').passage,label:'Christ humbles himself'},
+    {id:'o2',passage:parseReference('Phil 2:9-11').passage,label:'God exalts Christ'},
+  ],updatedAt:1};
+  const drafts=reviewCardDrafts(study,synthesis,outline);
+  const structure=drafts.find((x)=>x.source==='outline');
+  assert.match(structure.answer,/Philippians 2:5–8 — Christ humbles himself/);
+  const service=new ReviewService(repo,{now:()=>1,idFactory:()=>crypto.randomUUID()});
+  const synced=await service.syncFromSynthesis(study,synthesis,outline);
+  assert.equal(synced.created,5);
+  assert.equal((await repo.listReviewCards('s1')).some((x)=>x.source==='outline'),true);
+});
