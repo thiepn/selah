@@ -103,6 +103,19 @@
 - WEB comparison payload: **4.09 MiB / 1,192 files**
 - real production smoke verifies BSB + WEB together on Philippians 2:5–11
 
+### P28 — interpretation claims & evidence discipline
+
+- IndexedDB / backup schema **v7**
+- dedicated Claims study surface between Synthesis and research tools
+- claims classify support as Explicit in text / Strong inference / Tentative / Disputed
+- every claim can attach exact Scripture evidence with optional evidence notes
+- claim evidence is restricted to the current study passage and validated against installed Scripture data
+- duplicate evidence references are normalized and runtime support-level values are validated
+- claims are searchable alongside studies, notes, outlines, synthesis, review cards, and book understanding
+- claims are independently selectable in Markdown / external-AI export
+- Claims UI is an extracted, syntax-checked, offline-precached, bundle-budgeted module
+- deleting a study now cascades all study-owned durable records consistently in memory and IndexedDB while preserving book-level synthesis
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -124,7 +137,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **79/79 passing** on the current P27 implementation head
+- automated Node test suite: **84/84 passing** on the current P28-qualified head
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -142,7 +155,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **157.43 MiB / 4,879 files**
-- current application code remains small relative to data: **99,357 B app JS + 5,277 B focused UI modules + 42,092 B CSS + 131,214 B core JS** before compression
+- current application code remains small relative to data: **99,725 B app JS + 12,281 B focused UI modules + 44,663 B CSS + 139,901 B core JS** before compression
 
 ## Open qualification work
 
@@ -154,4 +167,4 @@
 
 ## Product boundaries still enforced
 
-Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded, literary-mode-aware questions but do not generate interpretation. Review exists only as a retention layer for conclusions, structure, and custom retrieval questions the user deliberately created. Book Overviews are derived from the user's own passage studies rather than prefilled encyclopedia content. The default experience remains Scripture first, with study tools operating contextually around the passage.
+Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded, literary-mode-aware questions but do not generate interpretation. Interpretation Claims are always user-authored and must show what the studied passage itself supports. Review exists only as a retention layer for conclusions, structure, and custom retrieval questions the user deliberately created. Book Overviews are derived from the user's own passage studies rather than prefilled encyclopedia content. The default experience remains Scripture first, with study tools operating contextually around the passage.
