@@ -395,3 +395,6 @@ body.launcher-mode .study-bar .study-actions{display:none}
 @media(max-width:760px){.study-snapshot-dialog{width:calc(100vw - 18px)}.snapshot-outline>div{grid-template-columns:1fr}.study-snapshot-dialog footer{position:sticky;bottom:0;background:var(--surface)}}
 
 .snapshot-footer-actions{display:flex;align-items:center;gap:8px}
+
+.export-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:560px){.export-dialog footer{align-items:stretch}.export-actions{display:grid;grid-template-columns:1fr}.export-actions button{width:100%}}
