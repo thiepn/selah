@@ -8,7 +8,12 @@
       "sourceUrl": "https://github.com/BSB-publishing/bsb-data-output",
       "license": "CC0-1.0",
       "attributionRequired": false,
-      "plannedRuntimeUse": ["scripture-text", "strongs-alignment", "original-language-display", "structure"]
+      "plannedRuntimeUse": [
+        "scripture-text",
+        "strongs-alignment",
+        "original-language-display",
+        "structure"
+      ]
     },
     {
       "id": "bsb-crossrefs",
@@ -17,7 +22,9 @@
       "sourceUrl": "https://github.com/BSB-publishing/bsb-data-output",
       "license": "Public-Domain/CC0",
       "attributionRequired": false,
-      "plannedRuntimeUse": ["cross-references"]
+      "plannedRuntimeUse": [
+        "cross-references"
+      ]
     },
     {
       "id": "oshb-morphology",
@@ -27,7 +34,10 @@
       "license": "CC-BY-4.0",
       "attributionRequired": true,
       "attribution": "Hebrew morphology data from Open Scriptures Hebrew Bible (OSHB), licensed under CC BY 4.0.",
-      "plannedRuntimeUse": ["hebrew-morphology", "word-study"]
+      "plannedRuntimeUse": [
+        "hebrew-morphology",
+        "word-study"
+      ]
     },
     {
       "id": "stepbible-lexicon",
@@ -37,7 +47,23 @@
       "license": "CC-BY-4.0",
       "attributionRequired": true,
       "attribution": "Extended Strong's lexicon data from STEPBible TBESH/TBESG, licensed under CC BY 4.0.",
-      "plannedRuntimeUse": ["word-study", "lexicon", "glosses"]
+      "plannedRuntimeUse": [
+        "word-study",
+        "lexicon",
+        "glosses"
+      ]
+    },
+    {
+      "id": "web-text",
+      "name": "World English Bible text (normalized transport mirror)",
+      "category": "translation",
+      "sourceUrl": "https://github.com/midvash/bible-data",
+      "upstreamUrl": "https://worldenglish.bible/",
+      "license": "Public-Domain",
+      "attributionRequired": false,
+      "plannedRuntimeUse": [
+        "translation-comparison"
+      ]
     }
   ]
 }
