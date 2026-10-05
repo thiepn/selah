@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const bsbRoot=process.env.SELAH_BSB_OUTPUT??join(root,'.generated/data/bsb');
+const webRoot=process.env.SELAH_WEB_OUTPUT??join(root,'.generated/data/web');
 const searchPath=join(root,'.generated/data/selah/scripture-search.json');
 const siteRoot=join(root,'site');
 
@@ -30,6 +31,8 @@ const mib=(bytes)=>bytes/(1024*1024);
 const metrics={
   bsbBytes:await sizeOf(bsbRoot),
   bsbFiles:await countFiles(bsbRoot),
+  webBytes:await sizeOf(webRoot),
+  webFiles:await countFiles(webRoot),
   searchBytes:await sizeOf(searchPath),
   reverseCrossrefBytes:await sizeOf(join(bsbRoot,'crossrefs/reverse.json')),
   concordanceBytes:await sizeOf(join(bsbRoot,'concordance/strongs-to-verses.json')),
@@ -39,6 +42,7 @@ const metrics={
 
 const budgets={
   bsbBytes:Number(process.env.SELAH_BUDGET_BSB_BYTES??350*1024*1024),
+  webBytes:Number(process.env.SELAH_BUDGET_WEB_BYTES??20*1024*1024),
   searchBytes:Number(process.env.SELAH_BUDGET_SEARCH_BYTES??40*1024*1024),
   reverseCrossrefBytes:Number(process.env.SELAH_BUDGET_REVERSE_CROSSREF_BYTES??50*1024*1024),
   concordanceBytes:Number(process.env.SELAH_BUDGET_CONCORDANCE_BYTES??25*1024*1024),
@@ -51,6 +55,7 @@ for(const [key,budget] of Object.entries(budgets)){
 
 console.log('Production data size qualification passed:');
 console.log(`  BSB research pack: ${mib(metrics.bsbBytes).toFixed(2)} MiB across ${metrics.bsbFiles} files`);
+console.log(`  WEB comparison pack: ${mib(metrics.webBytes).toFixed(2)} MiB across ${metrics.webFiles} files`);
 console.log(`  Scripture search: ${mib(metrics.searchBytes).toFixed(2)} MiB`);
 console.log(`  Reverse references: ${mib(metrics.reverseCrossrefBytes).toFixed(2)} MiB`);
 console.log(`  Strong's concordance: ${mib(metrics.concordanceBytes).toFixed(2)} MiB`);
