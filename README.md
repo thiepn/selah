@@ -6,18 +6,19 @@ It intentionally has no Today page, dashboard, streaks, reading-plan layer, pray
 
 ## Product model
 
-Selah is built around ten primitives:
+Selah is built around eleven primitives:
 
 1. canonical Scripture references
 2. shared passage/selection context
 3. source-independent Scripture and research providers
 4. durable annotation anchors
-5. studies, freeform study documents, passage outlines, and structured synthesis
+5. studies, freeform study documents, passage outlines, interpretation claims, and structured synthesis
 6. recoverable workspace/research state
-7. study-derived and custom spaced review cards
-8. study snapshots for fast revisitation
-9. derived book overviews with one evolving personal book understanding
-10. versioned local persistence, backup, and migration
+7. evidence-classified interpretation claims tied back to the studied passage
+8. study-derived and custom spaced review cards
+9. study snapshots for fast revisitation
+10. derived book overviews with one evolving personal book understanding
+11. versioned local persistence, backup, and migration
 
 Every study tool consumes those primitives instead of maintaining its own competing state.
 
@@ -29,7 +30,7 @@ Implemented and wired into the deployable static application:
 - exact verse-bound validation when the full data pack is present
 - BSB Scripture provider with stable token IDs and original-language tokens
 - passage context engine
-- native IndexedDB persistence with schema-v6 migration
+- native IndexedDB persistence with schema-v7 migration
 - Study / Workspace / Research Trail separation
 - reference, text, and original-token annotation anchors
 - notes, highlights, and answerable passage-anchored questions with unresolved-question continuity into Guide and Synthesis
@@ -37,6 +38,7 @@ Implemented and wired into the deployable static application:
 - durable Passage Outline with validated non-overlapping verse sections, selection-to-outline, editorial-heading seeding, and in-Scripture boundaries
 - text-derived observation questions that highlight their evidence without supplying interpretations
 - genre-aware observation calibration across Narrative, Gospel, Law, Poetry, Wisdom, Prophecy, Epistle, and Apocalyptic lenses, with reversible per-study overrides
+- interpretation Claims workspace with Explicit / Strong inference / Tentative / Disputed support levels and exact in-passage Scripture evidence
 - structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
 - study-derived Review cards with Forgot / Difficult / Good scheduling, including completed passage structure
 - custom review cards that remain independent from Synthesis-derived cards
@@ -55,6 +57,7 @@ Implemented and wired into the deployable static application:
 - external study-resource providers
 - copyable external-AI study context with no API dependency, plus optional Copy & open ChatGPT handoff
 - study title/topic metadata editing with topic-aware search and Markdown export
+- interpretation claims included in personal search, Markdown/AI export, backup/migration, and study-deletion lifecycle
 - version-aware full backup/restore
 - PWA shell with network-first freshness and offline fallback
 - responsive Bible-first desktop/mobile workspace
