@@ -11,6 +11,7 @@ test('personal search finds study documents and anchored notes without dashboard
   studies:[{id:'s1',primaryPassage:p('Rom 8:1-4'),title:'Romans 8 — no condemnation',tags:['justification'],archived:false,createdAt:1,updatedAt:1}],
   documents:[{studyId:'s1',format:'tiptap-json',document:{},plainText:'Paul connects life in the Spirit with freedom from condemnation.',updatedAt:1}],
   outlines:[{studyId:'s1',sections:[{id:'o1',passage:p('Rom 8:1-2'),label:'No condemnation'},{id:'o2',passage:p('Rom 8:3-4'),label:'God fulfills the law'}],updatedAt:1}],
+  claims:[{id:'c1',studyId:'s1',statement:'God’s action in Christ grounds the no-condemnation verdict.',confidence:'strong-inference',evidence:[{passage:p('Rom 8:3-4'),note:'God condemned sin in the flesh.'}],createdAt:1,updatedAt:1}],
   bookSyntheses:[{bookId:'ROM',understanding:'Romans unfolds the righteousness of God in the gospel and a transformed life in the Spirit.',updatedAt:1}],
   syntheses:[{studyId:'s1',mainIdea:'Life in Christ means no condemnation.',explanation:'The Spirit brings freedom and life.',evidence:'Romans 8:1-4',application:'Walk according to the Spirit.',prayer:'Teach me to trust your verdict.',confidence:'clear',updatedAt:1}],
   reviewCards:[{id:'r1',studyId:'s1',source:'evidence',prompt:'What evidence supports Romans 8?',answer:'The Spirit sets believers free from condemnation.',stage:0,dueAt:1,history:[],createdAt:1,updatedAt:1}],
@@ -19,6 +20,8 @@ test('personal search finds study documents and anchored notes without dashboard
  assert.equal(index.search('Spirit freedom')[0].kind,'document');
  assert.equal(index.search('preceding argument')[0].kind,'annotation');
  assert.equal(index.search('God fulfills law')[0].kind,'outline');
+ assert.equal(index.search('grounds no condemnation verdict')[0].kind,'claim');
+ assert.equal(index.search('condemned sin flesh')[0].kind,'claim');
  const bookResult=index.search('righteousness gospel transformed')[0];
  assert.equal(bookResult.kind,'book-synthesis');
  assert.equal(bookResult.bookId,'ROM');
