@@ -519,3 +519,13 @@ body.launcher-mode .study-bar .study-actions{display:none}
 
 .search-personal{position:relative}
 .search-source{display:inline-block;margin-bottom:4px;font-size:8px!important;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)!important}
+
+
+.synthesis-field>span em{font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
+.snapshot-claims{display:grid;gap:7px}
+.snapshot-claims>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:5px 10px;padding:7px 0;border-top:1px solid var(--line)}
+.snapshot-claims>div:first-child{border-top:0}
+.snapshot-claims span{font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+.snapshot-claims p{margin:0;font-size:11px;line-height:1.5}
+.snapshot-claims small{grid-column:2;color:var(--muted);font-size:9px}
+@media(max-width:760px){.snapshot-claims>div{grid-template-columns:1fr}.snapshot-claims small{grid-column:1}}
