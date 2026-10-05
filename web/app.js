@@ -902,7 +902,7 @@ async function openPeek(passage) {
     const studied=personalStudyLinksHtml(priorStudies,formatPassage(passage));
     const outgoing=refs.slice(0,6).map((ref)=>referenceButtonHtml(ref,studiesOverlappingPassage(studies,ref.target))).join('');
     const incoming=backlinks.slice(0,6).map((ref)=>backlinkButtonHtml(ref,studiesOverlappingPassage(studies,ref.source))).join('');
-    elements.peekText.innerHTML=`${studied?<section class="peek-prior-studies"><h4>Prior studies</h4>${studied}</section>:''}<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
+    elements.peekText.innerHTML=`${studied?`<section class="peek-prior-studies"><h4>Prior studies</h4>${studied}</section>`:'' }<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
     wireReferenceButtons(elements.peekText); wirePersonalStudyReferences(elements.peekText);
   }
   catch { elements.peekText.textContent='This reference is unavailable in the current Scripture dataset.'; }
