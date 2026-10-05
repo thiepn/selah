@@ -1,6 +1,7 @@
 import type { PassageRef, VerseRef } from '../references/types.js';
 
 export type StudyId = string;
+export type LiteraryMode = 'narrative' | 'gospel' | 'law' | 'poetry' | 'wisdom' | 'prophecy' | 'epistle' | 'apocalyptic';
 export type WorkspaceId = string;
 
 export interface Study {
@@ -8,6 +9,7 @@ export interface Study {
   primaryPassage: PassageRef;
   title?: string;
   tags: string[];
+  literaryMode?: LiteraryMode;
   archived: boolean;
   createdAt: number;
   updatedAt: number;
