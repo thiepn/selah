@@ -259,3 +259,27 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .synthesis-confidence>small{grid-column:1}
 .synthesis-confidence select{grid-column:2;grid-row:1 / span 2}
 @media(max-width:760px){.synthesis-confidence{grid-template-columns:1fr}.synthesis-confidence select{grid-column:1;grid-row:auto}}
+
+
+.review-button{display:inline-flex;align-items:center;gap:5px}
+#reviewDueCount{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--accent);color:var(--surface);font-size:9px;font-weight:800}
+.review-drawer{grid-template-rows:auto minmax(0,1fr)}
+.review-content{min-height:0;overflow:auto;padding-top:28px}
+.review-session,.review-empty{min-height:70vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.review-progress{font-size:10px;color:var(--muted);margin-bottom:22px}
+.review-session h2,.review-empty h2{font:500 25px/1.35 Georgia,serif;margin:7px 0 22px}
+.review-empty p{font-size:12px;line-height:1.6;color:var(--muted)}
+.review-answer{width:100%;margin-top:24px;padding-top:22px;border-top:1px solid var(--line)}
+.review-answer>p{font:16px/1.65 Georgia,serif;white-space:pre-wrap}
+.review-ratings{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:24px}
+.review-ratings button{border:1px solid var(--line);background:var(--surface-2);padding:9px 6px;border-radius:4px;font-size:11px}
+.review-ratings button[data-review-rating="good"]{border-color:var(--accent)}
+.review-delete{margin-top:18px;padding-left:0}
+.synthesis-review-action{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:20px;padding:18px 0;border-top:1px solid var(--line)}
+.synthesis-review-action strong{font-size:12px}
+.synthesis-review-action p{margin:4px 0 0;max-width:48ch;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:760px){
+  .topbar{grid-template-columns:68px minmax(0,1fr) 132px}
+  .top-actions #reviewBtn,.top-actions #studiesBtn{display:inline-flex;padding-inline:6px;font-size:11px}
+  .synthesis-review-action{align-items:flex-start;flex-direction:column}
+}
