@@ -58,7 +58,8 @@ export class PersonalStudySearchIndex {
       const title=study?.title??'Scripture annotation';
       const anchorText=(annotation.anchor.type==='text'||annotation.anchor.type==='text-range')?annotation.anchor.quotedText:annotation.anchor.type==='reference'?formatPassage(annotation.anchor.passage):annotation.anchor.tokenIds.join(' ');
       const body=annotation.body??'';
-      this.#items.push({kind:'annotation',...(annotation.studyId?{studyId:annotation.studyId}:{}),annotationId:annotation.id,title,excerpt:body||anchorText,score:0,normalized:normalize(`${title} ${anchorText} ${body} ${annotation.tags.join(' ')}`)});
+      const response=annotation.response??'';
+      this.#items.push({kind:'annotation',...(annotation.studyId?{studyId:annotation.studyId}:{}),annotationId:annotation.id,title,excerpt:response||body||anchorText,score:0,normalized:normalize(`${title} ${anchorText} ${body} ${response} ${annotation.tags.join(' ')}`)});
     }
   }
 
