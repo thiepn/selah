@@ -13,6 +13,7 @@ import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePh
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
+import { connectedReferenceCardHtml } from './personal-reference-ui.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
