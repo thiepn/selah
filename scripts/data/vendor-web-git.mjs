@@ -19,7 +19,7 @@ const run=(command,args)=>new Promise((resolve,reject)=>{
 await rm(cache,{recursive:true,force:true});
 await mkdir(join(root,'.cache'),{recursive:true});
 await run('git',['clone','--depth','1','--filter=blob:none','--sparse',repo,cache]);
-await run('git',['-C',cache,'sparse-checkout','set','versions/en/web/books','versions/en/web/metadata.json']);
+await run('git',['-C',cache,'sparse-checkout','set','versions/en/web']);
 
 await rm(outputRoot,{recursive:true,force:true});
 await mkdir(join(outputRoot,'display'),{recursive:true});
