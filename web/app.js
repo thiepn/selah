@@ -14,6 +14,7 @@ import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePh
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
+import { bookOverviewContentHtml } from './book-overview.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -989,13 +990,10 @@ async function openBookOverview(bookId){
   await flushBookUnderstandingSave().catch(()=>{});
   activeBookId=bookId;
   const overview=await bookSynthesisService.overview(bookId);
-  const topics=overview.topics.length?`<div class="book-topic-summary">${overview.topics.map((x)=>`<span>${escapeHtml(x.label)}${x.count>1?` × ${x.count}`:''}</span>`).join('')}</div>`:'<p class="quiet">No study topics assigned in this book yet.</p>';
-  const studies=overview.studies.length?overview.studies.map((x)=>`<button class="book-study-card" data-book-study-id="${escapeHtml(x.id)}" type="button"><span>${escapeHtml(formatPassage(x.passage))}</span><strong>${escapeHtml(x.title)}</strong>${x.mainIdea?`<p>${escapeHtml(x.mainIdea)}</p>`:''}</button>`).join(''):'<p class="quiet">No active passage studies in this book yet.</p>';
-  const questions=overview.unresolvedQuestions.length?overview.unresolvedQuestions.slice(0,8).map((x)=>`<div class="book-question"><span>${escapeHtml(formatPassage(x.passage))}</span><p>${escapeHtml(x.body)}</p></div>`).join(''):'<p class="quiet">No unresolved saved questions in this book.</p>';
   $('#bookOverviewTitle').textContent=book.name;
   $('#bookUnderstanding').value=overview.understanding;
   $('#bookOverviewSaveState').textContent='saved locally';
-  $('#bookOverviewContent').innerHTML=`<div class="book-overview-meta">${overview.studies.length} passage ${overview.studies.length===1?'study':'studies'} · ${overview.unresolvedQuestions.length} unresolved ${overview.unresolvedQuestions.length===1?'question':'questions'}</div><section><span class="mini-label">YOUR TOPICS</span>${topics}</section><section><span class="mini-label">STUDIED PASSAGES</span><div class="book-study-list">${studies}</div></section><section><span class="mini-label">UNRESOLVED QUESTIONS · ${overview.unresolvedQuestions.length}</span><div class="book-question-list">${questions}</div></section>`;
+  $('#bookOverviewContent').innerHTML=bookOverviewContentHtml(overview);
   queryAll('#bookOverviewContent [data-book-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.dataset.bookStudyId;await flushBookUnderstandingSave().catch(()=>{});$('#bookOverviewDialog').close();await openStudyById(id);}));
   $('#bookOverviewDialog').showModal();
 }
