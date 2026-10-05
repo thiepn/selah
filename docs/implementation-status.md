@@ -80,6 +80,29 @@
 - personal search indexes book-level understanding
 - book overview rendering extracted to an offline-precached UI module with its own enforced bundle budget
 
+### P26 — genre-aware observation calibration & multi-genre qualification
+
+- eight observational study lenses: Narrative, Gospel, Law, Poetry, Wisdom, Prophecy, Epistle, and Apocalyptic
+- broad canonical-book defaults serve only as starting lenses; each Study can explicitly override or return to Auto
+- genre changes the questions Selah asks without supplying interpretation
+- every observation set retains the explicit-text baseline, structural-shift prompt, repeated textual signals, discourse markers, and anti-assumption check
+- active lens is visible in Guide and carried into portable study context when explicitly overridden
+- Passage Guide service itself is override-aware, not only the UI
+- full BSB production smoke qualifies all eight literary defaults against real passages
+
+### P27 — real local translation comparison
+
+- BSB remains Selah's primary study/research translation
+- local public-domain World English Bible provider added for comparison only
+- verse-aligned Compare surface replaces the former block-style placeholder
+- comparison unions verse references and explicitly marks verses not present in an edition instead of shifting text
+- WEB runtime data is normalized to compact per-chapter JSON and works offline with no API
+- WEB source identity is validated as the expected 66-book public-domain World English Bible before and after normalization
+- `midvash/bible-data` is treated only as a transport mirror; `https://worldenglish.bible/` is recorded as the translation upstream
+- full production qualification: **1,189 WEB chapters / 31,098 verses**
+- WEB comparison payload: **4.09 MiB / 1,192 files**
+- real production smoke verifies BSB + WEB together on Philippians 2:5–11
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -101,7 +124,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **71/71 passing** on the current P25-qualified head
+- automated Node test suite: **79/79 passing** on the current P27 implementation head
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -113,12 +136,13 @@
 - reverse Scripture-reference index: **430,204 edges / 30,034 target verses**
 - semantic production-data smoke across seven biblical genres
 - production payload qualification:
-  - BSB research pack: **135.75 MiB / 3,599 files**
+  - BSB research pack: **135.84 MiB / 3,600 files**
+  - WEB comparison pack: **4.09 MiB / 1,192 files**
   - Scripture search index: **17.22 MiB**
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
-  - complete static site: **153.14 MiB / 3,668 files**
-- current application code remains small relative to data: **99,398 B app JS + 1,827 B focused UI modules + 39,909 B CSS + 123,627 B core JS** before compression
+  - complete static site: **157.43 MiB / 4,879 files**
+- current application code remains small relative to data: **99,357 B app JS + 5,277 B focused UI modules + 42,092 B CSS + 131,214 B core JS** before compression
 
 ## Open qualification work
 
@@ -130,4 +154,4 @@
 
 ## Product boundaries still enforced
 
-Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded questions but do not generate interpretation. Review exists only as a retention layer for conclusions, structure, and custom retrieval questions the user deliberately created. Book Overviews are derived from the user's own passage studies rather than prefilled encyclopedia content. The default experience remains Scripture first, with study tools operating contextually around the passage.
+Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded, literary-mode-aware questions but do not generate interpretation. Review exists only as a retention layer for conclusions, structure, and custom retrieval questions the user deliberately created. Book Overviews are derived from the user's own passage studies rather than prefilled encyclopedia content. The default experience remains Scripture first, with study tools operating contextually around the passage.
