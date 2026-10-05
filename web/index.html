@@ -113,6 +113,16 @@
     </form>
   </dialog>
 
+  <dialog class="review-card-dialog" id="reviewCardDialog">
+    <form method="dialog" id="reviewCardForm">
+      <header><strong id="reviewCardDialogTitle">Add custom review card</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <label>Question<textarea id="reviewCardQuestion" rows="3" maxlength="300" placeholder="What should I be able to explain from this passage?"></textarea></label>
+      <label>Answer<textarea id="reviewCardAnswer" rows="7" maxlength="4000" placeholder="Write the answer you want future-you to retrieve."></textarea></label>
+      <p class="quiet">Custom cards stay independent from Synthesis. Editing Synthesis will not overwrite them.</p>
+      <footer><button value="cancel" class="text-button">Cancel</button><button type="submit" value="default" class="primary-button">Save card</button></footer>
+    </form>
+  </dialog>
+
   <aside class="drawer review-drawer" id="reviewDrawer" aria-label="Review cards" hidden>
     <header><span>REVIEW</span><button class="icon-button" id="reviewClose" type="button" aria-label="Close review">×</button></header>
     <div class="review-content" id="reviewContent"></div>
