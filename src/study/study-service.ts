@@ -3,6 +3,22 @@ import type { PassageRef } from '../domain/references/types.js';
 import type { Study } from '../domain/studies/types.js';
 import type { SelahRepository } from '../persistence/types.js';
 
+export function normalizeStudyTags(tags: string[]): string[] {
+  const cleaned: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of tags) {
+    const tag=raw.replace(/^#+/,'').trim().replace(/\s+/g,' ');
+    if (!tag) continue;
+    if (tag.length > 40) throw new Error('Study topics must be 40 characters or fewer');
+    const key=tag.toLocaleLowerCase('en');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(tag);
+    if (cleaned.length > 12) throw new Error('A study can have at most 12 topics');
+  }
+  return cleaned;
+}
+
 export interface StudyServiceOptions {
   idFactory?: () => string;
   now?: () => number;
@@ -53,19 +69,19 @@ export class StudyService {
   async setTags(id: string, tags: string[]): Promise<Study> {
     const existing = await this.repository.getStudy(id);
     if (!existing) throw new Error(`Study not found: ${id}`);
-    const cleaned: string[] = [];
-    const seen = new Set<string>();
-    for (const raw of tags) {
-      const tag=raw.replace(/^#+/,'').trim().replace(/\s+/g,' ');
-      if (!tag) continue;
-      if (tag.length > 40) throw new Error('Study topics must be 40 characters or fewer');
-      const key=tag.toLocaleLowerCase('en');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      cleaned.push(tag);
-      if (cleaned.length > 12) throw new Error('A study can have at most 12 topics');
-    }
-    const updated: Study = { ...existing, tags: cleaned, updatedAt: this.#now() };
+    const updated: Study = { ...existing, tags: normalizeStudyTags(tags), updatedAt: this.#now() };
+    await this.repository.putStudy(updated);
+    return updated;
+  }
+
+  async updateMetadata(id: string, input: { title: string; tags: string[] }): Promise<Study> {
+    const existing = await this.repository.getStudy(id);
+    if (!existing) throw new Error(`Study not found: ${id}`);
+    const title=input.title.trim();
+    if (!title) throw new Error('Study title cannot be empty');
+    if (title.length > 120) throw new Error('Study title must be 120 characters or fewer');
+    const tags=normalizeStudyTags(input.tags);
+    const updated: Study = { ...existing, title, tags, updatedAt: this.#now() };
     await this.repository.putStudy(updated);
     return updated;
   }
