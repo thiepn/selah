@@ -5,7 +5,7 @@ export type VerseBoundsData = Record<string, Record<string, number>>;
 export type VersePresenceData = Record<string, Record<string, number[]>>;
 
 export class VerseBoundsIndex {
-  readonly #presence?: VersePresenceData;
+  readonly #presence: VersePresenceData | undefined;
 
   constructor(private readonly data: VerseBoundsData, presence?: VersePresenceData) {
     this.#presence=presence;
