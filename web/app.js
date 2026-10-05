@@ -15,6 +15,7 @@ import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
 import { bookOverviewContentHtml } from './book-overview.js';
+import { guideLiteraryModeControlHtml } from './guide-literary-mode.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -396,7 +397,7 @@ async function renderGuide() {
   elements.studyContent.innerHTML='<div class="loading">Building passage guide…</div>';
   try {
     const [guide,outline,studyAnnotations] = await Promise.all([
-      guideService.build(currentScripture),
+      guideService.build(currentScripture,currentStudy?.literaryMode),
       currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
       currentStudy ? annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id) : Promise.resolve([]),
     ]);
@@ -412,6 +413,7 @@ async function renderGuide() {
     elements.studyContent.innerHTML = `<section class="panel">
       <span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2>
       <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
+      ${guideLiteraryModeControlHtml(currentScripture.passage,currentStudy?.literaryMode)}
       <section class="panel-section observation-guide"><h3>Observe the text</h3><p class="quiet">These questions come from visible textual signals. Selah asks; it does not supply the interpretation.</p><div class="observation-prompts">${guide.observationPrompts.map((prompt,index)=>`<article class="observation-prompt"><span class="observation-category">${escapeHtml(prompt.category)}</span><p>${escapeHtml(prompt.prompt)}</p><div class="observation-actions">${prompt.tokenIds.length?`<button class="text-button" type="button" data-observation-focus="${index}">Show in text</button>`:''}<button class="text-button" type="button" data-observation-save="${index}">Save question</button></div></article>`).join('')}</div></section>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.literaryContext.length?`<div class="literary-context"><span class="mini-label">Literary context</span>${guide.literaryContext.map((section)=>`<button type="button" class="context-section ${section.role}" data-reference="${escapeHtml(formatPassage(section.passage))}"><span>${section.role}</span><strong>${escapeHtml(section.heading)}</strong><small>${escapeHtml(formatPassage(section.passage))}</small></button>`).join('')}</div>`:''}${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Headings inside selection</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
       <section class="panel-section"><div class="section-heading-row"><h3>Your structure</h3><button class="text-button" id="guideOutlineBtn" type="button">${outline?.sections.length?'Edit outline':'Outline passage'}</button></div>${outlineHtml}</section>
@@ -424,6 +426,13 @@ async function renderGuide() {
       <section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}</section>
     </section>`;
     wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
+    $('#guideLiteraryMode')?.addEventListener('change',async(event)=>{
+      const value=event.target.value;
+      if(value==='auto'&&!currentStudy){await renderGuide();return;}
+      const study=currentStudy??await ensureStudy();
+      currentStudy=await studyService.setLiteraryMode(study.id,value==='auto'?undefined:value);
+      await renderGuide();
+    });
     $('#guideOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
     queryAll('[data-open-study-questions]').forEach((button)=>button.addEventListener('click',async()=>{activeTab='notes';await renderActiveTab();}));
     queryAll('[data-observation-focus]').forEach((button)=>button.addEventListener('click',async()=>{
