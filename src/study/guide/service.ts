@@ -1,12 +1,13 @@
 import type { ScripturePassage, ScriptureProvider } from '../../bible/types.js';
 import { analyzePatterns, analyzeStructuralMarkers, type StructuralMarker, type TextPattern } from '../../bible/patterns/analyzer.js';
 import type { PassageRef } from '../../domain/references/types.js';
-import type { Annotation } from '../../domain/studies/types.js';
+import type { Annotation, LiteraryMode } from '../../domain/studies/types.js';
 import type { AnnotationService } from '../../annotations/service.js';
 import type { CrossReference, CrossReferenceProvider } from '../../research/cross-references/types.js';
 import type { LexiconEntry, LexiconProvider } from '../../research/lexicon/types.js';
 import { EXTERNAL_RESOURCES, type ExternalStudyResource } from '../../resources/external.js';
 import { buildObservationPrompts, type ObservationPrompt } from '../observation/prompts.js';
+import { defaultLiteraryMode } from '../observation/literary-mode.js';
 
 export interface PassageGuideSection {
   verse: number;
@@ -35,6 +36,7 @@ export interface PassageGuide {
   patterns: TextPattern[];
   structuralMarkers: StructuralMarker[];
   observationPrompts: ObservationPrompt[];
+  literaryMode: LiteraryMode;
   importantLexicalKeys: string[];
   importantLexicalItems: PassageGuideLexicalItem[];
   resources: Array<{ resource: ExternalStudyResource; url: string }>;
@@ -80,7 +82,7 @@ export class PassageGuideService {
     return output;
   }
 
-  async build(scripture: ScripturePassage): Promise<PassageGuide> {
+  async build(scripture: ScripturePassage, literaryMode: LiteraryMode = defaultLiteraryMode(scripture.passage)): Promise<PassageGuide> {
     const [annotations, crossReferences, backlinks, literaryContext] = await Promise.all([
       this.annotations.forPassage(scripture.passage, scripture.translationId),
       this.crossReferences.forPassage(scripture.passage),
@@ -118,7 +120,8 @@ export class PassageGuideService {
       backlinks,
       patterns: analyzePatterns(scripture),
       structuralMarkers: analyzeStructuralMarkers(scripture),
-      observationPrompts: buildObservationPrompts(scripture),
+      observationPrompts: buildObservationPrompts(scripture,literaryMode),
+      literaryMode,
       importantLexicalKeys,
       importantLexicalItems,
       resources: EXTERNAL_RESOURCES.map((resource)=>({resource,url:resource.buildUrl(scripture.passage)})),
