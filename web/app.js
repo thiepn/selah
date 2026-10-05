@@ -8,7 +8,6 @@ import { StudyService, WorkspaceService, OutlineService, BookSynthesisService } 
 import { LensService } from './core/study/lens/index.js';
 import { PassageGuideService } from './core/study/guide/index.js';
 import { OriginalLanguageService } from './core/research/original-language/index.js';
-import { TranslationRegistry } from './core/research/compare/index.js';
 import { analyzePatterns, analyzeStructuralMarkers } from './core/bible/patterns/index.js';
 import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePhraseWithPrevious } from './core/bible/phrasing/index.js';
 import { exportStudyContextMarkdown } from './core/export/index.js';
@@ -16,6 +15,7 @@ import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/in
 import { ReviewService } from './core/review/index.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
+import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -43,7 +43,7 @@ const reviewService = new ReviewService(repo);
 const guideService = new PassageGuideService(annotationService, researchProvider, scriptureProvider, researchProvider);
 const lensService = new LensService(annotationService, researchProvider);
 const originalLanguage = new OriginalLanguageService(scriptureProvider, researchProvider, researchProvider, researchProvider);
-const translations = new TranslationRegistry([scriptureProvider]);
+const translations = createTranslationRegistry(scriptureProvider);
 
 function syncTranslationComparisonAvailability() {
   const available=translations.list().length>1;
@@ -820,8 +820,7 @@ async function renderWords() {
 }
 
 async function renderCompare() {
-  const result=await translations.compare(currentScripture.passage,translations.list().map((x)=>x.id));
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">COMPARE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Selah only displays translations whose redistribution rights are configured. BSB is the built-in public-domain translation.</p><div class="compare-grid">${result.translations.map(({metadata,scripture})=>`<section class="translation-block"><h3>${escapeHtml(metadata.abbreviation)}</h3><p>${scripture.verses.map((v)=>`<sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}`).join(' ')}</p></section>`).join('')}</div></section>`;
+  elements.studyContent.innerHTML=await comparisonPanelHtml(translations,currentScripture.passage);
 }
 
 function defaultPhrasingDocument(study) {
