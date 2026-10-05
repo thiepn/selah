@@ -7,9 +7,12 @@ on:
       - 'scripts/data/**'
       - 'scripts/validate-site.mjs'
       - 'src/data/bsb/**'
+      - 'src/data/web/**'
       - 'src/domain/references/**'
       - 'src/research/cross-references/**'
       - 'fixtures/bsb/**'
+      - 'fixtures/web/**'
+      - 'data/manifests/sources.json'
       - 'package.json'
       - '.github/workflows/upstream-data.yml'
   schedule:
@@ -33,8 +36,10 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - run: npm run data:vendor:bsb
+      - run: npm run data:vendor:web
       - run: npm run data:canonicalize:bsb
       - run: npm run data:validate:vendored
+      - run: npm run data:validate:web
       - run: npm run data:build:concordance
       - run: npm run data:build:crossrefs
       - run: npm run data:verify:research
