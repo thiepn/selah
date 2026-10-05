@@ -1,14 +1,15 @@
 import type { PhrasingDocument } from '../bible/phrasing/model.js';
-import type { Annotation, Study, StudyDocument, WorkspaceState } from '../domain/studies/types.js';
+import type { Annotation, Study, StudyDocument, StudySynthesis, WorkspaceState } from '../domain/studies/types.js';
 import { defaultMetadata, defaultSettings } from './defaults.js';
 import type { SelahMetadata, SelahRepository, SelahSettings, SelahSnapshot } from './types.js';
 
 const DB_NAME = 'selah';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = {
   system: 'system',
   studies: 'studies',
   documents: 'studyDocuments',
+  syntheses: 'studySyntheses',
   annotations: 'annotations',
   workspaces: 'workspaceStates',
   phrasing: 'phrasingDocuments',
@@ -40,6 +41,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
       if (!db.objectStoreNames.contains(STORES.system)) db.createObjectStore(STORES.system, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORES.studies)) db.createObjectStore(STORES.studies, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORES.documents)) db.createObjectStore(STORES.documents, { keyPath: 'studyId' });
+      if (!db.objectStoreNames.contains(STORES.syntheses)) db.createObjectStore(STORES.syntheses, { keyPath: 'studyId' });
       if (!db.objectStoreNames.contains(STORES.annotations)) {
         const store = db.createObjectStore(STORES.annotations, { keyPath: 'id' });
         store.createIndex('studyId', 'studyId', { unique: false });
@@ -55,7 +57,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
     const store = tx.objectStore(STORES.system);
     const metadata = (await requestResult(store.get('metadata'))) as SelahMetadata | undefined;
     if (!metadata) store.put(defaultMetadata());
-    else if (metadata.appSchemaVersion !== 2) store.put({ ...metadata, appSchemaVersion: 2, updatedAt: Date.now() });
+    else if (metadata.appSchemaVersion !== 3) store.put({ ...metadata, appSchemaVersion: 3, updatedAt: Date.now() });
     if (!(await requestResult(store.get('settings')))) store.put(defaultSettings());
     await transactionDone(tx);
   }
@@ -97,6 +99,8 @@ export class IndexedDbSelahRepository implements SelahRepository {
   async deleteStudy(id: string) { await this.#delete(STORES.studies, id); }
   async getStudyDocument(id: string) { return this.#get<StudyDocument>(STORES.documents, id); }
   async putStudyDocument(v: StudyDocument) { await this.#put(STORES.documents, v); }
+  async getStudySynthesis(id: string) { return this.#get<StudySynthesis>(STORES.syntheses, id); }
+  async putStudySynthesis(v: StudySynthesis) { await this.#put(STORES.syntheses, v); }
   async listAnnotations(studyId?: string) {
     if (!studyId) return this.#all<Annotation>(STORES.annotations);
     const tx = this.#requireDb().transaction(STORES.annotations, 'readonly');
@@ -123,6 +127,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
       settings: await this.getSettings(),
       studies: await this.listStudies(),
       studyDocuments: await this.#all<StudyDocument>(STORES.documents),
+      studySyntheses: await this.#all<StudySynthesis>(STORES.syntheses),
       annotations: await this.listAnnotations(),
       workspaceStates: await this.listWorkspaces(),
       phrasingDocuments: await this.listPhrasingDocuments(),
@@ -140,6 +145,7 @@ export class IndexedDbSelahRepository implements SelahRepository {
     tx.objectStore(STORES.system).put(snapshot.settings);
     for (const v of snapshot.studies) tx.objectStore(STORES.studies).put(v);
     for (const v of snapshot.studyDocuments) tx.objectStore(STORES.documents).put(v);
+    for (const v of snapshot.studySyntheses ?? []) tx.objectStore(STORES.syntheses).put(v);
     for (const v of snapshot.annotations) tx.objectStore(STORES.annotations).put(v);
     for (const v of snapshot.workspaceStates) tx.objectStore(STORES.workspaces).put(v);
     for (const v of snapshot.phrasingDocuments ?? []) tx.objectStore(STORES.phrasing).put(v);
