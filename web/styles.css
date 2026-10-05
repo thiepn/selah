@@ -367,3 +367,29 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .synthesis-unresolved p{margin:6px 0 0;font-size:11px;line-height:1.5;color:var(--ink)}
 .synthesis-unresolved .text-button{white-space:nowrap}
 @media(max-width:760px){.synthesis-unresolved{flex-direction:column}}
+
+
+.study-snapshot-dialog{width:min(620px,calc(100vw - 28px));max-height:min(760px,calc(100vh - 28px));border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:0;box-shadow:var(--shadow)}
+.study-snapshot-dialog::backdrop{background:rgba(0,0,0,.35)}
+.study-snapshot-dialog form{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:inherit}
+.study-snapshot-dialog header,.study-snapshot-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px}
+.study-snapshot-dialog header{border-bottom:1px solid var(--line)}
+.study-snapshot-dialog footer{border-top:1px solid var(--line)}
+.study-snapshot-dialog header>div{display:grid;gap:3px}
+.study-snapshot-dialog header strong{font-size:16px}
+#studySnapshotContent{overflow:auto;padding:18px;display:grid;gap:18px}
+#studySnapshotContent>section{display:grid;gap:8px}
+.snapshot-reference{font:500 22px/1.25 Georgia,serif}
+.snapshot-topics{display:flex;flex-wrap:wrap;gap:5px}
+.snapshot-topics span{border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--muted);font-size:10px}
+.snapshot-main-idea{margin:0;font:500 17px/1.55 Georgia,serif;color:var(--ink)}
+.snapshot-outline{display:grid;gap:6px}
+.snapshot-outline>div{display:grid;grid-template-columns:minmax(110px,.42fr) minmax(0,1fr);gap:12px;padding:7px 0;border-top:1px solid var(--line)}
+.snapshot-outline>div:first-child{border-top:0}
+.snapshot-outline span{font-size:10px;color:var(--muted)}
+.snapshot-outline strong{font-size:11px;font-weight:600}
+.snapshot-questions{display:grid;gap:7px}
+.snapshot-questions p{margin:0;padding:8px 10px;border-left:2px solid var(--accent);background:var(--surface-2);font-size:11px;line-height:1.5}
+.snapshot-questions small{color:var(--muted);font-size:10px}
+.snapshot-review p{margin:0;color:var(--muted);font-size:11px}
+@media(max-width:760px){.study-snapshot-dialog{width:calc(100vw - 18px)}.snapshot-outline>div{grid-template-columns:1fr}.study-snapshot-dialog footer{position:sticky;bottom:0;background:var(--surface)}}
