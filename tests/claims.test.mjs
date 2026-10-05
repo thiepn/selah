@@ -97,3 +97,18 @@ test('deleting a study cascades all study-owned claim and note state but preserv
   assert.equal((await repo.listWorkspaces()).some((workspace)=>workspace.studyId==='s1'),false);
   assert.equal((await repo.getBookSynthesis('PHP')).understanding,'book-level understanding');
 });
+
+
+test('high-confidence claims require at least one exact evidence reference',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  const service=new InterpretationClaimService(repo,{idFactory:()=> 'c6',now:()=>1});
+  await assert.rejects(()=>service.create('s1',{statement:'Explicit claim',confidence:'explicit',evidence:[]}),/require textual evidence/);
+  await assert.rejects(()=>service.create('s1',{statement:'Strong claim',confidence:'strong-inference',evidence:[]}),/require textual evidence/);
+  const tentative=await service.create('s1',{statement:'Working hypothesis',confidence:'tentative',evidence:[]});
+  assert.equal(tentative.evidence.length,0);
+  await assert.rejects(()=>service.update(tentative.id,{confidence:'explicit'}),/require textual evidence/);
+  const promoted=await service.update(tentative.id,{confidence:'explicit',evidence:[{passage:p('Phil 2:5-8')}]});
+  assert.equal(promoted.confidence,'explicit');
+});
