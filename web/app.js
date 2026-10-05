@@ -1191,8 +1191,44 @@ $('#restoreBtn').addEventListener('click',()=>$('#restoreInput').click());
 $('#restoreInput').addEventListener('change',async(event)=>{const file=event.target.files?.[0];if(!file)return;try{const backup=parseBackup(await file.text());await repo.importSnapshot(backup.snapshot,'replace');toast('Backup restored. Reloading…');setTimeout(()=>location.reload(),500);}catch(error){toast(error instanceof Error?error.message:'Invalid backup');}finally{event.target.value='';}});
 $('#peekClose').addEventListener('click',()=>elements.peek.hidden=true);
 $('#peekOpen').addEventListener('click',async()=>{if(activePeekPassage){elements.peek.hidden=true;await navigateResearch(activePeekPassage);}});
+async function buildCurrentStudyContextExport() {
+  if(!currentStudy)throw new Error('Write or annotate first so there is a study to export.');
+  return exportStudyContextMarkdown({
+    study:currentStudy,
+    scripture:currentScripture,
+    annotations:await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id),
+    document:await repo.getStudyDocument(currentStudy.id),
+    outline:await repo.getStudyOutline(currentStudy.id),
+    synthesis:await repo.getStudySynthesis(currentStudy.id),
+    options:{
+      includeScripture:$('#exportScripture').checked,
+      includeAnnotations:$('#exportAnnotations').checked,
+      includeDocument:$('#exportDocument').checked,
+      includeOutline:$('#exportOutline').checked,
+      includeSynthesis:$('#exportSynthesis').checked,
+      tutorPrompt:$('#exportTutor').value,
+    },
+  });
+}
 $('#exportBtn').addEventListener('click',()=>elements.exportDialog.showModal());
-$('#copyExportBtn').addEventListener('click',async()=>{if(!currentStudy){toast('Write or annotate first so there is a study to export.');return;}const markdown=exportStudyContextMarkdown({study:currentStudy,scripture:currentScripture,annotations:await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id),document:await repo.getStudyDocument(currentStudy.id),outline:await repo.getStudyOutline(currentStudy.id),synthesis:await repo.getStudySynthesis(currentStudy.id),options:{includeScripture:$('#exportScripture').checked,includeAnnotations:$('#exportAnnotations').checked,includeDocument:$('#exportDocument').checked,includeOutline:$('#exportOutline').checked,includeSynthesis:$('#exportSynthesis').checked,tutorPrompt:$('#exportTutor').value}});await navigator.clipboard.writeText(markdown);elements.exportDialog.close();toast('Study context copied.');});
+$('#copyExportBtn').addEventListener('click',async()=>{
+  try{
+    const markdown=await buildCurrentStudyContextExport();
+    await navigator.clipboard.writeText(markdown);
+    elements.exportDialog.close();
+    toast('Study context copied.');
+  }catch(error){toast(error instanceof Error?error.message:'Unable to copy study context');}
+});
+$('#openChatGPTBtn').addEventListener('click',async()=>{
+  try{
+    const markdown=await buildCurrentStudyContextExport();
+    const copyPromise=navigator.clipboard.writeText(markdown);
+    const opened=window.open('https://chatgpt.com/','_blank','noopener,noreferrer');
+    await copyPromise;
+    elements.exportDialog.close();
+    toast(opened?'Study context copied. Paste it into ChatGPT.':'Study context copied. If ChatGPT did not open, open it and paste.');
+  }catch(error){toast(error instanceof Error?error.message:'Unable to hand off study context');}
+});
 
 elements.scripture.addEventListener('click',async(event)=>{
   const verseButton=event.target.closest('.verse-number');if(verseButton){const verse=verseButton.closest('.verse');context.patch({activeVerse:{book:verse.dataset.book,chapter:Number(verse.dataset.chapter),verse:Number(verse.dataset.verse)}});return;}
