@@ -1,4 +1,4 @@
-import { parseReference, formatPassage } from './core/domain/references/index.js';
+import { formatPassage } from './core/domain/references/index.js';
 import { InterpretationClaimService } from './core/study/claims/index.js';
 
 const esc=(value='')=>value.replace(/[&<>'"]/g,(c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[c]));
@@ -20,13 +20,13 @@ function claimHtml(claim){
   return `<article class="interpretation-claim" data-claim-id="${esc(claim.id)}"><div class="claim-head"><span class="claim-confidence ${esc(claim.confidence)}">${esc(LABELS[claim.confidence]??claim.confidence)}</span><div><button class="text-button" data-claim-action="edit" type="button">Edit</button><button class="text-button" data-claim-action="delete" type="button">Delete</button></div></div><p class="claim-statement">${esc(claim.statement)}</p>${evidence}</article>`;
 }
 
-export async function claimsUI(container,repo,studyService,currentStudy,currentScripture,ensureStudy,toast,openReference){
+export async function claimsUI(container,repo,studyService,currentStudy,currentScripture,ensureStudy,toast,openReference,resolveEvidenceReference){
   const service=new InterpretationClaimService(repo);
   let study=currentStudy;
   let editing;
   const render=async()=>{
     const claims=study?await service.list(study.id):[];
-    container.innerHTML=`<section class="panel claims-panel"><span class="eyebrow">INTERPRETATION CLAIMS</span><h2>What do I think this passage means?</h2><p class="panel-lede">State interpretive claims explicitly, classify how strongly the text supports them, and attach the verses you are relying on. Claims are your analysis, not generated conclusions.</p><div class="claims-list">${claims.map(claimHtml).join('')||'<p class="quiet">No interpretation claims yet.</p>'}</div><button class="primary-button" id="claimAdd" type="button">Add claim</button><div id="claimEditor"></div></section>`;
+    container.innerHTML=`<section class="panel claims-panel"><span class="eyebrow">INTERPRETATION CLAIMS</span><h2>What do I think this passage means?</h2><p class="panel-lede">State interpretive claims explicitly, classify how strongly this passage supports them, and attach evidence from the study passage. Use References or Notes for broader canonical connections. Claims are your analysis, not generated conclusions.</p><div class="claims-list">${claims.map(claimHtml).join('')||'<p class="quiet">No interpretation claims yet.</p>'}</div><button class="primary-button" id="claimAdd" type="button">Add claim</button><div id="claimEditor"></div></section>`;
     container.querySelectorAll('[data-reference]').forEach((button)=>button.addEventListener('click',()=>openReference(button.dataset.reference)));
     container.querySelectorAll('[data-claim-action]').forEach((button)=>button.addEventListener('click',async()=>{
       const id=button.closest('[data-claim-id]')?.dataset.claimId;
@@ -70,10 +70,9 @@ export async function claimsUI(container,repo,studyService,currentStudy,currentS
         for(const row of rows){
           const raw=row.querySelector('[data-claim-evidence-ref]').value.trim();
           if(!raw)continue;
-          const parsed=parseReference(raw);
-          if(parsed.kind!=='passage')throw new Error('Evidence must be a Bible passage, for example Philippians 2:6–8.');
+          const passage=await resolveEvidenceReference(raw);
           const note=row.querySelector('[data-claim-evidence-note]').value.trim();
-          evidence.push({passage:parsed.passage,...(note?{note}: {})});
+          evidence.push({passage,...(note?{note}: {})});
         }
         const input={statement:editor.querySelector('#claimStatement').value,confidence:editor.querySelector('#claimConfidence').value,evidence};
         if(claim)await service.update(claim.id,input); else await service.create(study.id,input);
