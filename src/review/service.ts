@@ -27,6 +27,12 @@ export class ReviewService {
       .sort((a,b)=>a.dueAt-b.dueAt||a.createdAt-b.createdAt);
   }
 
+  async dueForStudy(studyId: string, now=this.#now()): Promise<ReviewCard[]> {
+    return (await this.repository.listReviewCards(studyId))
+      .filter((card)=>card.dueAt<=now)
+      .sort((a,b)=>a.dueAt-b.dueAt||a.createdAt-b.createdAt);
+  }
+
   async reconcileExisting(study: Study, synthesis: StudySynthesis, outline?: StudyOutline): Promise<{updated:number;deleted:number}> {
     const existing=await this.repository.listReviewCards(study.id);
     if(!existing.length)return {updated:0,deleted:0};
