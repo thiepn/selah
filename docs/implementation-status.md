@@ -170,6 +170,7 @@
 - duplicate Study IDs are removed at the focused UI boundary before rendering
 - cross-reference and backlink cards surface up to three directly recallable Study Snapshot actions, with explicit overflow count when more matches exist
 - Reference Peek now gives the peeked passage its own **Prior studies** recall section using the same shared renderer
+- Passage Guide also surfaces overlapping prior Studies in Context, excluding the currently open Study so recall remains useful rather than self-referential
 - Study Snapshot remains the only recall destination; P33 does not introduce a second summary surface, graph database, relationship table, or inferred theological connection
 - archived-study exclusion and canonical passage-overlap ownership continue to come from the P32 domain behavior
 - deployment validation now guards multi-study recall wiring, deduplication, overflow surfacing, and Reference Peek integration
