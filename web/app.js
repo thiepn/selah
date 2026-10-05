@@ -67,6 +67,8 @@ let synthesisSaveTimer;
 let outlineDraftPassage;
 let focusedObservationPromptId;
 let pendingAnnotationKind='note';
+let editingAnnotationId;
+let editingAnnotationField;
 let showArchivedStudies=false;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
@@ -441,8 +443,14 @@ async function renderNotes() {
 function annotationHtml(annotation) {
   const anchor = annotation.anchor.type==='reference' ? formatPassage(annotation.anchor.passage) : (annotation.anchor.type==='text'||annotation.anchor.type==='text-range') ? annotation.anchor.quotedText : 'original-language token';
   const body = annotation.body || (annotation.kind==='highlight' ? `Highlight (${annotation.highlightStyle??'default'})` : '');
-  const editable=annotation.kind!=='highlight' && annotation.body;
-  return `<article class="annotation-item" data-annotation-id="${escapeHtml(annotation.id)}"><div class="annotation-heading"><div><span class="annotation-kind">${escapeHtml(annotation.kind)}</span><span class="annotation-anchor">${escapeHtml(anchor)}</span></div><div class="annotation-actions">${editable?'<button type="button" data-annotation-action="edit">Edit</button>':''}<button type="button" data-annotation-action="delete">Delete</button></div></div>${body?`<p>${escapeHtml(body)}</p>`:''}</article>`;
+  const editable=annotation.kind!=='highlight';
+  const response=annotation.kind==='question'&&annotation.response?.trim()
+    ? `<div class="question-response"><span>Response</span><p>${escapeHtml(annotation.response.trim())}</p></div>`
+    : '';
+  const questionAction=annotation.kind==='question'
+    ? `<button type="button" data-annotation-action="answer">${annotation.response?.trim()?'Edit response':'Answer'}</button>`
+    : '';
+  return `<article class="annotation-item ${annotation.kind==='question'?'question-item':''}" data-annotation-id="${escapeHtml(annotation.id)}"><div class="annotation-heading"><div><span class="annotation-kind">${escapeHtml(annotation.kind)}</span><span class="annotation-anchor">${escapeHtml(anchor)}</span></div><div class="annotation-actions">${editable?'<button type="button" data-annotation-action="edit-body">Edit</button>':''}${questionAction}<button type="button" data-annotation-action="delete">Delete</button></div></div>${body?`<p>${escapeHtml(body)}</p>`:''}${response}</article>`;
 }
 
 function renderStudyDocumentLinks(text) {
@@ -454,14 +462,24 @@ function renderStudyDocumentLinks(text) {
   section.innerHTML=html; wireReferenceButtons();
 }
 
+async function openAnnotationEditor(annotation,field) {
+  editingAnnotationId=annotation.id;
+  editingAnnotationField=field;
+  $('#noteDialogTitle').textContent=field==='response'?'Answer question':annotation.kind==='question'?'Edit question':'Edit note';
+  elements.noteAnchorLabel.textContent=field==='response'?(annotation.body??'Question'):annotation.anchor.type==='reference'?formatPassage(annotation.anchor.passage):(annotation.anchor.type==='text'||annotation.anchor.type==='text-range')?annotation.anchor.quotedText:'Annotation';
+  elements.noteBody.value=field==='response'?(annotation.response??''):(annotation.body??'');
+  elements.noteDialog.showModal();
+  await sleep(0);
+  elements.noteBody.focus();
+}
+
 function wireAnnotationActions() {
   queryAll('[data-annotation-action]').forEach((button)=>button.addEventListener('click',async()=>{
     const item=button.closest('[data-annotation-id]'); const id=item?.dataset.annotationId; if(!id)return;
     const action=button.dataset.annotationAction;
-    if(action==='edit'){
+    if(action==='edit-body'||action==='answer'){
       const annotation=(await repo.listAnnotations()).find((x)=>x.id===id); if(!annotation)return;
-      const revised=prompt('Edit annotation',annotation.body??''); if(revised===null)return;
-      await annotationService.update(id,{body:revised.trim()}); await currentStudy&&studyService.touch(currentStudy.id); await renderNotes();
+      await openAnnotationEditor(annotation,action==='answer'?'response':'body');
     }
     if(action==='delete'){
       if(!confirm('Delete this anchored annotation?'))return;
@@ -1004,9 +1022,25 @@ elements.scripture.addEventListener('click',async(event)=>{
 
 elements.scripture.addEventListener('pointerup',()=>{setTimeout(()=>{selectedRangeInfo=selectedTokenRange();if(!selectedRangeInfo){elements.selectionMenu.hidden=true;return;}const selection=getSelection();const rect=selection.getRangeAt(0).getBoundingClientRect();elements.selectionMenu.style.left=`${Math.max(8,Math.min(innerWidth-290,rect.left+rect.width/2-120))}px`;elements.selectionMenu.style.top=`${Math.max(60,rect.top-68)}px`;elements.selectionMenu.hidden=false;$('#selectionLensMeta').textContent='Loading context…';context.patch({selection:{range:selectedRangeInfo.passage,text:selectedRangeInfo.quotedText,tokenIds:[selectedRangeInfo.startTokenId,selectedRangeInfo.endTokenId]}});updateSelectionLens();},0);});
 
-elements.selectionMenu.addEventListener('click',async(event)=>{const action=event.target.closest('[data-action]')?.dataset.action;if(!action)return;elements.selectionMenu.hidden=true;if(action==='note'||action==='question'){pendingAnnotationKind=action;$('#noteDialogTitle').textContent=action==='question'?'Add question':'Add note';elements.noteAnchorLabel.textContent=selectedRangeInfo?.quotedText?`“${selectedRangeInfo.quotedText}”`:formatPassage(selectedRangeInfo.passage);elements.noteBody.value='';elements.noteDialog.showModal();await sleep(0);elements.noteBody.focus();}if(action==='highlight')await highlightSelection();if(action==='outline'&&selectedRangeInfo){outlineDraftPassage=structuredClone(selectedRangeInfo.passage);activeTab='outline';await renderActiveTab();}if(action==='word'){const id=selectedRangeInfo?.startTokenId;selectedToken=tokenById(id);activeTab='words';await renderActiveTab();}if(action==='compare'){activeTab='compare';await renderActiveTab();}if(action==='copy'&&selectedRangeInfo)await navigator.clipboard.writeText(selectedRangeInfo.quotedText);});
+elements.selectionMenu.addEventListener('click',async(event)=>{const action=event.target.closest('[data-action]')?.dataset.action;if(!action)return;elements.selectionMenu.hidden=true;if(action==='note'||action==='question'){editingAnnotationId=undefined;editingAnnotationField=undefined;pendingAnnotationKind=action;$('#noteDialogTitle').textContent=action==='question'?'Add question':'Add note';elements.noteAnchorLabel.textContent=selectedRangeInfo?.quotedText?`“${selectedRangeInfo.quotedText}”`:formatPassage(selectedRangeInfo.passage);elements.noteBody.value='';elements.noteDialog.showModal();await sleep(0);elements.noteBody.focus();}if(action==='highlight')await highlightSelection();if(action==='outline'&&selectedRangeInfo){outlineDraftPassage=structuredClone(selectedRangeInfo.passage);activeTab='outline';await renderActiveTab();}if(action==='word'){const id=selectedRangeInfo?.startTokenId;selectedToken=tokenById(id);activeTab='words';await renderActiveTab();}if(action==='compare'){activeTab='compare';await renderActiveTab();}if(action==='copy'&&selectedRangeInfo)await navigator.clipboard.writeText(selectedRangeInfo.quotedText);});
 
-elements.noteForm.addEventListener('submit',async(event)=>{if(event.submitter?.value==='cancel')return;event.preventDefault();const body=elements.noteBody.value.trim();if(!body)return;await createAnnotationFromSelection(body);elements.noteDialog.close();});
+elements.noteForm.addEventListener('submit',async(event)=>{
+  if(event.submitter?.value==='cancel'){editingAnnotationId=undefined;editingAnnotationField=undefined;return;}
+  event.preventDefault();
+  const body=elements.noteBody.value.trim();
+  if(!body)return;
+  if(editingAnnotationId&&editingAnnotationField){
+    await annotationService.update(editingAnnotationId,{[editingAnnotationField]:body});
+    if(currentStudy)await studyService.touch(currentStudy.id);
+    editingAnnotationId=undefined;
+    editingAnnotationField=undefined;
+    elements.noteDialog.close();
+    await renderNotes();
+    return;
+  }
+  await createAnnotationFromSelection(body);
+  elements.noteDialog.close();
+});
 
 document.addEventListener('pointerdown',(event)=>{if(!elements.selectionMenu.hidden&&!elements.selectionMenu.contains(event.target)&&!elements.scripture.contains(event.target))elements.selectionMenu.hidden=true;});
 document.addEventListener('keydown',async(event)=>{
