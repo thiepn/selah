@@ -27,11 +27,19 @@ export class ReviewService {
       .sort((a,b)=>a.dueAt-b.dueAt||a.createdAt-b.createdAt);
   }
 
-  async syncFromSynthesis(study: Study, synthesis: StudySynthesis, outline?: StudyOutline): Promise<{created:number;updated:number}> {
+  async syncFromSynthesis(study: Study, synthesis: StudySynthesis, outline?: StudyOutline): Promise<{created:number;updated:number;deleted:number}> {
     const existing=await this.repository.listReviewCards(study.id);
     const bySource=new Map(existing.map((card)=>[card.source,card]));
-    let created=0,updated=0;
-    for(const draft of reviewCardDrafts(study,synthesis,outline)) {
+    const drafts=reviewCardDrafts(study,synthesis,outline);
+    const activeSources=new Set(drafts.map((draft)=>draft.source));
+    let created=0,updated=0,deleted=0;
+    for(const card of existing) {
+      if(!activeSources.has(card.source)) {
+        await this.repository.deleteReviewCard(card.id);
+        deleted+=1;
+      }
+    }
+    for(const draft of drafts) {
       const current=bySource.get(draft.source);
       if(current) {
         if(current.prompt!==draft.prompt||current.answer!==draft.answer) {
@@ -47,7 +55,7 @@ export class ReviewService {
         created+=1;
       }
     }
-    return {created,updated};
+    return {created,updated,deleted};
   }
 
   async rate(id: string, rating: ReviewRating): Promise<ReviewCard> {
