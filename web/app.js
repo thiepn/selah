@@ -73,6 +73,7 @@ let editingAnnotationField;
 let showArchivedStudies=false;
 let studyArchiveView='books';
 let editingStudyId;
+let snapshotStudyId;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
@@ -930,6 +931,51 @@ async function renderReview() {
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview();});
 }
 
+async function openStudyById(id) {
+  const study=await repo.getStudy(id);
+  if(!study)return;
+  currentStudy=study;
+  const existing=(await repo.listWorkspaces()).find((workspace)=>workspace.studyId===study.id);
+  workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);
+  await workspaceService.markLastOpened(workspace);
+  await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
+  elements.studiesDrawer.hidden=true;
+}
+
+async function openStudySnapshot(id) {
+  const study=await repo.getStudy(id);
+  if(!study)return;
+  snapshotStudyId=id;
+  const [synthesis,outline,annotations,cards]=await Promise.all([
+    repo.getStudySynthesis(id),
+    repo.getStudyOutline(id),
+    repo.listAnnotations(id),
+    repo.listReviewCards(id),
+  ]);
+  const questions=annotations.filter((annotation)=>annotation.kind==='question');
+  const unresolved=questions.filter((question)=>!question.response?.trim());
+  const due=cards.filter((card)=>card.dueAt<=Date.now());
+  $('#studySnapshotTitle').textContent=study.title??formatPassage(study.primaryPassage);
+  const topicHtml=study.tags.length?`<div class="snapshot-topics">${study.tags.map((tag)=>`<span>${escapeHtml(tag)}</span>`).join('')}</div>`:'<p class="quiet">No topics assigned.</p>';
+  const outlineHtml=outline?.sections.length
+    ? `<div class="snapshot-outline">${outline.sections.map((section)=>`<div><span>${escapeHtml(formatPassage(section.passage))}</span><strong>${escapeHtml(section.label||'Untitled section')}</strong></div>`).join('')}</div>`
+    : '<p class="quiet">No passage outline yet.</p>';
+  const mainIdea=synthesis?.mainIdea?.trim();
+  const application=synthesis?.application?.trim();
+  const questionHtml=unresolved.length
+    ? `<div class="snapshot-questions">${unresolved.slice(0,4).map((question)=>`<p>${escapeHtml(question.body??'Question')}</p>`).join('')}${unresolved.length>4?`<small>+${unresolved.length-4} more unresolved</small>`:''}</div>`
+    : '<p class="quiet">No unresolved saved questions.</p>';
+  $('#studySnapshotContent').innerHTML=`
+    <div class="snapshot-reference">${escapeHtml(formatPassage(study.primaryPassage))}</div>
+    <section><span class="mini-label">TOPICS</span>${topicHtml}</section>
+    <section><span class="mini-label">MAIN IDEA</span>${mainIdea?`<p class="snapshot-main-idea">${escapeHtml(mainIdea)}</p>`:'<p class="quiet">No main idea written yet.</p>'}</section>
+    <section><span class="mini-label">PASSAGE STRUCTURE</span>${outlineHtml}</section>
+    <section><span class="mini-label">UNRESOLVED QUESTIONS · ${unresolved.length}</span>${questionHtml}</section>
+    ${application?`<section><span class="mini-label">APPLICATION</span><p>${escapeHtml(application)}</p></section>`:''}
+    <section class="snapshot-review"><span class="mini-label">REVIEW</span><p>${cards.length?`${cards.length} card${cards.length===1?'':'s'} · ${due.length} due now`:'No review cards created.'}</p></section>
+  `;
+  $('#studySnapshotDialog').showModal();
+}
 function studyTopicsHtml(study) {
   if(!study.tags.length)return '';
   return `<div class="study-topic-chips">${study.tags.map((tag)=>`<button type="button" data-topic-search="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join('')}</div>`;
@@ -958,7 +1004,7 @@ async function renderStudies(filter='') {
       ...study.tags,
     ].some((value)=>value.toLocaleLowerCase('en').includes(q));
   });
-  const studyRow=(study)=>`<article class="study-row" data-study-id="${escapeHtml(study.id)}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button>${studyTopicsHtml(study)}<div class="study-actions"><button type="button" data-study-action="edit">Edit</button><button type="button" data-study-action="archive-toggle">${showArchivedStudies?'Restore':'Archive'}</button></div></article>`;
+  const studyRow=(study)=>`<article class="study-row" data-study-id="${escapeHtml(study.id)}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button>${studyTopicsHtml(study)}<div class="study-actions"><button type="button" data-study-action="snapshot">Snapshot</button><button type="button" data-study-action="edit">Edit</button><button type="button" data-study-action="archive-toggle">${showArchivedStudies?'Restore':'Archive'}</button></div></article>`;
   let html='';
   if(studies.length&&q){
     html=studies.sort((a,b)=>b.updatedAt-a.updatedAt).map(studyRow).join('');
@@ -998,14 +1044,7 @@ async function renderStudies(filter='') {
   elements.studiesList.innerHTML=html;
   queryAll('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
     const row=button.closest('[data-study-id]');
-    const study=await repo.getStudy(row.dataset.studyId);
-    if(!study)return;
-    currentStudy=study;
-    const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);
-    workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);
-    await workspaceService.markLastOpened(workspace);
-    await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
-    elements.studiesDrawer.hidden=true;
+    if(row)await openStudyById(row.dataset.studyId);
   }));
   queryAll('[data-topic-search]').forEach((button)=>button.addEventListener('click',(event)=>{
     event.stopPropagation();
@@ -1016,6 +1055,10 @@ async function renderStudies(filter='') {
     const row=button.closest('[data-study-id]');
     const id=row?.dataset.studyId;
     if(!id)return;
+    if(button.dataset.studyAction==='snapshot'){
+      await openStudySnapshot(id);
+      return;
+    }
     if(button.dataset.studyAction==='edit'){
       await openStudyMetadata(id);
       return;
@@ -1093,6 +1136,12 @@ $('#reviewBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden
 $('#reviewClose').addEventListener('click',()=>elements.reviewDrawer.hidden=true);
 $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
 $('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
+$('#studySnapshotOpen').addEventListener('click',async()=>{
+  if(!snapshotStudyId)return;
+  $('#studySnapshotDialog').close();
+  await openStudyById(snapshotStudyId);
+});
+$('#studySnapshotDialog').addEventListener('close',()=>{snapshotStudyId=undefined;});
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
 queryAll('[data-study-view]').forEach((button)=>button.addEventListener('click',async()=>{
   studyArchiveView=button.dataset.studyView;
