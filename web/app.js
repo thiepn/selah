@@ -75,6 +75,8 @@ let studyArchiveView='books';
 let editingStudyId;
 let snapshotStudyId;
 let reviewStudyFilter;
+let reviewCardStudyId;
+let editingReviewCardId;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
@@ -702,12 +704,13 @@ async function renderSynthesis() {
     </select></label>
     <label class="synthesis-field"><span>Application</span><small>Because this passage is true, what should you believe, do, stop, trust, or remember?</small><textarea id="synthesisApplication" rows="4" placeholder="Because this is true…">${escapeHtml(synthesis.application)}</textarea></label>
     <label class="synthesis-field"><span>Prayer</span><small>Turn what you learned into prayer.</small><textarea id="synthesisPrayer" rows="4" placeholder="Lord…">${escapeHtml(synthesis.prayer)}</textarea></label>
-    <section class="synthesis-review-action"><div><strong>Remember what you learned</strong><p>Create review cards from your main idea, explanation, evidence, and application. Prayer stays prayer.</p></div><button class="primary-button" id="syncReviewCards" type="button">Create / update review cards</button></section>
+    <section class="synthesis-review-action"><div><strong>Remember what you learned</strong><p>Create review cards from your main idea, explanation, evidence, and application. Add custom questions for specific details or argument links you want to retrieve later. Prayer stays prayer.</p></div><div class="synthesis-review-buttons"><button class="text-button" id="addCustomReviewCard" type="button">Add custom card</button><button class="primary-button" id="syncReviewCards" type="button">Create / update derived cards</button></div></section>
   </section>`;
   queryAll('.synthesis-field textarea').forEach((field)=>field.addEventListener('input',()=>scheduleSynthesisSave(readSynthesisForm())));
   $('#synthesisConfidence')?.addEventListener('change',()=>scheduleSynthesisSave(readSynthesisForm(),0));
   $('#synthesisOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
   $('#synthesisQuestionsBtn')?.addEventListener('click',async()=>{activeTab='notes';await renderActiveTab();});
+  $('#addCustomReviewCard')?.addEventListener('click',async()=>{const study=await ensureStudy();await openReviewCardEditor(study.id);});
   $('#syncReviewCards')?.addEventListener('click',async()=>{
     const value=readSynthesisForm();
     if(!synthesisHasContent(value)){toast('Write your synthesis before creating review cards.');return;}
@@ -923,7 +926,19 @@ function reviewSourceLabel(source) {
     explanation:'Explain it',
     evidence:'Textual evidence',
     application:'Application',
+    custom:'Custom question',
   }[source]??'Study recall';
+}
+
+async function openReviewCardEditor(studyId,card=undefined) {
+  reviewCardStudyId=studyId;
+  editingReviewCardId=card?.id;
+  $('#reviewCardDialogTitle').textContent=card?'Edit custom review card':'Add custom review card';
+  $('#reviewCardQuestion').value=card?.prompt??'';
+  $('#reviewCardAnswer').value=card?.answer??'';
+  $('#reviewCardDialog').showModal();
+  await sleep(0);
+  $('#reviewCardQuestion').focus();
 }
 
 async function renderReview(studyId=reviewStudyFilter) {
@@ -937,10 +952,11 @@ async function renderReview(studyId=reviewStudyFilter) {
   }
   const card=due[0];
   const study=await repo.getStudy(card.studyId);
-  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due${studyId?' in this study':''}</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><span class="review-source">${escapeHtml(reviewSourceLabel(card.source))}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><div class="review-answer-actions">${study?'<button class="text-button" id="reviewOpenStudy" type="button">Open study</button>':''}<button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></div></section>`;
+  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due${studyId?' in this study':''}</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><span class="review-source">${escapeHtml(reviewSourceLabel(card.source))}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><div class="review-answer-actions"><div>${study?'<button class="text-button" id="reviewOpenStudy" type="button">Open study</button>':''}${card.source==='custom'?'<button class="text-button" id="reviewEditCard" type="button">Edit card</button>':''}</div><button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></div></section>`;
   $('#reviewReveal')?.addEventListener('click',(event)=>{event.currentTarget.hidden=true;$('#reviewAnswer').hidden=false;});
   queryAll('[data-review-rating]').forEach((button)=>button.addEventListener('click',async()=>{await reviewService.rate(card.id,button.dataset.reviewRating);await refreshReviewBadge();await renderReview(studyId);}));
   $('#reviewOpenStudy')?.addEventListener('click',async()=>{if(!study)return;elements.reviewDrawer.hidden=true;reviewStudyFilter=undefined;await openStudyById(study.id);});
+  $('#reviewEditCard')?.addEventListener('click',async()=>{if(!study||card.source!=='custom')return;await openReviewCardEditor(study.id,card);});
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
 
@@ -1148,6 +1164,24 @@ $('#studyTabs').addEventListener('keydown',(event)=>{
 $('#patternsBtn').addEventListener('click',togglePatterns);
 $('#focusBtn').addEventListener('click',(event)=>{document.body.classList.toggle('reading-focus');event.currentTarget.classList.toggle('active');event.currentTarget.setAttribute('aria-pressed',String(event.currentTarget.classList.contains('active')));});
 $('#themeBtn').addEventListener('click',async()=>{const settings=await repo.getSettings();const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;await repo.setSettings({...settings,theme:next});});
+$('#reviewCardForm').addEventListener('submit',async(event)=>{
+  if(event.submitter?.value==='cancel'){reviewCardStudyId=undefined;editingReviewCardId=undefined;return;}
+  event.preventDefault();
+  if(!reviewCardStudyId)return;
+  const prompt=$('#reviewCardQuestion').value;
+  const answer=$('#reviewCardAnswer').value;
+  try{
+    if(editingReviewCardId)await reviewService.updateCustom(editingReviewCardId,prompt,answer);
+    else await reviewService.createCustom(reviewCardStudyId,prompt,answer);
+    $('#reviewCardDialog').close();
+    reviewCardStudyId=undefined;
+    editingReviewCardId=undefined;
+    await refreshReviewBadge();
+    if(!elements.reviewDrawer.hidden)await renderReview(reviewStudyFilter);
+    toast('Review card saved.');
+  }catch(error){toast(error instanceof Error?error.message:'Unable to save review card');}
+});
+$('#reviewCardDialog').addEventListener('close',()=>{reviewCardStudyId=undefined;editingReviewCardId=undefined;});
 $('#reviewBtn').addEventListener('click',async()=>{reviewStudyFilter=undefined;elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=false;await renderReview();});
 $('#reviewClose').addEventListener('click',()=>elements.reviewDrawer.hidden=true);
 $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
