@@ -4,7 +4,7 @@ const escapeHtml = (value='') => value.replace(/[&<>'"]/g, (c)=>({ '&':'&amp;','
 
 export function bookOverviewContentHtml(overview) {
   const topics=overview.topics.length
-    ? `<div class="book-topic-summary">${overview.topics.map((x)=>`<span>${escapeHtml(x.label)}${x.count>1?` × ${x.count}`:''}</span>`).join('')}</div>`
+    ? `<div class="book-topic-summary">${overview.topics.map((x)=>`<button type="button" data-topic-overview="${escapeHtml(x.label)}">${escapeHtml(x.label)}${x.count>1?` × ${x.count}`:''}</button>`).join('')}</div>`
     : '<p class="quiet">No study topics assigned in this book yet.</p>';
   const studies=overview.studies.length
     ? overview.studies.map((x)=>`<button class="book-study-card" data-book-study-id="${escapeHtml(x.id)}" type="button"><span>${escapeHtml(formatPassage(x.passage))}</span><strong>${escapeHtml(x.title)}</strong>${x.mainIdea?`<p>${escapeHtml(x.mainIdea)}</p>`:''}</button>`).join('')

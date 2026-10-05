@@ -21,3 +21,18 @@ export function personalStudyLinksHtml(studies=[],fallbackLabel='',limit=3){
 export function connectedReferenceCardHtml({label,detail,reference,studies=[]}){
   return `<article class="reference-card-wrap"><button class="reference-card" type="button" data-reference="${e(reference)}"><strong>${e(label)}</strong><span>${e(detail)}</span></button>${personalStudyLinksHtml(studies,label)}</article>`;
 }
+
+export function wirePersonalStudyReferences(root,openSnapshot){
+  root.querySelectorAll('[data-personal-snapshot]').forEach((button)=>button.addEventListener('click',(event)=>{
+    event.stopPropagation();
+    openSnapshot(button.dataset.personalSnapshot);
+  }));
+  root.querySelectorAll('[data-personal-expand]').forEach((button)=>button.addEventListener('click',(event)=>{
+    event.stopPropagation();
+    const group=button.closest('.reference-personal');
+    if(!group)return;
+    group.querySelectorAll('[data-personal-overflow]').forEach((item)=>{item.hidden=false;});
+    button.setAttribute('aria-expanded','true');
+    button.remove();
+  }));
+}

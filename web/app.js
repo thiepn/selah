@@ -13,8 +13,9 @@ import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePh
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
-import { connectedReferenceCardHtml, personalStudyLinksHtml } from './personal-reference-ui.js';
+import { connectedReferenceCardHtml, personalStudyLinksHtml, wirePersonalStudyReferences as wirePersonalStudyReferenceUi } from './personal-reference-ui.js';
 import { bookOverviewContentHtml } from './book-overview.js';
+import { createTopicOverviewController } from './topic-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
 import { claimsUI, claimsSummaryHtml, claimsSnapshotHtml } from './interpretation-claims.js';
@@ -53,6 +54,7 @@ const guideService = new PassageGuideService(annotationService, researchProvider
 const lensService = new LensService(annotationService, researchProvider);
 const originalLanguage = new OriginalLanguageService(scriptureProvider, researchProvider, researchProvider, researchProvider);
 const translations = createTranslationRegistry(scriptureProvider);
+createTopicOverviewController({repo,openSnapshot:openStudySnapshot,openReference:openPeek});
 
 function syncTranslationComparisonAvailability() {
   const available=translations.list().length>1;
@@ -473,17 +475,7 @@ function backlinkButtonHtml(ref,studies=[]) {
   const source=formatPassage(ref.source);
   return connectedReferenceCardHtml({label:source,detail:'Points to this passage',reference:source,studies});
 }
-function wirePersonalStudyReferences(root=document){
-  root.querySelectorAll('[data-personal-snapshot]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();openStudySnapshot(button.dataset.personalSnapshot);}));
-  root.querySelectorAll('[data-personal-expand]').forEach((button)=>button.addEventListener('click',(event)=>{
-    event.stopPropagation();
-    const group=button.closest('.reference-personal');
-    if(!group)return;
-    group.querySelectorAll('[data-personal-overflow]').forEach((item)=>{item.hidden=false;});
-    button.setAttribute('aria-expanded','true');
-    button.remove();
-  }));
-}
+const wirePersonalStudyReferences=(root=document)=>wirePersonalStudyReferenceUi(root,openStudySnapshot);
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
 async function renderNotes() {
@@ -1123,7 +1115,7 @@ async function renderStudies(filter='') {
     }
     const sections=[...groups.values()]
       .sort((a,b)=>a.label.localeCompare(b.label,undefined,{sensitivity:'base'}))
-      .map((group)=>`<section class="study-book-group study-topic-group"><header><strong>${escapeHtml(group.label)}</strong><span>${group.studies.length}</span></header>${group.studies.sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)).map(studyRow).join('')}</section>`);
+      .map((group)=>`<section class="study-book-group study-topic-group"><header><button class="study-group-title" data-topic-overview="${escapeHtml(group.label)}" type="button"><strong>${escapeHtml(group.label)}</strong><small>Overview</small></button><span>${group.studies.length}</span></header>${group.studies.sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)).map(studyRow).join('')}</section>`);
     if(untagged.length)sections.push(`<section class="study-book-group study-topic-group untagged"><header><strong>Untagged</strong><span>${untagged.length}</span></header>${untagged.sort((a,b)=>b.updatedAt-a.updatedAt).map(studyRow).join('')}</section>`);
     html=sections.join('');
   } else if(studies.length){

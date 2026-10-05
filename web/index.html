@@ -136,6 +136,15 @@
     </form>
   </dialog>
 
+
+  <dialog class="book-overview-dialog topic-overview-dialog" id="topicOverviewDialog" aria-labelledby="topicOverviewTitle">
+    <form method="dialog">
+      <header><div><span class="eyebrow">TOPIC OVERVIEW</span><strong id="topicOverviewTitle"></strong></div><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <div id="topicOverviewContent"></div>
+      <footer><span class="quiet">Derived from your tagged studies</span><button value="cancel" class="text-button">Close</button></footer>
+    </form>
+  </dialog>
+
   <aside class="drawer review-drawer" id="reviewDrawer" role="dialog" aria-modal="true" aria-labelledby="reviewDrawerTitle" hidden>
     <header><span id="reviewDrawerTitle">REVIEW</span><button class="icon-button" id="reviewClose" type="button" aria-label="Close review">×</button></header>
     <div class="review-content" id="reviewContent"></div>
