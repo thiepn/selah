@@ -16,7 +16,7 @@ import { ReviewService } from './core/review/index.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
-import { claimsUI, claimsSummaryHtml } from './interpretation-claims.js';
+import { claimsUI, claimsSummaryHtml, claimsSnapshotHtml } from './interpretation-claims.js';
 import { searchWorkspaceUI } from './search-workspace.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -706,7 +706,7 @@ async function renderSynthesis() {
   elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>${structureSummary}${claimsSummaryHtml(claims)}${unresolvedHtml}
     <label class="synthesis-field synthesis-main"><span>Main idea</span><small>One sentence: what is the author saying here?</small><textarea id="synthesisMainIdea" rows="2" placeholder="The main point of this passage is…">${escapeHtml(synthesis.mainIdea)}</textarea></label>
     <label class="synthesis-field"><span>Explain it</span><small>Explain the passage in your own words as if teaching someone else.</small><textarea id="synthesisExplanation" rows="7" placeholder="In context, the author is arguing…">${escapeHtml(synthesis.explanation)}</textarea></label>
-    <label class="synthesis-field"><span>Textual evidence</span><small>Which verses, words, structure, or connections support your reading?</small><textarea id="synthesisEvidence" rows="4" placeholder="v. 6…; the therefore in v. 9…">${escapeHtml(synthesis.evidence)}</textarea></label>
+    <label class="synthesis-field"><span>Evidence summary <em>optional</em></span><small>Claims above hold the precise references. Summarize only the decisive evidence you want in the final synthesis.</small><textarea id="synthesisEvidence" rows="4" placeholder="The decisive evidence is…">${escapeHtml(synthesis.evidence)}</textarea></label>
     <label class="synthesis-field synthesis-confidence"><span>Interpretation confidence</span><select id="synthesisConfidence">
       <option value="clear"${synthesis.confidence==='clear'?' selected':''}>Clear from text</option>
       <option value="strong-inference"${synthesis.confidence==='strong-inference'?' selected':''}>Strong inference</option>
@@ -1019,11 +1019,12 @@ async function openStudySnapshot(id) {
   const study=await repo.getStudy(id);
   if(!study)return;
   snapshotStudyId=id;
-  const [synthesis,outline,annotations,cards]=await Promise.all([
+  const [synthesis,outline,annotations,cards,claims]=await Promise.all([
     repo.getStudySynthesis(id),
     repo.getStudyOutline(id),
     repo.listAnnotations(id),
     repo.listReviewCards(id),
+    repo.listInterpretationClaims(id),
   ]);
   const questions=annotations.filter((annotation)=>annotation.kind==='question');
   const unresolved=questions.filter((question)=>!question.response?.trim());
@@ -1046,6 +1047,7 @@ async function openStudySnapshot(id) {
     <section><span class="mini-label">TOPICS</span>${topicHtml}</section>
     <section><span class="mini-label">MAIN IDEA</span>${mainIdea?`<p class="snapshot-main-idea">${escapeHtml(mainIdea)}</p>`:'<p class="quiet">No main idea written yet.</p>'}</section>
     <section><span class="mini-label">PASSAGE STRUCTURE</span>${outlineHtml}</section>
+    <section><span class="mini-label">INTERPRETATION CLAIMS · ${claims.length}</span>${claimsSnapshotHtml(claims)}</section>
     <section><span class="mini-label">UNRESOLVED QUESTIONS · ${unresolved.length}</span>${questionHtml}</section>
     ${application?`<section><span class="mini-label">APPLICATION</span><p>${escapeHtml(application)}</p></section>`:''}
     <section class="snapshot-review"><span class="mini-label">REVIEW</span><p>${cards.length?`${cards.length} card${cards.length===1?'':'s'} · ${due.length} due now`:'No review cards created.'}</p></section>
