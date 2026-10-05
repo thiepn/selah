@@ -36,7 +36,7 @@ export interface StudySynthesis {
   updatedAt: number;
 }
 
-export type StudyTool = 'guide' | 'notes' | 'outline' | 'synthesis' | 'cross-references' | 'word-study' | 'compare' | 'resources' | 'phrasing';
+export type StudyTool = 'guide' | 'notes' | 'outline' | 'claims' | 'synthesis' | 'cross-references' | 'word-study' | 'compare' | 'resources' | 'phrasing';
 
 export interface ResearchLocation {
   passage: PassageRef;
