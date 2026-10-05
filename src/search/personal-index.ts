@@ -4,8 +4,9 @@ import type { Annotation, Study, StudyDocument, StudySynthesis } from '../domain
 import type { ReviewCard } from '../review/types.js';
 import type { StudyOutline } from '../study/outline/types.js';
 import type { BookSynthesis } from '../study/book-synthesis/types.js';
+import type { InterpretationClaim } from '../study/claims/types.js';
 
-export type PersonalSearchKind = 'study' | 'document' | 'outline' | 'book-synthesis' | 'synthesis' | 'review' | 'annotation';
+export type PersonalSearchKind = 'study' | 'document' | 'outline' | 'claim' | 'book-synthesis' | 'synthesis' | 'review' | 'annotation';
 export interface PersonalSearchResult {
   kind: PersonalSearchKind;
   studyId?: string;
@@ -24,7 +25,7 @@ interface IndexedItem extends PersonalSearchResult { normalized: string; }
 export class PersonalStudySearchIndex {
   #items: IndexedItem[] = [];
 
-  rebuild(input: { studies: Study[]; documents: StudyDocument[]; outlines?: StudyOutline[]; bookSyntheses?: BookSynthesis[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
+  rebuild(input: { studies: Study[]; documents: StudyDocument[]; outlines?: StudyOutline[]; claims?: InterpretationClaim[]; bookSyntheses?: BookSynthesis[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
     const studies = new Map(input.studies.map((study)=>[study.id,study]));
     this.#items = [];
     for (const study of input.studies) {
@@ -43,6 +44,12 @@ export class PersonalStudySearchIndex {
       const parts=outline.sections.map((section)=>`${formatPassage(section.passage)} ${section.label}`);
       const excerpt=outline.sections.slice(0,3).map((section)=>`${formatPassage(section.passage)} — ${section.label||'Untitled section'}`).join(' · ');
       this.#items.push({kind:'outline',studyId:outline.studyId,title,excerpt,score:0,normalized:normalize(`${title} ${parts.join(' ')}`)});
+    }
+    for (const claim of input.claims ?? []) {
+      const study=studies.get(claim.studyId);
+      const title=study?.title??(study?formatPassage(study.primaryPassage):'Interpretation claim');
+      const evidence=claim.evidence.map((item)=>`${formatPassage(item.passage)} ${item.note??''}`).join(' ');
+      this.#items.push({kind:'claim',studyId:claim.studyId,title,excerpt:claim.statement.slice(0,240),score:0,normalized:normalize(`${title} ${claim.statement} ${claim.confidence} ${evidence}`)});
     }
     for (const book of input.bookSyntheses ?? []) {
       if(!book.understanding.trim())continue;
