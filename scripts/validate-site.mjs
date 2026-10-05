@@ -35,6 +35,7 @@ if(!app.includes("from './guide-literary-mode.js'")||!literaryModeUi.includes('m
 if(!app.includes("from './translation-compare.js'")||!translationCompare.includes('createTranslationRegistry')||!translationCompare.includes('comparisonPanelHtml')) throw new Error('Translation comparison UI module is not wired into the study workspace');
 if(!app.includes("from './personal-reference-ui.js'")||!personalReferenceUi.includes('connectedReferenceCardHtml')||!personalReferenceUi.includes('personalStudyLinksHtml')||!app.includes('studiesOverlappingPassage')) throw new Error('Personal-reference UI module is not wired into Scripture connections');
 if(!app.includes('personalStudyLinksHtml(priorStudies')||!app.includes('Prior studies')) throw new Error('Reference Peek multi-study recall regressed');
+if(!app.includes('Prior studies overlapping this passage')||!app.includes('study.id!==currentStudy?.id')||!app.includes('wirePersonalStudyReferences(elements.studyContent)')) throw new Error('Passage Guide contextual study recall regressed');
 if(!personalReferenceUi.includes("new Set()")||!personalReferenceUi.includes("+${remaining} more")) throw new Error('Contextual prior-study recall must deduplicate and expose overflow');
 if(!app.includes("new Worker('./search-worker.js'")||!searchWorker.includes('ScriptureSearchIndex')) throw new Error('Scripture search worker is not wired into the deployable study workspace');
 if(app.includes("const tokenEls = $('.token');")) throw new Error('Highlight renderer regressed to a single-element token selector');
