@@ -362,12 +362,19 @@ async function ensureStudy() {
 async function renderGuide() {
   elements.studyContent.innerHTML='<div class="loading">Building passage guide…</div>';
   try {
-    const guide = await guideService.build(currentScripture);
+    const [guide,outline] = await Promise.all([
+      guideService.build(currentScripture),
+      currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
+    ]);
     const book = BOOK_BY_ID.get(currentScripture.passage.start.book);
+    const outlineHtml=outline?.sections.length
+      ? `<div class="guide-outline">${outline.sections.map((section)=>`<div><span>${escapeHtml(formatPassage(section.passage))}</span><strong>${escapeHtml(section.label||'Untitled section')}</strong></div>`).join('')}</div>`
+      : '<p class="quiet">You have not outlined this passage yet.</p>';
     elements.studyContent.innerHTML = `<section class="panel">
       <span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2>
       <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${guide.literaryContext.length?`<div class="literary-context"><span class="mini-label">Literary context</span>${guide.literaryContext.map((section)=>`<button type="button" class="context-section ${section.role}" data-reference="${escapeHtml(formatPassage(section.passage))}"><span>${section.role}</span><strong>${escapeHtml(section.heading)}</strong><small>${escapeHtml(formatPassage(section.passage))}</small></button>`).join('')}</div>`:''}${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Headings inside selection</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
+      <section class="panel-section"><div class="section-heading-row"><h3>Your structure</h3><button class="text-button" id="guideOutlineBtn" type="button">${outline?.sections.length?'Edit outline':'Outline passage'}</button></div>${outlineHtml}</section>
       <section class="panel-section"><h3>Repeated signals</h3><div class="metric-row">${guide.patterns.slice(0,8).map((p)=>`<span class="metric">${escapeHtml(p.label)} × ${p.count}</span>`).join('')||'<span class="quiet">No repeated signals in the current selection.</span>'}</div></section>
       <section class="panel-section"><h3>Discourse markers</h3><div class="metric-row">${guide.structuralMarkers.slice(0,12).map((marker)=>`<span class="metric">${escapeHtml(marker.label)} · ${escapeHtml(marker.category.replace('purpose-result','purpose/result'))}</span>`).join('')||'<span class="quiet">No explicit discourse markers detected in this selection.</span>'}</div><p class="quiet">These are textual signals in the English translation, not automatic interpretations of the argument.</p></section>
       <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section>
@@ -376,6 +383,7 @@ async function renderGuide() {
       <section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}</section>
     </section>`;
     wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
+    $('#guideOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
   } catch (error) { renderToolError('Guide unavailable',error); }
 }
 
@@ -590,9 +598,15 @@ function synthesisHasContent(value) {
 }
 
 async function renderSynthesis() {
-  const saved=currentStudy ? await repo.getStudySynthesis(currentStudy.id) : undefined;
+  const [saved,outline]=await Promise.all([
+    currentStudy ? repo.getStudySynthesis(currentStudy.id) : Promise.resolve(undefined),
+    currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
+  ]);
   const synthesis=saved??emptySynthesis(currentStudy?.id);
-  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>
+  const structureSummary=outline?.sections.length
+    ? `<section class="synthesis-structure"><div class="section-heading-row"><span class="mini-label">PASSAGE STRUCTURE</span><button class="text-button" id="synthesisOutlineBtn" type="button">Edit outline</button></div>${outline.sections.map((section)=>`<div><span>${escapeHtml(formatPassage(section.passage))}</span><strong>${escapeHtml(section.label||'Untitled section')}</strong></div>`).join('')}</section>`
+    : `<section class="synthesis-structure empty"><span class="mini-label">PASSAGE STRUCTURE</span><p>No outline yet. Structure the passage before finalizing its main idea if that would help.</p><button class="text-button" id="synthesisOutlineBtn" type="button">Outline passage</button></section>`;
+  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>${structureSummary}
     <label class="synthesis-field synthesis-main"><span>Main idea</span><small>One sentence: what is the author saying here?</small><textarea id="synthesisMainIdea" rows="2" placeholder="The main point of this passage is…">${escapeHtml(synthesis.mainIdea)}</textarea></label>
     <label class="synthesis-field"><span>Explain it</span><small>Explain the passage in your own words as if teaching someone else.</small><textarea id="synthesisExplanation" rows="7" placeholder="In context, the author is arguing…">${escapeHtml(synthesis.explanation)}</textarea></label>
     <label class="synthesis-field"><span>Textual evidence</span><small>Which verses, words, structure, or connections support your reading?</small><textarea id="synthesisEvidence" rows="4" placeholder="v. 6…; the therefore in v. 9…">${escapeHtml(synthesis.evidence)}</textarea></label>
@@ -608,6 +622,7 @@ async function renderSynthesis() {
   </section>`;
   queryAll('.synthesis-field textarea').forEach((field)=>field.addEventListener('input',()=>scheduleSynthesisSave(readSynthesisForm())));
   $('#synthesisConfidence')?.addEventListener('change',()=>scheduleSynthesisSave(readSynthesisForm(),0));
+  $('#synthesisOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
   $('#syncReviewCards')?.addEventListener('click',async()=>{
     const value=readSynthesisForm();
     if(!synthesisHasContent(value)){toast('Write your synthesis before creating review cards.');return;}
@@ -616,7 +631,7 @@ async function renderSynthesis() {
     if(!saved)return;
     const result=await reviewService.syncFromSynthesis(saved.study,saved.synthesis,await outlineService.get(saved.study.id));
     await refreshReviewBadge();
-    toast(result.created||result.updated?`${result.created} review card(s) created · ${result.updated} updated`:'Review cards are already up to date.');
+    toast(result.created||result.updated||result.deleted?`${result.created} created · ${result.updated} updated · ${result.deleted} removed`:'Review cards are already up to date.');
   });
 }
 
