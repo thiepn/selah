@@ -40,6 +40,7 @@ export class ReviewService {
     let updated=0,deleted=0;
     for(const card of existing) {
       const draft=drafts.get(card.source);
+      if(card.source==='custom') continue;
       if(!draft) {
         await this.repository.deleteReviewCard(card.id);
         deleted+=1;
@@ -60,7 +61,7 @@ export class ReviewService {
     const activeSources=new Set(drafts.map((draft)=>draft.source));
     let created=0,updated=0,deleted=0;
     for(const card of existing) {
-      if(!activeSources.has(card.source)) {
+      if(card.source!=='custom'&&!activeSources.has(card.source)) {
         await this.repository.deleteReviewCard(card.id);
         deleted+=1;
       }
@@ -82,6 +83,39 @@ export class ReviewService {
       }
     }
     return {created,updated,deleted};
+  }
+
+  async createCustom(studyId: string, prompt: string, answer: string): Promise<ReviewCard> {
+    const cleanPrompt=prompt.trim();
+    const cleanAnswer=answer.trim();
+    if(!cleanPrompt)throw new Error('Review question cannot be empty');
+    if(!cleanAnswer)throw new Error('Review answer cannot be empty');
+    if(cleanPrompt.length>300)throw new Error('Review question must be 300 characters or fewer');
+    if(cleanAnswer.length>4000)throw new Error('Review answer must be 4000 characters or fewer');
+    const study=await this.repository.getStudy(studyId);
+    if(!study)throw new Error(`Study not found: ${studyId}`);
+    const now=this.#now();
+    const card:ReviewCard={
+      id:this.#idFactory(),studyId,source:'custom',prompt:cleanPrompt,answer:cleanAnswer,
+      stage:0,dueAt:now,history:[],createdAt:now,updatedAt:now,
+    };
+    await this.repository.putReviewCard(card);
+    return card;
+  }
+
+  async updateCustom(id: string, prompt: string, answer: string): Promise<ReviewCard> {
+    const card=await this.repository.getReviewCard(id);
+    if(!card)throw new Error(`Review card not found: ${id}`);
+    if(card.source!=='custom')throw new Error('Only custom review cards can be edited directly');
+    const cleanPrompt=prompt.trim();
+    const cleanAnswer=answer.trim();
+    if(!cleanPrompt)throw new Error('Review question cannot be empty');
+    if(!cleanAnswer)throw new Error('Review answer cannot be empty');
+    if(cleanPrompt.length>300)throw new Error('Review question must be 300 characters or fewer');
+    if(cleanAnswer.length>4000)throw new Error('Review answer must be 4000 characters or fewer');
+    const updated={...card,prompt:cleanPrompt,answer:cleanAnswer,updatedAt:this.#now()};
+    await this.repository.putReviewCard(updated);
+    return updated;
   }
 
   async rate(id: string, rating: ReviewRating): Promise<ReviewCard> {
