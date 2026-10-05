@@ -29,5 +29,7 @@ if(chapters!==1189)throw new Error(`Expected 1189 WEB chapters, found ${chapters
 if(verses<31_000)throw new Error(`WEB verse count suspiciously low: ${verses}`);
 const source=await readFile(join(dataRoot,'SOURCE.md'),'utf8');
 if(!/Public Domain/i.test(source)||!/worldenglish\.bible/i.test(source))throw new Error('WEB source/license record is incomplete');
+const metadata=JSON.parse(await readFile(join(dataRoot,'SOURCE-METADATA.json'),'utf8'));
+if(metadata.name!=='World English Bible'||metadata.stats?.books!==66||metadata.stats?.chapters!==1189||!/public-domain/i.test(metadata.license??''))throw new Error('Vendored WEB metadata does not identify the expected public-domain 66-book edition');
 if((await stat(join(dataRoot,'selah-data-manifest.json'))).size<100)throw new Error('WEB data manifest is unexpectedly small');
 console.log(`Validated WEB comparison data: ${chapters} chapters / ${verses} verses.`);
