@@ -27,6 +27,26 @@ export class ReviewService {
       .sort((a,b)=>a.dueAt-b.dueAt||a.createdAt-b.createdAt);
   }
 
+  async reconcileExisting(study: Study, synthesis: StudySynthesis, outline?: StudyOutline): Promise<{updated:number;deleted:number}> {
+    const existing=await this.repository.listReviewCards(study.id);
+    if(!existing.length)return {updated:0,deleted:0};
+    const drafts=new Map(reviewCardDrafts(study,synthesis,outline).map((draft)=>[draft.source,draft]));
+    let updated=0,deleted=0;
+    for(const card of existing) {
+      const draft=drafts.get(card.source);
+      if(!draft) {
+        await this.repository.deleteReviewCard(card.id);
+        deleted+=1;
+        continue;
+      }
+      if(card.prompt!==draft.prompt||card.answer!==draft.answer) {
+        await this.repository.putReviewCard({...card,prompt:draft.prompt,answer:draft.answer,updatedAt:this.#now()});
+        updated+=1;
+      }
+    }
+    return {updated,deleted};
+  }
+
   async syncFromSynthesis(study: Study, synthesis: StudySynthesis, outline?: StudyOutline): Promise<{created:number;updated:number;deleted:number}> {
     const existing=await this.repository.listReviewCards(study.id);
     const bySource=new Map(existing.map((card)=>[card.source,card]));
