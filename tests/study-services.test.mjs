@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseReference, formatPassage } from '../dist/src/domain/references/index.js';
 import { MemorySelahRepository } from '../dist/src/persistence/index.js';
-import { StudyService, WorkspaceService } from '../dist/src/study/index.js';
+import { StudyService, WorkspaceService, studiesOverlappingPassage } from '../dist/src/study/index.js';
 
 const p = (x) => parseReference(x).passage;
 
@@ -70,4 +70,18 @@ test('study literary mode override is reversible and preserves the study passage
   const automatic=await service.setLiteraryMode(study.id,undefined);
   assert.equal(automatic.literaryMode,undefined);
   assert.deepEqual(automatic.primaryPassage,study.primaryPassage);
+});
+
+
+test('personal passage overlap finds active studies intersecting a reference target',async()=>{
+  const studies=[
+    {id:'a',primaryPassage:p('Rom 8:1-4'),title:'Romans 8 opening',tags:[],archived:false,createdAt:1,updatedAt:5},
+    {id:'b',primaryPassage:p('Rom 8:3-11'),title:'Life in the Spirit',tags:[],archived:false,createdAt:1,updatedAt:4},
+    {id:'c',primaryPassage:p('Rom 9:1-5'),title:'Romans 9',tags:[],archived:false,createdAt:1,updatedAt:3},
+    {id:'d',primaryPassage:p('Rom 8:1-17'),title:'Archived Romans 8',tags:[],archived:true,createdAt:1,updatedAt:6},
+  ];
+  const related=studiesOverlappingPassage(studies,p('Rom 8:4'));
+  assert.deepEqual(related.map((study)=>study.id),['a','b']);
+  assert.deepEqual(studiesOverlappingPassage(studies,p('Rom 8:12-17')),[]);
+  assert.deepEqual(studiesOverlappingPassage(studies,p('Rom 9:3')),['c']);
 });
