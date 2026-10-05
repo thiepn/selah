@@ -22,8 +22,12 @@ test('translation registry compares only registered available providers', async 
 test('study-context export produces portable markdown and optional tutoring instructions', () => {
   const study={id:'s1',primaryPassage:passage,title:'Philippians 2:6',tags:[],archived:false,createdAt:1,updatedAt:1};
   const scripture={translationId:'BSB',passage,verses:[{ref:passage.start,tokens:[{id:'1',text:'existing ',language:'en'},{id:'2',text:'in the form of God',language:'en'}]}]};
-  const markdown=exportStudyContextMarkdown({study,scripture,annotations:[{id:'a',kind:'note',anchor:{type:'reference',passage},body:'Observe the Christological claim.',tags:[],createdAt:1,updatedAt:1}],options:{tutorPrompt:'socratic'}});
+  const synthesis={studyId:'s1',mainIdea:'Christ does not exploit equality with God.',explanation:'Paul grounds humble service in the pattern of Christ.',evidence:'Philippians 2:6',application:'Refuse status-seeking.',prayer:'Give me the mind of Christ.',confidence:'strong-inference',updatedAt:1};
+  const markdown=exportStudyContextMarkdown({study,scripture,annotations:[{id:'a',kind:'note',anchor:{type:'reference',passage},body:'Observe the Christological claim.',tags:[],createdAt:1,updatedAt:1}],synthesis,options:{tutorPrompt:'socratic'}});
   assert.match(markdown,/Selah Study Context/);
   assert.match(markdown,/Observe the Christological claim/);
   assert.match(markdown,/Socratic Bible-study tutor/);
+  assert.match(markdown,/My synthesis/);
+  assert.match(markdown,/Give me the mind of Christ/);
+  assert.match(markdown,/strong-inference/);
 });
