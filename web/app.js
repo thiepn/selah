@@ -18,7 +18,7 @@ import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
 import { claimsUI, claimsSummaryHtml, claimsSnapshotHtml } from './interpretation-claims.js';
 import { searchWorkspaceUI } from './search-workspace.js';
-import { drawerController } from './a11y-overlays.js';
+import { drawerController, regionController } from './a11y-overlays.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -34,6 +34,7 @@ const elements = {
 
 const studiesDrawerCtl=drawerController(elements.studiesDrawer,{initialFocus:()=>elements.studySearch});
 const reviewDrawerCtl=drawerController(elements.reviewDrawer,{initialFocus:()=>$('#reviewClose')});
+const peekCtl=regionController(elements.peek,{initialFocus:()=>$('#peekClose')});
 
 const repo = new IndexedDbSelahRepository();
 await repo.initialize();
@@ -884,7 +885,7 @@ function wireLexicalButtons(){queryAll('.lexical-key').forEach((button)=>button.
 function wireSectionJumps(){queryAll('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
 
 async function openPeek(passage) {
-  activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); elements.peek.hidden=false; elements.peekText.textContent='Loading…';
+  activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); peekCtl.open(document.activeElement); elements.peekText.textContent='Loading…';
   try {
     const scripture=await scriptureProvider.getPassage(passage);
     const [refs,backlinks]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage)]);
@@ -1287,8 +1288,8 @@ $('#archivedStudiesBtn').addEventListener('click',async(event)=>{
 $('#backupBtn').addEventListener('click',async()=>{const envelope=createBackup(await repo.exportSnapshot());downloadTextFile(`selah-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(envelope,null,2));toast('Backup exported.');});
 $('#restoreBtn').addEventListener('click',()=>$('#restoreInput').click());
 $('#restoreInput').addEventListener('change',async(event)=>{const file=event.target.files?.[0];if(!file)return;try{const backup=parseBackup(await file.text());await repo.importSnapshot(backup.snapshot,'replace');toast('Backup restored. Reloading…');setTimeout(()=>location.reload(),500);}catch(error){toast(error instanceof Error?error.message:'Invalid backup');}finally{event.target.value='';}});
-$('#peekClose').addEventListener('click',()=>elements.peek.hidden=true);
-$('#peekOpen').addEventListener('click',async()=>{if(activePeekPassage){elements.peek.hidden=true;await navigateResearch(activePeekPassage);}});
+$('#peekClose').addEventListener('click',()=>peekCtl.close());
+$('#peekOpen').addEventListener('click',async()=>{if(activePeekPassage){peekCtl.close(false);await navigateResearch(activePeekPassage);}});
 async function buildCurrentStudyContextExport() {
   if(!currentStudy)throw new Error('Write or annotate first so there is a study to export.');
   return exportStudyContextMarkdown({
@@ -1362,7 +1363,7 @@ document.addEventListener('keydown',async(event)=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();return;}
   if(event.altKey&&event.key==='ArrowLeft'){event.preventDefault();$('#backBtn').click();return;}
   if(event.altKey&&event.key==='ArrowRight'){event.preventDefault();$('#forwardBtn').click();return;}
-  if(event.key==='Escape'){elements.peek.hidden=true;studiesDrawerCtl.close();reviewDrawerCtl.close();return;}
+  if(event.key==='Escape'){peekCtl.close();studiesDrawerCtl.close();reviewDrawerCtl.close();return;}
   const target=event.target;
   const editing=target instanceof Element&&Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
   if(editing||event.ctrlKey||event.metaKey||event.altKey)return;
