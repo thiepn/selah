@@ -70,6 +70,8 @@ let pendingAnnotationKind='note';
 let editingAnnotationId;
 let editingAnnotationField;
 let showArchivedStudies=false;
+let studyArchiveView='books';
+let editingStudyId;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
@@ -890,18 +892,58 @@ async function renderReview() {
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview();});
 }
 
+function studyTopicsHtml(study) {
+  if(!study.tags.length)return '';
+  return `<div class="study-topic-chips">${study.tags.map((tag)=>`<button type="button" data-topic-search="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join('')}</div>`;
+}
+
+async function openStudyMetadata(id) {
+  const study=await repo.getStudy(id);
+  if(!study)return;
+  editingStudyId=id;
+  $('#studyMetaTitle').value=study.title??formatPassage(study.primaryPassage);
+  $('#studyMetaTags').value=study.tags.join(', ');
+  $('#studyMetaDialog').showModal();
+  await sleep(0);
+  $('#studyMetaTitle').focus();
+  $('#studyMetaTitle').select();
+}
+
 async function renderStudies(filter='') {
-  const q=filter.trim().toLowerCase();
-  const studies=(await repo.listStudies())
-    .filter((study)=>study.archived===showArchivedStudies)
-    .filter((study)=>(study.title??formatPassage(study.primaryPassage)).toLowerCase().includes(q));
-  const studyRow=(study)=>`<article class="study-row" data-study-id="${study.id}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button><div class="study-actions"><button type="button" data-study-action="rename">Rename</button><button type="button" data-study-action="archive-toggle">${showArchivedStudies?'Restore':'Archive'}</button></div></article>`;
+  const q=filter.trim().toLocaleLowerCase('en');
+  const all=(await repo.listStudies()).filter((study)=>study.archived===showArchivedStudies);
+  const studies=all.filter((study)=>{
+    if(!q)return true;
+    return [
+      study.title??formatPassage(study.primaryPassage),
+      formatPassage(study.primaryPassage),
+      ...study.tags,
+    ].some((value)=>value.toLocaleLowerCase('en').includes(q));
+  });
+  const studyRow=(study)=>`<article class="study-row" data-study-id="${escapeHtml(study.id)}"><button class="study-open" type="button"><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong><span>${escapeHtml(formatPassage(study.primaryPassage))} · ${new Date(study.updatedAt).toLocaleDateString()}</span></button>${studyTopicsHtml(study)}<div class="study-actions"><button type="button" data-study-action="edit">Edit</button><button type="button" data-study-action="archive-toggle">${showArchivedStudies?'Restore':'Archive'}</button></div></article>`;
   let html='';
-  if(studies.length && q) {
+  if(studies.length&&q){
     html=studies.sort((a,b)=>b.updatedAt-a.updatedAt).map(studyRow).join('');
-  } else if(studies.length) {
+  } else if(studies.length&&studyArchiveView==='topics'){
     const groups=new Map();
-    for(const study of studies) {
+    const untagged=[];
+    for(const study of studies){
+      if(!study.tags.length){untagged.push(study);continue;}
+      for(const tag of study.tags){
+        const key=tag.toLocaleLowerCase('en');
+        const group=groups.get(key)??{label:tag,studies:[]};
+        group.studies.push(study);
+        groups.set(key,group);
+      }
+    }
+    const sections=[...groups.values()]
+      .sort((a,b)=>a.label.localeCompare(b.label,undefined,{sensitivity:'base'}))
+      .map((group)=>`<section class="study-book-group study-topic-group"><header><strong>${escapeHtml(group.label)}</strong><span>${group.studies.length}</span></header>${group.studies.sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)).map(studyRow).join('')}</section>`);
+    if(untagged.length)sections.push(`<section class="study-book-group study-topic-group untagged"><header><strong>Untagged</strong><span>${untagged.length}</span></header>${untagged.sort((a,b)=>b.updatedAt-a.updatedAt).map(studyRow).join('')}</section>`);
+    html=sections.join('');
+  } else if(studies.length){
+    const groups=new Map();
+    for(const study of studies){
       const bookId=study.primaryPassage.start.book;
       const list=groups.get(bookId)??[];
       list.push(study);
@@ -914,6 +956,7 @@ async function renderStudies(filter='') {
   } else {
     html=`<p class="quiet">${showArchivedStudies?'No archived studies.':'No saved studies yet. Selah creates one when you first write or annotate.'}</p>`;
   }
+
   elements.studiesList.innerHTML=html;
   queryAll('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
     const row=button.closest('[data-study-id]');
@@ -926,21 +969,18 @@ async function renderStudies(filter='') {
     await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
     elements.studiesDrawer.hidden=true;
   }));
+  queryAll('[data-topic-search]').forEach((button)=>button.addEventListener('click',(event)=>{
+    event.stopPropagation();
+    elements.studySearch.value=button.dataset.topicSearch;
+    renderStudies(elements.studySearch.value);
+  }));
   queryAll('[data-study-action]').forEach((button)=>button.addEventListener('click',async()=>{
     const row=button.closest('[data-study-id]');
     const id=row?.dataset.studyId;
     if(!id)return;
-    if(button.dataset.studyAction==='rename'){
-      const study=await repo.getStudy(id);
-      if(!study)return;
-      const next=prompt('Rename study',study.title??formatPassage(study.primaryPassage));
-      if(next===null)return;
-      try{
-        const updated=await studyService.rename(id,next);
-        if(currentStudy?.id===id)currentStudy=updated;
-        await renderStudies(elements.studySearch.value);
-        toast('Study renamed.');
-      }catch(error){toast(error instanceof Error?error.message:'Unable to rename study');}
+    if(button.dataset.studyAction==='edit'){
+      await openStudyMetadata(id);
+      return;
     }
     if(button.dataset.studyAction==='archive-toggle'){
       await studyService.setArchived(id,!showArchivedStudies);
@@ -1016,6 +1056,27 @@ $('#reviewClose').addEventListener('click',()=>elements.reviewDrawer.hidden=true
 $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
 $('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
+queryAll('[data-study-view]').forEach((button)=>button.addEventListener('click',async()=>{
+  studyArchiveView=button.dataset.studyView;
+  queryAll('[data-study-view]').forEach((candidate)=>candidate.setAttribute('aria-pressed',String(candidate===button)));
+  elements.studySearch.value='';
+  await renderStudies();
+}));
+$('#studyMetaForm').addEventListener('submit',async(event)=>{
+  if(event.submitter?.value==='cancel'){editingStudyId=undefined;return;}
+  event.preventDefault();
+  if(!editingStudyId)return;
+  const title=$('#studyMetaTitle').value;
+  const tags=$('#studyMetaTags').value.split(',').map((tag)=>tag.trim());
+  try{
+    const updated=await studyService.updateMetadata(editingStudyId,{title,tags});
+    if(currentStudy?.id===editingStudyId)currentStudy=updated;
+    editingStudyId=undefined;
+    $('#studyMetaDialog').close();
+    await renderStudies(elements.studySearch.value);
+    toast('Study metadata saved.');
+  }catch(error){toast(error instanceof Error?error.message:'Unable to save study metadata');}
+});
 $('#archivedStudiesBtn').addEventListener('click',async(event)=>{
   showArchivedStudies=!showArchivedStudies;
   event.currentTarget.setAttribute('aria-pressed',String(showArchivedStudies));
