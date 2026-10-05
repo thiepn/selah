@@ -123,6 +123,15 @@
     </form>
   </dialog>
 
+  <dialog class="book-overview-dialog" id="bookOverviewDialog">
+    <form method="dialog">
+      <header><div><span class="eyebrow">BOOK OVERVIEW</span><strong id="bookOverviewTitle"></strong></div><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <div id="bookOverviewContent"></div>
+      <label class="book-understanding-field"><span>Your understanding</span><small>What do you currently understand this book to be saying or doing as a whole?</small><textarea id="bookUnderstanding" rows="8" maxlength="12000" placeholder="As my studies accumulate, I understand this book as…"></textarea></label>
+      <footer><span class="quiet" id="bookOverviewSaveState">saved locally</span><button value="cancel" class="text-button">Close</button></footer>
+    </form>
+  </dialog>
+
   <aside class="drawer review-drawer" id="reviewDrawer" aria-label="Review cards" hidden>
     <header><span>REVIEW</span><button class="icon-button" id="reviewClose" type="button" aria-label="Close review">×</button></header>
     <div class="review-content" id="reviewContent"></div>
