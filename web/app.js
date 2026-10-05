@@ -13,6 +13,7 @@ import { analyzePatterns, analyzeStructuralMarkers } from './core/bible/patterns
 import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePhraseWithPrevious } from './core/bible/phrasing/index.js';
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
+import { ReviewService } from './core/review/index.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -23,7 +24,7 @@ const elements = {
   scripture: $('#scripture'), studyContent: $('#studyContent'), referenceInput: $('#referenceInput'), passageStatus: $('#passageStatus'),
   selectionMenu: $('#selectionMenu'), noteDialog: $('#noteDialog'), noteForm: $('#noteForm'), noteBody: $('#noteBody'), noteAnchorLabel: $('#noteAnchorLabel'),
   saveState: $('#saveState'), peek: $('#peek'), peekTitle: $('#peekTitle'), peekText: $('#peekText'), peekOpen: $('#peekOpen'),
-  studiesDrawer: $('#studiesDrawer'), studiesList: $('#studiesList'), studySearch: $('#studySearch'), exportDialog: $('#exportDialog'), toast: $('#toast')
+  studiesDrawer: $('#studiesDrawer'), studiesList: $('#studiesList'), studySearch: $('#studySearch'), reviewDrawer: $('#reviewDrawer'), reviewContent: $('#reviewContent'), exportDialog: $('#exportDialog'), toast: $('#toast')
 };
 
 const repo = new IndexedDbSelahRepository();
@@ -34,6 +35,7 @@ const researchProvider = new BsbResearchProvider(loader);
 const annotationService = new AnnotationService(repo);
 const studyService = new StudyService(repo);
 const workspaceService = new WorkspaceService(repo);
+const reviewService = new ReviewService(repo);
 const guideService = new PassageGuideService(annotationService, researchProvider, scriptureProvider, researchProvider);
 const lensService = new LensService(annotationService, researchProvider);
 const originalLanguage = new OriginalLanguageService(scriptureProvider, researchProvider, researchProvider, researchProvider);
@@ -165,7 +167,7 @@ async function searchScripture(query,limit=30) {
 async function renderSearchResults(query) {
   elements.studyContent.innerHTML='<div class="loading">Searching Scripture and studies…</div>';
   const [scriptureResults,snapshot]=await Promise.all([searchScripture(query,30).catch(()=>[]),repo.exportSnapshot()]);
-  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,syntheses:snapshot.studySyntheses,annotations:snapshot.annotations});
+  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,syntheses:snapshot.studySyntheses,reviewCards:snapshot.reviewCards,annotations:snapshot.annotations});
   const personalResults=personal.search(query,30);
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
   queryAll('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
@@ -498,9 +500,45 @@ async function renderSynthesis() {
     </select></label>
     <label class="synthesis-field"><span>Application</span><small>Because this passage is true, what should you believe, do, stop, trust, or remember?</small><textarea id="synthesisApplication" rows="4" placeholder="Because this is true…">${escapeHtml(synthesis.application)}</textarea></label>
     <label class="synthesis-field"><span>Prayer</span><small>Turn what you learned into prayer.</small><textarea id="synthesisPrayer" rows="4" placeholder="Lord…">${escapeHtml(synthesis.prayer)}</textarea></label>
+    <section class="synthesis-review-action"><div><strong>Remember what you learned</strong><p>Create review cards from your main idea, explanation, evidence, and application. Prayer stays prayer.</p></div><button class="primary-button" id="syncReviewCards" type="button">Create / update review cards</button></section>
   </section>`;
   queryAll('.synthesis-field textarea').forEach((field)=>field.addEventListener('input',()=>scheduleSynthesisSave(readSynthesisForm())));
   $('#synthesisConfidence')?.addEventListener('change',()=>scheduleSynthesisSave(readSynthesisForm(),0));
+  $('#syncReviewCards')?.addEventListener('click',async()=>{
+    const value=readSynthesisForm();
+    if(!synthesisHasContent(value)){toast('Write your synthesis before creating review cards.');return;}
+    clearTimeout(synthesisSaveTimer);
+    const saved=await persistSynthesis(value,structuredClone(currentScripture.passage),currentStudy?.id);
+    if(!saved)return;
+    const result=await reviewService.syncFromSynthesis(saved.study,saved.synthesis);
+    await refreshReviewBadge();
+    toast(result.created||result.updated?`${result.created} review card(s) created · ${result.updated} updated`:'Review cards are already up to date.');
+  });
+}
+
+async function persistSynthesis(value,passage,studyIdAtEdit) {
+  try {
+    if(!synthesisHasContent(value)&&!studyIdAtEdit) { setSaving(false); return undefined; }
+    let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await getStudyForPassage(passage);
+    if(!study)study=await studyService.create(passage);
+    const updatedAt=Date.now();
+    const synthesis={studyId:study.id,...value,updatedAt};
+    await repo.putStudySynthesis(synthesis);
+    await studyService.touch(study.id);
+    if(currentScripture&&samePassage(currentScripture.passage,passage)){
+      currentStudy=study;
+      if(workspace&&workspace.studyId!==study.id){
+        workspace={...workspace,studyId:study.id,updatedAt};
+        await repo.putWorkspace(workspace);
+        await workspaceService.markLastOpened(workspace);
+      }
+      setSaving(false);
+    }
+    return {study,synthesis};
+  } catch {
+    if(currentScripture&&samePassage(currentScripture.passage,passage))elements.saveState.textContent='synthesis not saved';
+    return undefined;
+  }
 }
 
 function scheduleSynthesisSave(value,delay=250) {
@@ -509,27 +547,7 @@ function scheduleSynthesisSave(value,delay=250) {
   const studyIdAtEdit=currentStudy?.id;
   setSaving(true);
   clearTimeout(synthesisSaveTimer);
-  synthesisSaveTimer=setTimeout(async()=>{
-    try {
-      if(!synthesisHasContent(value)&&!studyIdAtEdit) { setSaving(false); return; }
-      let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await getStudyForPassage(passage);
-      if(!study)study=await studyService.create(passage);
-      const updatedAt=Date.now();
-      await repo.putStudySynthesis({studyId:study.id,...value,updatedAt});
-      await studyService.touch(study.id);
-      if(currentScripture&&samePassage(currentScripture.passage,passage)){
-        currentStudy=study;
-        if(workspace&&workspace.studyId!==study.id){
-          workspace={...workspace,studyId:study.id,updatedAt};
-          await repo.putWorkspace(workspace);
-          await workspaceService.markLastOpened(workspace);
-        }
-        setSaving(false);
-      }
-    } catch {
-      if(currentScripture&&samePassage(currentScripture.passage,passage))elements.saveState.textContent='synthesis not saved';
-    }
-  },delay);
+  synthesisSaveTimer=setTimeout(()=>persistSynthesis(value,passage,studyIdAtEdit),delay);
 }
 
 async function renderReferences() {
@@ -667,6 +685,32 @@ async function openAdjacentChapter(direction){
   catch(error){toast(error instanceof Error?error.message:'Unable to open chapter');}
 }
 
+
+async function refreshReviewBadge() {
+  const due=await reviewService.due();
+  const badge=$('#reviewDueCount');
+  if(!badge)return;
+  badge.textContent=String(due.length);
+  badge.hidden=due.length===0;
+  $('#reviewBtn')?.setAttribute('aria-label',due.length?`Review, ${due.length} card${due.length===1?'':'s'} due`:'Review, nothing due');
+}
+
+async function renderReview() {
+  const due=await reviewService.due();
+  if(!due.length) {
+    const upcoming=(await repo.listReviewCards()).sort((a,b)=>a.dueAt-b.dueAt)[0];
+    const next=upcoming?new Date(upcoming.dueAt).toLocaleString():undefined;
+    elements.reviewContent.innerHTML=`<section class="review-empty"><span class="eyebrow">REVIEW</span><h2>Nothing due</h2><p>${next?`Next review: ${escapeHtml(next)}.`:'Create review cards from a passage Synthesis when you want to remember it long-term.'}</p></section>`;
+    return;
+  }
+  const card=due[0];
+  const study=await repo.getStudy(card.studyId);
+  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></section>`;
+  $('#reviewReveal')?.addEventListener('click',(event)=>{event.currentTarget.hidden=true;$('#reviewAnswer').hidden=false;});
+  queryAll('[data-review-rating]').forEach((button)=>button.addEventListener('click',async()=>{await reviewService.rate(card.id,button.dataset.reviewRating);await refreshReviewBadge();await renderReview();}));
+  $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview();});
+}
+
 async function renderStudies(filter='') {
   const q=filter.trim().toLowerCase();
   const studies=(await repo.listStudies())
@@ -788,6 +832,8 @@ $('#studyTabs').addEventListener('keydown',(event)=>{
 $('#patternsBtn').addEventListener('click',togglePatterns);
 $('#focusBtn').addEventListener('click',(event)=>{document.body.classList.toggle('reading-focus');event.currentTarget.classList.toggle('active');event.currentTarget.setAttribute('aria-pressed',String(event.currentTarget.classList.contains('active')));});
 $('#themeBtn').addEventListener('click',async()=>{const settings=await repo.getSettings();const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;await repo.setSettings({...settings,theme:next});});
+$('#reviewBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=false;await renderReview();});
+$('#reviewClose').addEventListener('click',()=>elements.reviewDrawer.hidden=true);
 $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
 $('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
@@ -822,7 +868,7 @@ document.addEventListener('keydown',async(event)=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();return;}
   if(event.altKey&&event.key==='ArrowLeft'){event.preventDefault();$('#backBtn').click();return;}
   if(event.altKey&&event.key==='ArrowRight'){event.preventDefault();$('#forwardBtn').click();return;}
-  if(event.key==='Escape'){elements.peek.hidden=true;elements.studiesDrawer.hidden=true;return;}
+  if(event.key==='Escape'){elements.peek.hidden=true;elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=true;return;}
   const target=event.target;
   const editing=target instanceof Element&&Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
   if(editing||event.ctrlKey||event.metaKey||event.altKey)return;
@@ -850,4 +896,5 @@ const preferredTheme=settings.theme==='system'?(matchMedia('(prefers-color-schem
 document.documentElement.dataset.theme=preferredTheme;
 syncTranslationComparisonAvailability();
 await loadInitial();
+await refreshReviewBadge();
 if('serviceWorker'in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
