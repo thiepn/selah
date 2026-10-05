@@ -18,6 +18,7 @@ import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
 import { claimsUI, claimsSummaryHtml, claimsSnapshotHtml } from './interpretation-claims.js';
 import { searchWorkspaceUI } from './search-workspace.js';
+import { drawerController } from './a11y-overlays.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -30,6 +31,9 @@ const elements = {
   saveState: $('#saveState'), peek: $('#peek'), peekTitle: $('#peekTitle'), peekText: $('#peekText'), peekOpen: $('#peekOpen'),
   studiesDrawer: $('#studiesDrawer'), studiesList: $('#studiesList'), studySearch: $('#studySearch'), reviewDrawer: $('#reviewDrawer'), reviewContent: $('#reviewContent'), exportDialog: $('#exportDialog'), toast: $('#toast')
 };
+
+const studiesDrawerCtl=drawerController(elements.studiesDrawer,{initialFocus:()=>elements.studySearch});
+const reviewDrawerCtl=drawerController(elements.reviewDrawer,{initialFocus:()=>$('#reviewClose')});
 
 const repo = new IndexedDbSelahRepository();
 await repo.initialize();
@@ -967,7 +971,7 @@ async function renderReview(studyId=reviewStudyFilter) {
   elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due${studyId?' in this study':''}</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><span class="review-source">${escapeHtml(reviewSourceLabel(card.source))}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><div class="review-answer-actions"><div>${study?'<button class="text-button" id="reviewOpenStudy" type="button">Open study</button>':''}${card.source==='custom'?'<button class="text-button" id="reviewEditCard" type="button">Edit card</button>':''}</div><button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></div></section>`;
   $('#reviewReveal')?.addEventListener('click',(event)=>{event.currentTarget.hidden=true;$('#reviewAnswer').hidden=false;});
   queryAll('[data-review-rating]').forEach((button)=>button.addEventListener('click',async()=>{await reviewService.rate(card.id,button.dataset.reviewRating);await refreshReviewBadge();await renderReview(studyId);}));
-  $('#reviewOpenStudy')?.addEventListener('click',async()=>{if(!study)return;elements.reviewDrawer.hidden=true;reviewStudyFilter=undefined;await openStudyById(study.id);});
+  $('#reviewOpenStudy')?.addEventListener('click',async()=>{if(!study)return;reviewDrawerCtl.close(false);reviewStudyFilter=undefined;await openStudyById(study.id);});
   $('#reviewEditCard')?.addEventListener('click',async()=>{if(!study||card.source!=='custom')return;await openReviewCardEditor(study.id,card);});
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
@@ -1012,7 +1016,7 @@ async function openStudyById(id,tab) {
   workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);
   await workspaceService.markLastOpened(workspace);
   await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
-  elements.studiesDrawer.hidden=true;
+  studiesDrawerCtl.close(false);
 }
 
 async function openStudySnapshot(id) {
@@ -1229,10 +1233,10 @@ $('#reviewCardForm').addEventListener('submit',async(event)=>{
   }catch(error){toast(error instanceof Error?error.message:'Unable to save review card');}
 });
 $('#reviewCardDialog').addEventListener('close',()=>{reviewCardStudyId=undefined;editingReviewCardId=undefined;});
-$('#reviewBtn').addEventListener('click',async()=>{reviewStudyFilter=undefined;elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=false;await renderReview();});
-$('#reviewClose').addEventListener('click',()=>elements.reviewDrawer.hidden=true);
-$('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
-$('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
+$('#reviewBtn').addEventListener('click',async(event)=>{reviewStudyFilter=undefined;studiesDrawerCtl.close(false);reviewDrawerCtl.open(event.currentTarget);await renderReview();});
+$('#reviewClose').addEventListener('click',()=>reviewDrawerCtl.close());
+$('#studiesBtn').addEventListener('click',async(event)=>{reviewDrawerCtl.close(false);studiesDrawerCtl.open(event.currentTarget);await renderStudies();});
+$('#drawerClose').addEventListener('click',()=>studiesDrawerCtl.close());
 $('#studySnapshotOpen').addEventListener('click',async()=>{
   if(!snapshotStudyId)return;
   const id=snapshotStudyId;
@@ -1244,8 +1248,8 @@ $('#studySnapshotReview').addEventListener('click',async()=>{
   const id=snapshotStudyId;
   reviewStudyFilter=id;
   $('#studySnapshotDialog').close();
-  elements.studiesDrawer.hidden=true;
-  elements.reviewDrawer.hidden=false;
+  studiesDrawerCtl.close(false);
+  reviewDrawerCtl.open($('#reviewBtn'));
   await renderReview(id);
 });
 $('#studySnapshotDialog').addEventListener('close',()=>{snapshotStudyId=undefined;});
@@ -1358,7 +1362,7 @@ document.addEventListener('keydown',async(event)=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();return;}
   if(event.altKey&&event.key==='ArrowLeft'){event.preventDefault();$('#backBtn').click();return;}
   if(event.altKey&&event.key==='ArrowRight'){event.preventDefault();$('#forwardBtn').click();return;}
-  if(event.key==='Escape'){elements.peek.hidden=true;elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=true;return;}
+  if(event.key==='Escape'){elements.peek.hidden=true;studiesDrawerCtl.close();reviewDrawerCtl.close();return;}
   const target=event.target;
   const editing=target instanceof Element&&Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
   if(editing||event.ctrlKey||event.metaKey||event.altKey)return;
