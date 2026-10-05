@@ -177,7 +177,7 @@ export class AnnotationService {
     return annotation;
   }
 
-  async update(id: string, patch: Pick<Partial<Annotation>, 'body' | 'tags' | 'highlightStyle'>): Promise<Annotation> {
+  async update(id: string, patch: Pick<Partial<Annotation>, 'body' | 'response' | 'tags' | 'highlightStyle'>): Promise<Annotation> {
     const existing = (await this.repository.listAnnotations()).find((annotation) => annotation.id === id);
     if (!existing) throw new Error(`Annotation not found: ${id}`);
     const updated: Annotation = { ...existing, ...structuredClone(patch), updatedAt: this.#now() };
