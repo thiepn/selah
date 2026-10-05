@@ -6,6 +6,7 @@ import type { AnnotationService } from '../../annotations/service.js';
 import type { CrossReference, CrossReferenceProvider } from '../../research/cross-references/types.js';
 import type { LexiconEntry, LexiconProvider } from '../../research/lexicon/types.js';
 import { EXTERNAL_RESOURCES, type ExternalStudyResource } from '../../resources/external.js';
+import { buildObservationPrompts, type ObservationPrompt } from '../observation/prompts.js';
 
 export interface PassageGuideSection {
   verse: number;
@@ -33,6 +34,7 @@ export interface PassageGuide {
   backlinks: CrossReference[];
   patterns: TextPattern[];
   structuralMarkers: StructuralMarker[];
+  observationPrompts: ObservationPrompt[];
   importantLexicalKeys: string[];
   importantLexicalItems: PassageGuideLexicalItem[];
   resources: Array<{ resource: ExternalStudyResource; url: string }>;
@@ -116,6 +118,7 @@ export class PassageGuideService {
       backlinks,
       patterns: analyzePatterns(scripture),
       structuralMarkers: analyzeStructuralMarkers(scripture),
+      observationPrompts: buildObservationPrompts(scripture),
       importantLexicalKeys,
       importantLexicalItems,
       resources: EXTERNAL_RESOURCES.map((resource)=>({resource,url:resource.buildUrl(scripture.passage)})),
