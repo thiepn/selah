@@ -2,6 +2,13 @@ import { compareVerseRefs } from '../../domain/references/reference.js';
 import type { SelahRepository } from '../../persistence/types.js';
 import type { InterpretationClaim, InterpretationConfidence, InterpretationEvidence } from './types.js';
 
+const CONFIDENCE=new Set<InterpretationConfidence>(['explicit','strong-inference','tentative','disputed']);
+
+function normalizeConfidence(value:InterpretationConfidence):InterpretationConfidence{
+  if(!CONFIDENCE.has(value))throw new Error('Interpretation support level is invalid');
+  return value;
+}
+
 export interface ClaimServiceOptions {
   idFactory?:()=>string;
   now?:()=>number;
@@ -9,12 +16,18 @@ export interface ClaimServiceOptions {
 
 function normalizeEvidence(items:InterpretationEvidence[]):InterpretationEvidence[]{
   if(items.length>20)throw new Error('An interpretation claim can have at most 20 evidence references');
-  return items.map((item)=>{
+  const seen=new Set<string>();
+  const result:InterpretationEvidence[]=[];
+  for(const item of items){
     if(compareVerseRefs(item.passage.start,item.passage.end)>0)throw new Error('Evidence passage ends before it starts');
+    const key=`${item.passage.start.book}.${item.passage.start.chapter}.${item.passage.start.verse}-${item.passage.end.book}.${item.passage.end.chapter}.${item.passage.end.verse}`;
+    if(seen.has(key))continue;
+    seen.add(key);
     const note=item.note?.trim();
     if(note&&note.length>500)throw new Error('Evidence note must be 500 characters or fewer');
-    return {passage:structuredClone(item.passage),...(note?{note}: {})};
-  });
+    result.push({passage:structuredClone(item.passage),...(note?{note}: {})});
+  }
+  return result;
 }
 
 function normalizeStatement(statement:string):string{
@@ -45,7 +58,7 @@ export class InterpretationClaimService {
       id:this.#idFactory(),
       studyId,
       statement:normalizeStatement(input.statement),
-      confidence:input.confidence,
+      confidence:normalizeConfidence(input.confidence),
       evidence:normalizeEvidence(input.evidence??[]),
       createdAt:now,
       updatedAt:now,
@@ -60,7 +73,7 @@ export class InterpretationClaimService {
     const updated:InterpretationClaim={
       ...existing,
       ...(input.statement!==undefined?{statement:normalizeStatement(input.statement)}:{}),
-      ...(input.confidence!==undefined?{confidence:input.confidence}:{}),
+      ...(input.confidence!==undefined?{confidence:normalizeConfidence(input.confidence)}:{}),
       ...(input.evidence!==undefined?{evidence:normalizeEvidence(input.evidence)}:{}),
       updatedAt:this.#now(),
     };
