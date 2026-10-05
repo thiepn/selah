@@ -148,3 +148,19 @@ test('reconcileExisting removes an opted-in outline card when the outline stops 
   assert.equal(result.deleted,1);
   assert.equal((await repo.listReviewCards('s1')).some((card)=>card.source==='outline'),false);
 });
+
+
+test('dueForStudy isolates a study review queue',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  const other={...study,id:'s2',primaryPassage:parseReference('Rom 8:1-4').passage};
+  await repo.putStudy(other);
+  const service=new ReviewService(repo,{now:()=>100,idFactory:(()=>{let n=0;return()=>`r${++n}`;})()});
+  await service.syncFromSynthesis(study,synthesis);
+  await service.syncFromSynthesis(other,{...synthesis,studyId:'s2'});
+  const scoped=await service.dueForStudy('s1',100);
+  assert.equal(scoped.length,4);
+  assert.equal(scoped.every((card)=>card.studyId==='s1'),true);
+  assert.equal((await service.due(100)).length,8);
+});
