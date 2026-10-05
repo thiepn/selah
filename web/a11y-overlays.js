@@ -17,7 +17,7 @@ export function drawerController(drawer,{initialFocus}={}){
     });
   };
   drawer.addEventListener('keydown',(event)=>{
-    if(event.key==='Escape'){event.preventDefault();close();return;}
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();return;}
     if(event.key!=='Tab')return;
     const focusable=items();
     if(!focusable.length){event.preventDefault();drawer.focus();return;}
