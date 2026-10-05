@@ -74,6 +74,7 @@ let showArchivedStudies=false;
 let studyArchiveView='books';
 let editingStudyId;
 let snapshotStudyId;
+let reviewStudyFilter;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
@@ -915,20 +916,21 @@ async function refreshReviewBadge() {
   $('#reviewBtn')?.setAttribute('aria-label',due.length?`Review, ${due.length} card${due.length===1?'':'s'} due`:'Review, nothing due');
 }
 
-async function renderReview() {
-  const due=await reviewService.due();
+async function renderReview(studyId=reviewStudyFilter) {
+  const due=studyId?await reviewService.dueForStudy(studyId):await reviewService.due();
   if(!due.length) {
-    const upcoming=(await repo.listReviewCards()).sort((a,b)=>a.dueAt-b.dueAt)[0];
+    const upcoming=(await repo.listReviewCards(studyId)).sort((a,b)=>a.dueAt-b.dueAt)[0];
     const next=upcoming?new Date(upcoming.dueAt).toLocaleString():undefined;
-    elements.reviewContent.innerHTML=`<section class="review-empty"><span class="eyebrow">REVIEW</span><h2>Nothing due</h2><p>${next?`Next review: ${escapeHtml(next)}.`:'Create review cards from a passage Synthesis when you want to remember it long-term.'}</p></section>`;
+    const scopedStudy=studyId?await repo.getStudy(studyId):undefined;
+    elements.reviewContent.innerHTML=`<section class="review-empty"><span class="eyebrow">REVIEW</span><h2>Nothing due${scopedStudy?' for this study':''}</h2><p>${next?`Next review: ${escapeHtml(next)}.`:'Create review cards from a passage Synthesis when you want to remember it long-term.'}</p></section>`;
     return;
   }
   const card=due[0];
   const study=await repo.getStudy(card.studyId);
-  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></section>`;
+  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due${studyId?' in this study':''}</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></section>`;
   $('#reviewReveal')?.addEventListener('click',(event)=>{event.currentTarget.hidden=true;$('#reviewAnswer').hidden=false;});
-  queryAll('[data-review-rating]').forEach((button)=>button.addEventListener('click',async()=>{await reviewService.rate(card.id,button.dataset.reviewRating);await refreshReviewBadge();await renderReview();}));
-  $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview();});
+  queryAll('[data-review-rating]').forEach((button)=>button.addEventListener('click',async()=>{await reviewService.rate(card.id,button.dataset.reviewRating);await refreshReviewBadge();await renderReview(studyId);}));
+  $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
 
 async function openStudyById(id) {
@@ -956,6 +958,9 @@ async function openStudySnapshot(id) {
   const unresolved=questions.filter((question)=>!question.response?.trim());
   const due=cards.filter((card)=>card.dueAt<=Date.now());
   $('#studySnapshotTitle').textContent=study.title??formatPassage(study.primaryPassage);
+  const reviewButton=$('#studySnapshotReview');
+  reviewButton.hidden=due.length===0;
+  reviewButton.textContent=due.length?`Review ${due.length} due`:'';
   const topicHtml=study.tags.length?`<div class="snapshot-topics">${study.tags.map((tag)=>`<span>${escapeHtml(tag)}</span>`).join('')}</div>`:'<p class="quiet">No topics assigned.</p>';
   const outlineHtml=outline?.sections.length
     ? `<div class="snapshot-outline">${outline.sections.map((section)=>`<div><span>${escapeHtml(formatPassage(section.passage))}</span><strong>${escapeHtml(section.label||'Untitled section')}</strong></div>`).join('')}</div>`
@@ -1132,7 +1137,7 @@ $('#studyTabs').addEventListener('keydown',(event)=>{
 $('#patternsBtn').addEventListener('click',togglePatterns);
 $('#focusBtn').addEventListener('click',(event)=>{document.body.classList.toggle('reading-focus');event.currentTarget.classList.toggle('active');event.currentTarget.setAttribute('aria-pressed',String(event.currentTarget.classList.contains('active')));});
 $('#themeBtn').addEventListener('click',async()=>{const settings=await repo.getSettings();const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;await repo.setSettings({...settings,theme:next});});
-$('#reviewBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=false;await renderReview();});
+$('#reviewBtn').addEventListener('click',async()=>{reviewStudyFilter=undefined;elements.studiesDrawer.hidden=true;elements.reviewDrawer.hidden=false;await renderReview();});
 $('#reviewClose').addEventListener('click',()=>elements.reviewDrawer.hidden=true);
 $('#studiesBtn').addEventListener('click',async()=>{elements.studiesDrawer.hidden=false;await renderStudies();});
 $('#drawerClose').addEventListener('click',()=>elements.studiesDrawer.hidden=true);
@@ -1141,6 +1146,15 @@ $('#studySnapshotOpen').addEventListener('click',async()=>{
   const id=snapshotStudyId;
   $('#studySnapshotDialog').close();
   await openStudyById(id);
+});
+$('#studySnapshotReview').addEventListener('click',async()=>{
+  if(!snapshotStudyId)return;
+  const id=snapshotStudyId;
+  reviewStudyFilter=id;
+  $('#studySnapshotDialog').close();
+  elements.studiesDrawer.hidden=true;
+  elements.reviewDrawer.hidden=false;
+  await renderReview(id);
 });
 $('#studySnapshotDialog').addEventListener('close',()=>{snapshotStudyId=undefined;});
 elements.studySearch.addEventListener('input',()=>renderStudies(elements.studySearch.value));
