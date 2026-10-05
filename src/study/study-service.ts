@@ -50,6 +50,26 @@ export class StudyService {
     return updated;
   }
 
+  async setTags(id: string, tags: string[]): Promise<Study> {
+    const existing = await this.repository.getStudy(id);
+    if (!existing) throw new Error(`Study not found: ${id}`);
+    const cleaned: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of tags) {
+      const tag=raw.replace(/^#+/,'').trim().replace(/\s+/g,' ');
+      if (!tag) continue;
+      if (tag.length > 40) throw new Error('Study topics must be 40 characters or fewer');
+      const key=tag.toLocaleLowerCase('en');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cleaned.push(tag);
+      if (cleaned.length > 12) throw new Error('A study can have at most 12 topics');
+    }
+    const updated: Study = { ...existing, tags: cleaned, updatedAt: this.#now() };
+    await this.repository.putStudy(updated);
+    return updated;
+  }
+
   async setArchived(id: string, archived: boolean): Promise<Study> {
     const existing = await this.repository.getStudy(id);
     if (!existing) throw new Error(`Study not found: ${id}`);
