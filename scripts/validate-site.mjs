@@ -15,4 +15,5 @@ if(!html.includes('id="scripture"')||!html.includes('data-tab="guide"')) throw n
 if(!app.includes('IndexedDbSelahRepository')||!app.includes('PassageGuideService')) throw new Error('Web UI is not wired to Selah core services');
 if(!app.includes("new Worker('./search-worker.js'")||!searchWorker.includes('ScriptureSearchIndex')) throw new Error('Scripture search worker is not wired into the deployable study workspace');
 if(app.includes("const tokenEls = $('.token');")) throw new Error('Highlight renderer regressed to a single-element token selector');
+if(/(?<!\\$)\\$\\([^\\n;]*\\)\\.(?:forEach|map|filter|findIndex|indexOf|some|every|reduce|slice|at)\\b/.test(app)) throw new Error('A single-element DOM helper is used with an array method');
 console.log('Static site integrity checks passed.');
