@@ -136,6 +136,22 @@
 - claim recall rendering stays in the extracted Claims UI module rather than duplicating interpretation markup in the main controller
 - no schema change: Snapshot content is derived from existing schema-v7 Claims/Synthesis/Outline data
 
+### P31 — accessibility, focus management & mobile interaction hardening
+
+- accessible focus containment and focus return for Studies and Review drawer-dialogs
+- nonmodal Reference Peek restores focus to its invoking control
+- visible global keyboard focus treatment and reduced-motion support
+- mobile Study sheet exposes an explicit control with synchronized `aria-expanded` state
+- collapsed mobile Study content becomes both `inert` and `aria-hidden` so hidden controls cannot remain keyboard/screen-reader reachable
+- mobile study tabs and Scripture-selection actions enforce 44px minimum touch targets
+- keyboard skip navigation jumps directly to Scripture or Study tools
+- a single screen-reader page heading identifies the workspace without changing the visible layout
+- Scripture and Study regions are programmatically focusable skip targets
+- native dialogs and drawer-dialogs consistently expose accessible labels
+- passage/save state and transient toast feedback use selective polite status announcements; high-volume Scripture/search content intentionally does not become a live region
+- static release guards cover accessibility semantics, mobile-sheet control/inertness, touch targets, and skip navigation
+- this phase is implementation hardening, **not** a claim of completed real-device or full screen-reader certification
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
