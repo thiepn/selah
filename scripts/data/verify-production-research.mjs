@@ -3,15 +3,19 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BsbScriptureProvider } from '../../dist/src/data/bsb/provider.js';
 import { BsbResearchProvider } from '../../dist/src/data/bsb/research-provider.js';
+import { WebScriptureProvider } from '../../dist/src/data/web/provider.js';
+import { TranslationRegistry } from '../../dist/src/research/compare/service.js';
 import { parseReference, canonicalVerseId } from '../../dist/src/domain/references/index.js';
 import { buildObservationPrompts, defaultLiteraryMode } from '../../dist/src/study/observation/index.js';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const dataRoot=process.env.SELAH_BSB_OUTPUT??join(root,'.generated/data/bsb');
-class FsLoader { async load(path){ return readFile(join(dataRoot,path),'utf8'); } }
+const webRoot=process.env.SELAH_WEB_OUTPUT??join(root,'.generated/data/web');
+class FsLoader { constructor(base=dataRoot){this.base=base;} async load(path){ return readFile(join(this.base,path),'utf8'); } }
 const loader=new FsLoader();
 const scripture=new BsbScriptureProvider(loader);
 const research=new BsbResearchProvider(loader);
+const web=new WebScriptureProvider(new FsLoader(webRoot));
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 const p=(value)=>parseReference(value).passage;
 
@@ -38,6 +42,14 @@ for(const [reference,expectedMode] of genreSamples){
   assert(!prompts.some((prompt)=>/the passage teaches|this symbolizes|therefore means/i.test(prompt.prompt)),`Interpretive claim leaked into observation prompts for ${reference}`);
 }
 
+const comparisonPassage=p('Phil 2:5-11');
+const webPassage=await web.getPassage(comparisonPassage);
+assert(webPassage.verses.length===7,'WEB comparison passage did not return Philippians 2:5-11');
+assert(webPassage.verses.find((verse)=>verse.ref.verse===6)?.tokens.map((token)=>token.text).join('').includes('equality with God'),'WEB Philippians 2:6 text missing expected wording');
+const comparison=await new TranslationRegistry([scripture,web]).compare(comparisonPassage,['BSB','WEB']);
+assert(comparison.translations.length===2&&comparison.unavailable.length===0,'BSB/WEB translation comparison is not fully available');
+assert(comparison.translations.every(({scripture:passage})=>passage.verses.length===7),'BSB/WEB comparison verse alignment failed');
+
 const hebrew=await scripture.getOriginalVerse(p('Gen 1:1').start);
 assert(hebrew.length>0 && hebrew.some((token)=>token.language==='hbo'&&token.strongs),'Hebrew original-language tokens missing for Genesis 1:1');
 const greek=await scripture.getOriginalVerse(p('Phil 2:6').start);
@@ -60,4 +72,4 @@ assert(lexicon?.lemma,'Lexicon lookup failed for G3444');
 const occurrences=await research.versesForStrongs('G3444');
 assert(occurrences.some((ref)=>canonicalVerseId(ref)==='Phil.2.6'),'Concordance does not include Philippians 2:6 for G3444');
 
-console.log(`Production research smoke passed across ${genreSamples.length} literary modes, genre-aware observation prompts, Hebrew/Greek tokens, morphology, lexical data, concordance, and bidirectional cross-references.`);
+console.log(`Production research smoke passed across ${genreSamples.length} literary modes, BSB/WEB comparison, genre-aware observation prompts, Hebrew/Greek tokens, morphology, lexical data, concordance, and bidirectional cross-references.`);
