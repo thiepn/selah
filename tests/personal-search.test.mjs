@@ -11,11 +11,13 @@ test('personal search finds study documents and anchored notes without dashboard
   studies:[{id:'s1',primaryPassage:p('Rom 8:1-4'),title:'Romans 8 — no condemnation',tags:['justification'],archived:false,createdAt:1,updatedAt:1}],
   documents:[{studyId:'s1',format:'tiptap-json',document:{},plainText:'Paul connects life in the Spirit with freedom from condemnation.',updatedAt:1}],
   syntheses:[{studyId:'s1',mainIdea:'Life in Christ means no condemnation.',explanation:'The Spirit brings freedom and life.',evidence:'Romans 8:1-4',application:'Walk according to the Spirit.',prayer:'Teach me to trust your verdict.',confidence:'clear',updatedAt:1}],
+  reviewCards:[{id:'r1',studyId:'s1',source:'evidence',prompt:'What evidence supports Romans 8?',answer:'The Spirit sets believers free from condemnation.',stage:0,dueAt:1,history:[],createdAt:1,updatedAt:1}],
   annotations:[{id:'a1',studyId:'s1',kind:'note',anchor:{type:'reference',passage:p('Rom 8:1')},body:'Therefore points back to the preceding argument.',tags:[],createdAt:1,updatedAt:1}]
  });
  assert.equal(index.search('Spirit freedom')[0].kind,'document');
  assert.equal(index.search('preceding argument')[0].kind,'annotation');
  assert.equal(index.search('trust your verdict')[0].kind,'synthesis');
+ assert.equal(index.search('evidence supports Romans')[0].kind,'review');
 });
 
 test('scripture search index serialization round-trips without re-tokenizing',()=>{
