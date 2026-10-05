@@ -21,7 +21,20 @@ export interface StudyDocument {
   updatedAt: number;
 }
 
-export type StudyTool = 'guide' | 'notes' | 'cross-references' | 'word-study' | 'compare' | 'resources' | 'phrasing';
+export type SynthesisConfidence = 'clear' | 'strong-inference' | 'tentative' | 'needs-study';
+
+export interface StudySynthesis {
+  studyId: StudyId;
+  mainIdea: string;
+  explanation: string;
+  evidence: string;
+  application: string;
+  prayer: string;
+  confidence: SynthesisConfidence;
+  updatedAt: number;
+}
+
+export type StudyTool = 'guide' | 'notes' | 'synthesis' | 'cross-references' | 'word-study' | 'compare' | 'resources' | 'phrasing';
 
 export interface ResearchLocation {
   passage: PassageRef;
