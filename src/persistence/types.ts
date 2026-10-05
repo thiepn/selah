@@ -1,7 +1,7 @@
 import type { PhrasingDocument } from '../bible/phrasing/model.js';
-import type { Annotation, Study, StudyDocument, WorkspaceState } from '../domain/studies/types.js';
+import type { Annotation, Study, StudyDocument, StudySynthesis, WorkspaceState } from '../domain/studies/types.js';
 
-export const APP_SCHEMA_VERSION = 2;
+export const APP_SCHEMA_VERSION = 3;
 export const DATA_SCHEMA_VERSION = 1;
 
 export interface SelahSettings {
@@ -25,6 +25,7 @@ export interface SelahSnapshot {
   settings: SelahSettings;
   studies: Study[];
   studyDocuments: StudyDocument[];
+  studySyntheses: StudySynthesis[];
   annotations: Annotation[];
   workspaceStates: WorkspaceState[];
   phrasingDocuments: PhrasingDocument[];
@@ -44,6 +45,8 @@ export interface SelahRepository {
 
   getStudyDocument(studyId: string): Promise<StudyDocument | undefined>;
   putStudyDocument(document: StudyDocument): Promise<void>;
+  getStudySynthesis(studyId: string): Promise<StudySynthesis | undefined>;
+  putStudySynthesis(synthesis: StudySynthesis): Promise<void>;
 
   listAnnotations(studyId?: string): Promise<Annotation[]>;
   putAnnotation(annotation: Annotation): Promise<void>;
