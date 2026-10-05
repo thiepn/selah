@@ -15,7 +15,6 @@ import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex, PersonalStudySearchIndex } from './core/search/index.js';
 
 const $ = (selector) => document.querySelector(selector);
-const $ = (selector) => [...document.querySelectorAll(selector)];
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
 const escapeHtml = (value='') => value.replace(/[&<>'"]/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[c]));
 const sleep = (ms) => new Promise((resolve)=>setTimeout(resolve,ms));
@@ -168,8 +167,8 @@ async function renderSearchResults(query) {
   const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,annotations:snapshot.annotations});
   const personalResults=personal.search(query,30);
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
-  $$('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
-  $$('.search-personal[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const study=await repo.getStudy(button.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));}));
+  queryAll('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
+  queryAll('.search-personal[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const study=await repo.getStudy(button.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));}));
 }
 
 async function resolveReferenceInput(input) {
@@ -334,7 +333,7 @@ function selectedTokenRange() {
   const startEl = tokenElementFromNode(selection.anchorNode);
   const endEl = tokenElementFromNode(selection.focusNode);
   if (!startEl || !endEl) return undefined;
-  const tokenEls = $$('.token');
+  const tokenEls = queryAll('.token');
   const a = tokenEls.indexOf(startEl); const b = tokenEls.indexOf(endEl);
   if (a<0 || b<0) return undefined;
   const first = tokenEls[Math.min(a,b)], last = tokenEls[Math.max(a,b)];
@@ -418,7 +417,7 @@ function renderStudyDocumentLinks(text) {
 }
 
 function wireAnnotationActions() {
-  $$('[data-annotation-action]').forEach((button)=>button.addEventListener('click',async()=>{
+  queryAll('[data-annotation-action]').forEach((button)=>button.addEventListener('click',async()=>{
     const item=button.closest('[data-annotation-id]'); const id=item?.dataset.annotationId; if(!id)return;
     const action=button.dataset.annotationAction;
     if(action==='edit'){
@@ -513,7 +512,7 @@ async function renderPhrasing() {
   if (currentStudy) phrasingDocument=(await repo.listPhrasingDocuments(currentStudy.id)).find((x)=>samePassage(x.passage,currentScripture.passage));
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">PHRASING</span><h2>See the argument</h2><p class="panel-lede">Indent clauses or verse units to make relationships visible. This structure is your analysis; Scripture tokens themselves are never modified.</p>${phrasingDocument?`<div class="phrase-tree">${phrasingDocument.roots.map((x)=>phraseNodeHtml(x)).join('')}</div>`:'<button class="primary-button" id="startPhrasing" type="button">Start phrasing this passage</button>'}</section>`;
   $('#startPhrasing')?.addEventListener('click',async()=>{const study=await ensureStudy(); phrasingDocument=defaultPhrasingDocument(study); await repo.putPhrasingDocument(phrasingDocument); await renderPhrasing();});
-  $$('[data-phrase-action]').forEach((button)=>button.addEventListener('click',async()=>{
+  queryAll('[data-phrase-action]').forEach((button)=>button.addEventListener('click',async()=>{
     if(!phrasingDocument)return;
     const id=button.dataset.id; const action=button.dataset.phraseAction;
     if(action==='split-mode'){phrasingSplitNodeId=phrasingSplitNodeId===id?undefined:id;await renderPhrasing();return;}
@@ -524,7 +523,7 @@ async function renderPhrasing() {
     else if(action==='outdent') roots=outdentPhrase(roots,id);
     phrasingDocument={...phrasingDocument,roots,updatedAt:Date.now()}; await repo.putPhrasingDocument(phrasingDocument); await renderPhrasing();
   }));
-  $$('[data-label-id]').forEach((input)=>input.addEventListener('change',async()=>{if(!phrasingDocument)return;phrasingDocument={...phrasingDocument,roots:updatePhraseNode(phrasingDocument.roots,input.dataset.labelId,{label:input.value}),updatedAt:Date.now()};await repo.putPhrasingDocument(phrasingDocument);}));
+  queryAll('[data-label-id]').forEach((input)=>input.addEventListener('change',async()=>{if(!phrasingDocument)return;phrasingDocument={...phrasingDocument,roots:updatePhraseNode(phrasingDocument.roots,input.dataset.labelId,{label:input.value}),updatedAt:Date.now()};await repo.putPhrasingDocument(phrasingDocument);}));
 }
 
 async function renderResources() {
@@ -552,8 +551,8 @@ async function renderActiveTab() {
 
 function renderToolError(title,error){elements.studyContent.innerHTML=`<div class="error-state"><strong>${escapeHtml(title)}</strong>${escapeHtml(error instanceof Error?error.message:String(error))}</div>`;}
 function wireReferenceButtons(root=document){[...root.querySelectorAll('[data-reference]')].forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
-function wireLexicalButtons(){$$('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
-function wireSectionJumps(){$$('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
+function wireLexicalButtons(){queryAll('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
+function wireSectionJumps(){queryAll('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
 
 async function openPeek(passage) {
   activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); elements.peek.hidden=false; elements.peekText.textContent='Loading…';
@@ -622,7 +621,7 @@ async function renderStudies(filter='') {
     html=`<p class="quiet">${showArchivedStudies?'No archived studies.':'No saved studies yet. Selah creates one when you first write or annotate.'}</p>`;
   }
   elements.studiesList.innerHTML=html;
-  $$('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
+  queryAll('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
     const row=button.closest('[data-study-id]');
     const study=await repo.getStudy(row.dataset.studyId);
     if(!study)return;
@@ -633,7 +632,7 @@ async function renderStudies(filter='') {
     await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
     elements.studiesDrawer.hidden=true;
   }));
-  $$('[data-study-action]').forEach((button)=>button.addEventListener('click',async()=>{
+  queryAll('[data-study-action]').forEach((button)=>button.addEventListener('click',async()=>{
     const row=button.closest('[data-study-id]');
     const id=row?.dataset.studyId;
     if(!id)return;
