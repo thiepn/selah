@@ -10,7 +10,7 @@
     "test:core": "npm run build:core && node --test tests/*.test.mjs",
     "validate:data": "node scripts/data/validate-manifest.mjs",
     "check": "npm run typecheck:core && npm run check:web-syntax && npm run validate:data && npm run test:core",
-    "check:web-syntax": "node --check web/app.js && node --check web/book-overview.js && node --check web/guide-literary-mode.js && node --check web/interpretation-claims.js && node --check web/translation-compare.js && node --check web/search-worker.js && node --check web/sw.js",
+    "check:web-syntax": "node --check web/app.js && node --check web/book-overview.js && node --check web/guide-literary-mode.js && node --check web/interpretation-claims.js && node --check web/search-workspace.js && node --check web/translation-compare.js && node --check web/search-worker.js && node --check web/sw.js",
     "data:fetch:bsb": "npm run build:core && node scripts/data/fetch-bsb.mjs",
     "data:validate:vendored": "node scripts/data/validate-vendored-bsb.mjs",
     "build:site": "npm run build:core && node scripts/build-site.mjs && node scripts/validate-site.mjs && npm run check:bundle",
