@@ -473,3 +473,34 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .compare-cell{font:14px/1.65 Georgia,"Times New Roman",serif;color:var(--ink)}
 .compare-missing{font:10px/1.5 ui-sans-serif,system-ui;color:var(--muted);font-style:italic}
 @media(max-width:760px){.compare-head,.compare-row{grid-template-columns:38px repeat(var(--compare-cols),minmax(220px,1fr));min-width:calc(38px + var(--compare-cols) * 220px)}.compare-head>div,.compare-row>div{padding:9px 10px}}
+
+
+.claims-panel{max-width:820px}
+.claims-list{display:grid;gap:10px;margin:18px 0}
+.interpretation-claim{padding:14px 15px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2)}
+.claim-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.claim-head>div{display:flex;align-items:center;gap:8px}
+.claim-confidence{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.claim-confidence.explicit{border-color:var(--accent);color:var(--accent)}
+.claim-confidence.strong-inference{color:var(--ink)}
+.claim-confidence.tentative,.claim-confidence.disputed{font-style:italic}
+.claim-statement{margin:12px 0 0;font:15px/1.6 Georgia,serif;color:var(--ink)}
+.claim-evidence{display:grid;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.claim-evidence>div{display:grid;grid-template-columns:minmax(105px,.34fr) minmax(0,1fr);gap:10px;align-items:start}
+.claim-evidence button{justify-self:start;border:0;background:transparent;padding:0;color:var(--accent);font-size:10px;text-decoration:underline;text-underline-offset:3px}
+.claim-evidence p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+.claim-editor{display:grid;gap:14px;margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2)}
+.claim-editor-head,.claim-editor-subhead,.claim-editor-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.claim-editor label{display:grid;gap:6px}
+.claim-editor label>span,.claim-editor-subhead>span{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.claim-editor textarea,.claim-editor select,.claim-editor input{width:100%;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);padding:9px 10px;outline:0}
+.claim-editor textarea{resize:vertical;font:13px/1.55 ui-sans-serif,system-ui}
+.claim-editor textarea:focus,.claim-editor select:focus,.claim-editor input:focus{border-color:var(--accent)}
+.claim-evidence-editor{display:grid;gap:8px}
+#claimEvidenceRows{display:grid;gap:7px}
+.claim-evidence-row{display:grid;grid-template-columns:minmax(145px,.7fr) minmax(0,1.3fr) 34px;gap:8px;align-items:end}
+.claim-evidence-row .icon-button{height:34px}
+@media(max-width:760px){
+  .claim-evidence>div,.claim-evidence-row{grid-template-columns:1fr}
+  .claim-evidence-row .icon-button{justify-self:end;margin-top:-42px}
+}
