@@ -40,6 +40,7 @@ export function exportStudyContextMarkdown(input: {
     for (const annotation of input.annotations) {
       const body = annotation.body?.trim() || (annotation.kind === 'highlight' ? `[Highlight: ${annotation.highlightStyle ?? 'default'}]` : '');
       lines.push(`- **${annotation.kind} — ${annotationLabel(annotation)}:** ${body}`);
+      if (annotation.kind === 'question' && annotation.response?.trim()) lines.push(`  - **Response:** ${annotation.response.trim()}`);
     }
     lines.push('');
   }
