@@ -36,6 +36,7 @@ Implemented and wired into the deployable static application:
 - persistent Study Document
 - durable Passage Outline with validated non-overlapping verse sections, selection-to-outline, editorial-heading seeding, and in-Scripture boundaries
 - text-derived observation questions that highlight their evidence without supplying interpretations
+- genre-aware observation calibration across Narrative, Gospel, Law, Poetry, Wisdom, Prophecy, Epistle, and Apocalyptic lenses, with reversible per-study overrides
 - structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
 - study-derived Review cards with Forgot / Difficult / Good scheduling, including completed passage structure
 - custom review cards that remain independent from Synthesis-derived cards
@@ -46,7 +47,7 @@ Implemented and wired into the deployable static application:
 - cross-reference provider and in-workspace Peek model
 - contextual Lens and Passage Guide
 - lexicon, morphology, concordance, and original-language composition layer
-- provider-driven translation comparison
+- real local verse-aligned translation comparison between primary BSB and public-domain WEB, with explicit missing-verse handling
 - Scripture search and personal-study search
 - Books / Topics archive views with manually curated, normalized study topics
 - personal Book Overviews derived from actual passage studies, recurring topics, main ideas, and unresolved questions
@@ -73,7 +74,7 @@ The generated site is in `site/`.
 
 ## Full production data
 
-The production build shallow-clones the public BSB data output repository, vendors only the datasets Selah uses, derives exact verse bounds, builds the offline Scripture search index, validates the dataset, then builds the app.
+The production build shallow-clones the public BSB data output repository plus the WEB transport mirror, vendors only the datasets Selah uses, validates both translation corpora and source identity, derives exact BSB verse bounds, builds the offline Scripture search index, then builds the app.
 
 ```bash
 npm run build:production
@@ -85,7 +86,7 @@ Generated Bible data lives under `.generated/` and is deliberately not committed
 
 ## Data and licensing
 
-Runtime data sources are declared in `data/manifests/sources.json`. Required upstream attribution files are copied into the production data bundle. The application also exposes the bundled attribution through its Resources surface.
+Runtime data sources are declared in `data/manifests/sources.json`. World English Bible comparison data is normalized from the `midvash/bible-data` transport mirror, whose metadata identifies `https://worldenglish.bible/` as the upstream translation source and the edition as public domain. Selah validates that identity before and after vendoring. Required upstream attribution files are copied into the production data bundle. The application also exposes the bundled attribution through its Resources surface.
 
 ## Verification
 
