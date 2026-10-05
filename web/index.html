@@ -41,6 +41,7 @@
       <nav class="study-tabs" id="studyTabs" aria-label="Study tools" role="tablist" aria-orientation="horizontal">
         <button class="tab active" id="tab-guide" data-tab="guide" type="button" role="tab" aria-selected="true" aria-controls="studyContent" tabindex="0">Guide</button>
         <button class="tab" id="tab-notes" data-tab="notes" type="button" role="tab" aria-selected="false" aria-controls="studyContent" tabindex="-1">Notes</button>
+        <button class="tab" id="tab-outline" data-tab="outline" type="button" role="tab" aria-selected="false" aria-controls="studyContent" tabindex="-1">Outline</button>
         <button class="tab" id="tab-synthesis" data-tab="synthesis" type="button" role="tab" aria-selected="false" aria-controls="studyContent" tabindex="-1">Synthesis</button>
         <button class="tab" id="tab-references" data-tab="references" type="button" role="tab" aria-selected="false" aria-controls="studyContent" tabindex="-1">References</button>
         <button class="tab" id="tab-words" data-tab="words" type="button" role="tab" aria-selected="false" aria-controls="studyContent" tabindex="-1">Words</button>
@@ -65,6 +66,7 @@
     <button data-action="note" type="button" aria-keyshortcuts="N" title="Add note (N)">Note</button>
     <button data-action="question" type="button" aria-keyshortcuts="Q" title="Add question (Q)">Question</button>
     <button data-action="highlight" type="button" aria-keyshortcuts="H" title="Highlight selection (H)">Highlight</button>
+    <button data-action="outline" type="button">Outline</button>
     <button data-action="word" type="button">Word</button>
     <button data-action="compare" type="button">Compare</button>
     <button data-action="copy" type="button">Copy</button>
@@ -103,6 +105,7 @@
       <label><input type="checkbox" id="exportScripture" checked> Scripture</label>
       <label><input type="checkbox" id="exportAnnotations" checked> Notes and annotations</label>
       <label><input type="checkbox" id="exportDocument" checked> Study document</label>
+      <label><input type="checkbox" id="exportOutline" checked> Passage outline</label>
       <label><input type="checkbox" id="exportSynthesis" checked> Synthesis</label>
       <label>Tutoring mode
         <select id="exportTutor">
