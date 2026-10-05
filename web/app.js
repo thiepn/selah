@@ -13,7 +13,7 @@ import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePh
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
-import { connectedReferenceCardHtml } from './personal-reference-ui.js';
+import { connectedReferenceCardHtml, personalStudyLinksHtml } from './personal-reference-ui.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
@@ -893,11 +893,11 @@ async function openPeek(passage) {
     const scripture=await scriptureProvider.getPassage(passage);
     const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage),repo.listStudies()]);
     const text=scripture.verses.map((v)=>`<p class="peek-verse"><sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}</p>`).join('');
-    const prior=studiesOverlappingPassage(studies,passage)[0];
-    const studied=prior?`<div class="reference-personal peek-personal"><button type="button" data-personal-snapshot="${escapeHtml(prior.id)}">Studied · ${escapeHtml(prior.title||formatPassage(prior.primaryPassage))}</button></div>`:'';
+    const priorStudies=studiesOverlappingPassage(studies,passage);
+    const studied=personalStudyLinksHtml(priorStudies,formatPassage(passage));
     const outgoing=refs.slice(0,6).map((ref)=>referenceButtonHtml(ref,studiesOverlappingPassage(studies,ref.target))).join('');
     const incoming=backlinks.slice(0,6).map((ref)=>backlinkButtonHtml(ref,studiesOverlappingPassage(studies,ref.source))).join('');
-    elements.peekText.innerHTML=`${studied}<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
+    elements.peekText.innerHTML=`${studied?<section class="peek-prior-studies"><h4>Prior studies</h4>${studied}</section>:''}<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
     wireReferenceButtons(elements.peekText); wirePersonalStudyReferences(elements.peekText);
   }
   catch { elements.peekText.textContent='This reference is unavailable in the current Scripture dataset.'; }
