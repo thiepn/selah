@@ -4,7 +4,7 @@ import { createResearchTrail, extractStudyDocumentScriptureLinks } from './core/
 import { IndexedDbSelahRepository, createBackup, parseBackup } from './core/persistence/index.js';
 import { BsbScriptureProvider, FetchTextAssetLoader, BsbResearchProvider } from './core/data/bsb/index.js';
 import { AnnotationService, annotationMatchesPassage } from './core/annotations/index.js';
-import { StudyService, WorkspaceService, OutlineService, BookSynthesisService } from './core/study/index.js';
+import { StudyService, WorkspaceService, OutlineService, BookSynthesisService, studiesOverlappingPassage } from './core/study/index.js';
 import { LensService } from './core/study/lens/index.js';
 import { PassageGuideService } from './core/study/guide/index.js';
 import { OriginalLanguageService } from './core/research/original-language/index.js';
@@ -461,13 +461,16 @@ async function renderGuide() {
   } catch (error) { renderToolError('Guide unavailable',error); }
 }
 
-function referenceButtonHtml(ref) {
+function referenceButtonHtml(ref,studies=[]) {
   const target=formatPassage(ref.target);
-  return `<button class="reference-card" type="button" data-reference="${escapeHtml(target)}"><strong>${escapeHtml(target)}</strong><span>Referenced from this passage</span></button>`;
+  return connectedReferenceCardHtml({label:target,detail:'Referenced from this passage',reference:target,studies});
 }
-function backlinkButtonHtml(ref) {
+function backlinkButtonHtml(ref,studies=[]) {
   const source=formatPassage(ref.source);
-  return `<button class="reference-card" type="button" data-reference="${escapeHtml(source)}"><strong>${escapeHtml(source)}</strong><span>Points to this passage</span></button>`;
+  return connectedReferenceCardHtml({label:source,detail:'Points to this passage',reference:source,studies});
+}
+function wirePersonalStudyReferences(root=document){
+  wirePersonalReferenceActions(root,{openSnapshot:openStudySnapshot,openStudy:openStudyById});
 }
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
@@ -794,9 +797,9 @@ function scheduleSynthesisSave(value,delay=250) {
 async function renderReferences() {
   elements.studyContent.innerHTML='<div class="loading">Loading references…</div>';
   try {
-    const [refs,backlinks]=await Promise.all([researchProvider.forPassage(currentScripture.passage),researchProvider.backlinksForPassage(currentScripture.passage)]);
-    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SCRIPTURE CONNECTIONS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Explore both directions of the reference network while the primary passage stays fixed.</p><section class="panel-section"><h3>From this passage</h3><div>${refs.map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section><section class="panel-section"><h3>Referenced by</h3><div>${backlinks.map(backlinkButtonHtml).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section></section>`;
-    wireReferenceButtons();
+    const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(currentScripture.passage),researchProvider.backlinksForPassage(currentScripture.passage),repo.listStudies()]);
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SCRIPTURE CONNECTIONS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Explore both directions of the reference network while the primary passage stays fixed. Selah also surfaces related passages you have already studied.</p><section class="panel-section"><h3>From this passage</h3><div>${refs.map((ref)=>referenceButtonHtml(ref,studiesOverlappingPassage(studies,ref.target))).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section><section class="panel-section"><h3>Referenced by</h3><div>${backlinks.map((ref)=>backlinkButtonHtml(ref,studiesOverlappingPassage(studies,ref.source))).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section></section>`;
+    wireReferenceButtons(); wirePersonalStudyReferences();
   } catch(error){ renderToolError('References unavailable',error); }
 }
 
@@ -889,12 +892,12 @@ async function openPeek(passage) {
   activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); peekCtl.open(document.activeElement); elements.peekText.textContent='Loading…';
   try {
     const scripture=await scriptureProvider.getPassage(passage);
-    const [refs,backlinks]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage)]);
+    const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage),repo.listStudies()]);
     const text=scripture.verses.map((v)=>`<p class="peek-verse"><sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}</p>`).join('');
-    const outgoing=refs.slice(0,6).map(referenceButtonHtml).join('');
-    const incoming=backlinks.slice(0,6).map(backlinkButtonHtml).join('');
+    const outgoing=refs.slice(0,6).map((ref)=>referenceButtonHtml(ref,studiesOverlappingPassage(studies,ref.target))).join('');
+    const incoming=backlinks.slice(0,6).map((ref)=>backlinkButtonHtml(ref,studiesOverlappingPassage(studies,ref.source))).join('');
     elements.peekText.innerHTML=`<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
-    wireReferenceButtons(elements.peekText);
+    wireReferenceButtons(elements.peekText); wirePersonalStudyReferences(elements.peekText);
   }
   catch { elements.peekText.textContent='This reference is unavailable in the current Scripture dataset.'; }
 }
