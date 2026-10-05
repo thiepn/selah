@@ -18,6 +18,7 @@ const translationCompare=await readFile(join(site,'translation-compare.js'),'utf
 const searchWorker=await readFile(join(site,'search-worker.js'),'utf8');
 if(/\bToday\b|dashboard|streak/i.test(html)) throw new Error('Study UI regressed toward dashboard/productivity concepts');
 if(html.includes('id="scripture" aria-live')||!html.includes('id="passageStatus" role="status"')||!html.includes('id="saveState" role="status"')||!html.includes('id="noteDialog" aria-labelledby="noteDialogTitle"')||!html.includes('id="studiesDrawer" role="dialog" aria-modal="true"')||!html.includes('id="reviewDrawer" role="dialog" aria-modal="true"')) throw new Error('Accessibility semantics regressed');
+if(!html.includes('id="mobileStudyToggle"')||!html.includes('aria-controls="studyPane"')||!a11yOverlays.includes('mobileSheetController')) throw new Error('Mobile study sheet control regressed');
 if(!html.includes('data-tab="claims"')||!html.includes('id="exportClaims"')) throw new Error('Claims tab is missing or not exportable');
 if(html.indexOf('data-tab="claims"')>html.indexOf('data-tab="synthesis"')) throw new Error('Claims must precede Synthesis in the study workflow');
 if(/development fixture|vendoring command/i.test(app)) throw new Error('Developer-only data language leaked into the study UI');
