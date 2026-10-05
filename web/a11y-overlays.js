@@ -50,11 +50,17 @@ export function regionController(region,{initialFocus}={}){
 
 export function mobileSheetController(sheet,toggle,{media='(max-width:760px)'}={}){
   const query=matchMedia(media);
+  const body=[...sheet.children].filter((child)=>child!==toggle);
   const sync=()=>{
     const mobile=query.matches;
     const open=mobile&&sheet.classList.contains('open');
     toggle.setAttribute('aria-expanded',String(open));
     toggle.setAttribute('aria-label',open?'Collapse study tools':'Expand study tools');
+    for(const child of body){
+      child.inert=mobile&&!open;
+      if(mobile&&!open)child.setAttribute('aria-hidden','true');
+      else child.removeAttribute('aria-hidden');
+    }
   };
   const open=()=>{if(!query.matches)return;sheet.classList.add('open');sync();};
   const close=(focus=false)=>{if(!query.matches)return false;const wasOpen=sheet.classList.contains('open');sheet.classList.remove('open');sync();if(wasOpen&&focus)requestAnimationFrame(()=>toggle.focus());return wasOpen;};
