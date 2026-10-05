@@ -56,6 +56,9 @@ for(const book of BOOKS){
 }
 
 const metadata=JSON.parse(await readFile(join(cache,'versions/en/web/metadata.json'),'utf8'));
+if(metadata.slug!=='web'||metadata.name!=='World English Bible'||metadata.language!=='en')throw new Error('Unexpected WEB source metadata');
+if(!/public-domain/i.test(metadata.license??'')||metadata.stats?.books!==66||metadata.stats?.chapters!==1189)throw new Error('WEB source metadata does not match the expected public-domain 66-book edition');
+if(metadata.sourceUrl!=='https://worldenglish.bible/')throw new Error(`Unexpected WEB upstream URL: ${metadata.sourceUrl}`);
 await writeFile(join(outputRoot,'SOURCE-METADATA.json'),JSON.stringify(metadata,null,2));
 await writeFile(join(outputRoot,'SOURCE.md'),[
   '# World English Bible source',
