@@ -178,6 +178,19 @@
 - focused Node regression coverage verifies deduplication, complete overflow reachability, and HTML escaping in the personal-reference renderer
 - P33 stays local-first and offline-capable with no new schema, network dependency, or built-in AI behavior
 
+### P34 — topic overview & cross-study evidence
+
+- manually curated Study topics now open a dedicated Topic Overview instead of functioning only as archive/search labels
+- topic membership is exact and case-insensitive; archived Studies are excluded and Selah does not infer topical relationships from text, embeddings, or AI
+- the derived Topic Overview aggregates the active tagged Studies, canonical books represented, study main ideas, support-classified Interpretation Claims with their exact evidence references, and unresolved saved questions
+- every studied passage remains reachable through the existing Study Snapshot recall gateway; claim evidence can return to Scripture through Reference Peek
+- Topic Overview entry points are available from the Topics archive grouping and from topic chips in Book Overview
+- no topic-level theological conclusion or duplicate persistence is created; P34 is a read model over existing Study, Synthesis, Claim, and Annotation ownership
+- focused Topic Overview UI is syntax checked, offline precached, and statically deployment guarded; the derived core read model has dedicated regression coverage
+- P33 personal-reference event wiring was extracted from the main controller so **app.js** remains inside its 100 KB controller ceiling as Selah grows
+- the focused-UI budget is expanded to 30 KB to reflect deliberately extracted feature modules while retaining the 100 KB main-controller ceiling
+- no schema migration, network dependency, or built-in AI behavior is introduced
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -199,7 +212,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **85/85 passing** on the last fully executed P31-qualified head; P32 adds an overlap regression test pending exact-head CI
+- automated Node test suite includes dedicated overlap, personal-reference renderer, and Topic Overview domain regression coverage; exact P34 head qualification is pending GitHub Actions
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets

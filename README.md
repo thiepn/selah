@@ -55,6 +55,7 @@ Implemented and wired into the deployable static application:
 - real local verse-aligned translation comparison between primary BSB and public-domain WEB, with explicit missing-verse handling
 - Scripture search and source-aware personal search that returns Claims, Outline, Synthesis, Notes, and book understanding to their originating study surface
 - Books / Topics archive views with manually curated, normalized study topics
+- topic-level cross-study overview derived from explicitly tagged studies, preserving main ideas, support-classified claims/evidence, represented books, and unresolved questions without generated theological conclusions
 - personal Book Overviews derived from actual passage studies, recurring topics, main ideas, and unresolved questions
 - one autosaved, searchable personal understanding field per canonical Bible book
 - external study-resource providers

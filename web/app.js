@@ -13,7 +13,7 @@ import { indentPhrase, outdentPhrase, updatePhraseNode, splitPhraseNode, mergePh
 import { exportStudyContextMarkdown } from './core/export/index.js';
 import { ScriptureSearchIndex } from './core/search/index.js';
 import { ReviewService } from './core/review/index.js';
-import { connectedReferenceCardHtml, personalStudyLinksHtml, wirePersonalStudyReferences as wirePersonalStudyReferenceUi } from './personal-reference-ui.js';
+import { connectedReferenceCardHtml, personalStudyLinksHtml, wirePersonalStudyReferences as wireRef } from './personal-reference-ui.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { createTopicOverviewController } from './topic-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
@@ -475,7 +475,7 @@ function backlinkButtonHtml(ref,studies=[]) {
   const source=formatPassage(ref.source);
   return connectedReferenceCardHtml({label:source,detail:'Points to this passage',reference:source,studies});
 }
-const wirePersonalStudyReferences=(root=document)=>wirePersonalStudyReferenceUi(root,openStudySnapshot);
+const wirePersonalStudyReferences=(r=document)=>wireRef(r,openStudySnapshot);
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
 
 async function renderNotes() {
