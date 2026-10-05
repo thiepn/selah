@@ -78,3 +78,24 @@ test('completed outline becomes a durable structure review card',async()=>{
   assert.equal(synced.created,5);
   assert.equal((await repo.listReviewCards('s1')).some((x)=>x.source==='outline'),true);
 });
+
+
+test('sync removes review cards whose source conclusion was removed',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  let seq=0;
+  const service=new ReviewService(repo,{now:()=>1,idFactory:()=>`r${++seq}`});
+  const outline={studyId:'s1',sections:[
+    {id:'o1',passage:parseReference('Phil 2:5-8').passage,label:'Humiliation'},
+    {id:'o2',passage:parseReference('Phil 2:9-11').passage,label:'Exaltation'},
+  ],updatedAt:1};
+  await service.syncFromSynthesis(study,synthesis,outline);
+  assert.equal((await repo.listReviewCards('s1')).length,5);
+  const revised={...synthesis,application:''};
+  const incompleteOutline={...outline,sections:[outline.sections[0],{...outline.sections[1],label:''}]};
+  const result=await service.syncFromSynthesis(study,revised,incompleteOutline);
+  assert.equal(result.deleted,2);
+  const sources=(await repo.listReviewCards('s1')).map((x)=>x.source).sort();
+  assert.deepEqual(sources,['evidence','explanation','main-idea']);
+});
