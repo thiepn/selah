@@ -189,12 +189,12 @@ async function resolveReferenceInput(input) {
     const scripture=await scriptureProvider.getPassage(parsed.passage);
     const first=scripture.verses[0]?.ref; const last=scripture.verses.at(-1)?.ref;
     const sameRef=(a,b)=>Boolean(a&&b&&a.book===b.book&&a.chapter===b.chapter&&a.verse===b.verse);
-    if(!sameRef(first,parsed.passage.start)||!sameRef(last,parsed.passage.end)) throw new Error('Scripture data for that passage is not installed in this build.');
+    if(!sameRef(first,parsed.passage.start)||!sameRef(last,parsed.passage.end)) throw new Error('That passage is unavailable in the current Scripture dataset.');
     return scripture;
   }
   const broad = { start:{book:parsed.book,chapter:parsed.chapter,verse:1}, end:{book:parsed.book,chapter:parsed.chapter,verse:200} };
   const scripture = await scriptureProvider.getPassage(broad);
-  if (!scripture.verses.length) throw new Error('No Scripture data is installed for that chapter.');
+  if (!scripture.verses.length) throw new Error('That chapter is unavailable in the current Scripture dataset.');
   scripture.passage = { start: scripture.verses[0].ref, end: scripture.verses.at(-1).ref };
   return scripture;
 }
@@ -409,7 +409,7 @@ async function renderGuide() {
       <section class="panel-section"><h3>Discourse markers</h3><div class="metric-row">${guide.structuralMarkers.slice(0,12).map((marker)=>`<span class="metric">${escapeHtml(marker.label)} · ${escapeHtml(marker.category.replace('purpose-result','purpose/result'))}</span>`).join('')||'<span class="quiet">No explicit discourse markers detected in this selection.</span>'}</div><p class="quiet">These are textual signals in the English translation, not automatic interpretations of the argument.</p></section>
       <section class="panel-section"><h3>Cross-references</h3><div>${guide.crossReferences.slice(0,8).map(referenceButtonHtml).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section>
       <section class="panel-section"><h3>Referenced by</h3><div>${guide.backlinks.slice(0,8).map(backlinkButtonHtml).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section>
-      <section class="panel-section"><h3>Important words</h3><div class="lexical-guide-list">${guide.importantLexicalItems.map((item)=>{const entry=item.entry;const title=entry?.lemma||item.strongs;const detail=[entry?.transliteration,entry?.gloss,item.strongs,`× ${item.count}`].filter(Boolean).join(' · ');return `<button class="reference-card lexical-key" type="button" data-strongs="${escapeHtml(item.strongs)}"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></button>`;}).join('')||'<p class="quiet">Lexical alignment is unavailable in this installed fixture.</p>'}</div></section>
+      <section class="panel-section"><h3>Important words</h3><div class="lexical-guide-list">${guide.importantLexicalItems.map((item)=>{const entry=item.entry;const title=entry?.lemma||item.strongs;const detail=[entry?.transliteration,entry?.gloss,item.strongs,`× ${item.count}`].filter(Boolean).join(' · ');return `<button class="reference-card lexical-key" type="button" data-strongs="${escapeHtml(item.strongs)}"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></button>`;}).join('')||'<p class="quiet">No lexical alignment is available for this selection.</p>'}</div></section>
       <section class="panel-section"><h3>Resources</h3>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}</section>
     </section>`;
     wireReferenceButtons(); wireLexicalButtons(); wireSectionJumps();
@@ -756,7 +756,7 @@ async function renderReferences() {
 async function renderWords() {
   const strongs = selectedToken?.strongs ?? selectedLexicalKey;
   if (!strongs) {
-    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY</span><h2>Select an aligned word</h2><p class="panel-lede">Tap a word in Scripture that has original-language alignment, or choose an important lexical key from the Guide. Selah shows lexical, morphology, and concordance evidence without treating a gloss as the meaning of the whole verse.</p><p class="warning">The bundled development fixture does not include Strong’s alignment. Run the full BSB data vendoring command to activate this layer.</p></section>`;
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY</span><h2>Select an aligned word</h2><p class="panel-lede">Tap a word in Scripture that has original-language alignment, or choose an important lexical key from the Guide. Selah shows lexical, morphology, and concordance evidence without treating a gloss as the meaning of the whole verse.</p><p class="quiet">Select an aligned word in Scripture or choose an important lexical item from the Guide. Some English words intentionally have no direct lexical alignment.</p></section>`;
     return;
   }
   elements.studyContent.innerHTML='<div class="loading">Loading original-language data…</div>';
@@ -849,7 +849,7 @@ async function openPeek(passage) {
     elements.peekText.innerHTML=`<div class="peek-scripture">${text}</div>${outgoing||incoming?`<div class="peek-connections">${outgoing?`<section><h4>From here</h4>${outgoing}</section>`:''}${incoming?`<section><h4>Referenced by</h4>${incoming}</section>`:''}</div>`:''}`;
     wireReferenceButtons(elements.peekText);
   }
-  catch { elements.peekText.textContent='This reference is not installed in the current development data fixture. It will resolve after the complete BSB dataset is vendored.'; }
+  catch { elements.peekText.textContent='This reference is unavailable in the current Scripture dataset.'; }
 }
 
 async function navigateResearch(passage) {
