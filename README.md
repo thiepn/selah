@@ -1,19 +1,21 @@
 # Selah
 
-Selah is a local-first, passage-centered Bible study workspace for close reading, observation, cross-reference study, original-language investigation, structural analysis, and durable personal notes.
+Selah is a local-first, passage-centered Bible study workspace for close reading, observation, cross-reference study, original-language investigation, structural analysis, durable synthesis, and long-term retention.
 
 It intentionally has no Today page, dashboard, streaks, reading-plan layer, prayer manager, social feed, or built-in AI dependency. The primary UI is the Scripture study workspace.
 
 ## Product model
 
-Selah is built around six primitives:
+Selah is built around eight primitives:
 
 1. canonical Scripture references
 2. shared passage/selection context
 3. source-independent Scripture and research providers
 4. durable annotation anchors
-5. studies and study documents
+5. studies, freeform study documents, and structured synthesis
 6. recoverable workspace/research state
+7. study-derived spaced review cards
+8. versioned local persistence, backup, and migration
 
 Every study tool consumes those primitives instead of maintaining its own competing state.
 
@@ -30,6 +32,8 @@ Implemented and wired into the deployable static application:
 - reference, text, and original-token annotation anchors
 - notes, questions, and highlights
 - persistent Study Document
+- structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
+- study-derived Review cards with Forgot / Difficult / Good scheduling
 - persistent Phrasing (token-preserving clause splitting, merging, indentation) documents
 - textual and Strong's pattern analysis
 - cross-reference provider and in-workspace Peek model
@@ -40,9 +44,9 @@ Implemented and wired into the deployable static application:
 - external study-resource providers
 - copyable external-AI study context with no API dependency
 - version-aware full backup/restore
-- PWA shell and runtime caching
+- PWA shell with network-first freshness and offline fallback
 - responsive Bible-first desktop/mobile workspace
-- automated source-license validation and CI
+- browser-JavaScript syntax validation, source-license validation, and CI
 
 ## Development build
 
