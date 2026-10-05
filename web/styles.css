@@ -504,3 +504,15 @@ body.launcher-mode .study-bar .study-actions{display:none}
   .claim-evidence>div,.claim-evidence-row{grid-template-columns:1fr}
   .claim-evidence-row .icon-button{justify-self:end;margin-top:-42px}
 }
+
+
+.synthesis-claims{margin:12px 0 6px;padding:12px 0;border-bottom:1px solid var(--line)}
+.synthesis-claims.empty{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.synthesis-claims.empty p{margin:6px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+.synthesis-claim-list{display:grid;gap:7px;margin-top:8px}
+.synthesis-claim-list>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;padding:8px 0;border-top:1px solid var(--line)}
+.synthesis-claim-list>div:first-child{border-top:0}
+.synthesis-claim-list span{font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+.synthesis-claim-list p{margin:0;font-size:11px;line-height:1.5}
+.synthesis-claim-list small{grid-column:2;color:var(--muted);font-size:9px}
+@media(max-width:760px){.synthesis-claims.empty{flex-direction:column}.synthesis-claim-list>div{grid-template-columns:1fr}.synthesis-claim-list small{grid-column:1}}
