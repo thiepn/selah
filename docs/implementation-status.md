@@ -6,7 +6,7 @@
 
 - product contract and Bible-study-only scope
 - reproducible data-source/license manifests
-- canonical reference domain with translation-aware exact verse bounds
+- canonical reference domain with translation-aware exact verse bounds and exact verse-presence maps
 - shared PassageContext
 - versioned IndexedDB persistence
 - Scripture and personal-study search engines
@@ -15,7 +15,7 @@
 - deployable Scripture reader/workspace
 - durable annotation anchors, including translation-scoped multi-verse text ranges
 - multi-verse notes and highlights, including cross-chapter selections
-- Study / Study Document / Workspace separation
+- Study / Study Document / Synthesis / Workspace separation
 - Research Trail back/forward behavior and reference Peek
 - explicit previous/next Bible chapter navigation
 - visible chapter boundaries inside cross-chapter passage studies
@@ -40,15 +40,19 @@
 
 ### P19–P23 — usability, offline, ownership
 
-- study archive/search drawer
-- rename/archive study management
+- Bible-book-grouped study archive/search drawer with recoverable archived studies
+- rename/archive/restore study management
 - mobile Bible-first study-sheet layout
-- PWA service worker and runtime Scripture caching
+- PWA service worker with network-first freshness and offline fallback
 - full backup/restore with forward migration
 - Markdown study-context export
 - keyboard navigation basics and accessible semantic controls
 - resizable keyboard-operable desktop panes
 - semantic, arrow-key-operable study tablist
+- keyboard-first Scripture annotation shortcuts that stay disabled while editing
+- structured Synthesis workflow: Main idea → Explain → Evidence → Confidence → Apply → Pray
+- deterministic study-derived review cards with 1d / 7d / 30d / 90d / 180d scheduling
+- review-card history embedded per card and searchable with personal study content
 
 ## Production data pipeline
 
@@ -56,7 +60,7 @@
 - official BSB USJ canonical English-text normalization
 - official BSB versification treated as translation authority; generic-English differences are recorded rather than silently coerced
 - current BSB chapter JSON + historical JSONL display compatibility
-- generated exact BSB verse bounds
+- generated exact BSB verse bounds and verse-presence maps
 - generated Scripture search index
 - vendored-data integrity validation
 - canonical Strong's concordance generation
@@ -71,8 +75,9 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **47/47 passing** on the latest tested study-engine head
+- automated Node test suite: **51/51 passing** on the current head
 - static application build/integrity validation
+- browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
 - backup corruption and future-schema rejection
 - local HTTP serving smoke check
@@ -87,7 +92,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **153.14 MiB / 3,668 files**
-- application code remains small relative to data: about **53 KiB app JS + 95 KiB core JS + 21 KiB CSS** before compression in the qualified build
+- current application code remains small relative to data: about **71 KiB app JS + 105 KiB core JS + 26 KiB CSS** before compression
 
 ## Open qualification work
 
@@ -99,4 +104,4 @@
 
 ## Product boundaries still enforced
 
-Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. The default experience remains Scripture first, with study tools operating contextually around the passage.
+Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Review exists only as a retention layer for conclusions the user deliberately wrote in Synthesis. The default experience remains Scripture first, with study tools operating contextually around the passage.
