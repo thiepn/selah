@@ -20,6 +20,11 @@ function claimHtml(claim){
   return `<article class="interpretation-claim" data-claim-id="${esc(claim.id)}"><div class="claim-head"><span class="claim-confidence ${esc(claim.confidence)}">${esc(LABELS[claim.confidence]??claim.confidence)}</span><div><button class="text-button" data-claim-action="edit" type="button">Edit</button><button class="text-button" data-claim-action="delete" type="button">Delete</button></div></div><p class="claim-statement">${esc(claim.statement)}</p>${evidence}</article>`;
 }
 
+export function claimsSummaryHtml(claims){
+  if(!claims.length)return '<section class="synthesis-claims empty"><div><span class="mini-label">INTERPRETATION CLAIMS</span><p>No explicit claims yet. Use Claims when you want to separate what the text says from what you infer.</p></div><button class="text-button" id="synthesisClaimsBtn" type="button">Open Claims</button></section>';
+  return `<section class="synthesis-claims"><div class="section-heading-row"><span class="mini-label">INTERPRETATION CLAIMS · ${claims.length}</span><button class="text-button" id="synthesisClaimsBtn" type="button">Edit claims</button></div><div class="synthesis-claim-list">${claims.slice(0,6).map((claim)=>`<div><span>${esc(LABELS[claim.confidence]??claim.confidence)}</span><p>${esc(claim.statement)}</p>${claim.evidence.length?`<small>${claim.evidence.map((item)=>esc(formatPassage(item.passage))).join(' · ')}</small>`:''}</div>`).join('')}</div></section>`;
+}
+
 export async function claimsUI(container,repo,studyService,currentStudy,currentScripture,ensureStudy,toast,resolveReference,openPassage){
   const service=new InterpretationClaimService(repo);
   let study=currentStudy;
