@@ -1,6 +1,6 @@
 import { LITERARY_MODE_LABELS, defaultLiteraryMode } from './core/study/observation/index.js';
 
-export function guideLiteraryModeControlHtml(passage,override) {
+export function modeControlHtml(passage,override) {
   const automatic=defaultLiteraryMode(passage);
   const current=override??automatic;
   const options=Object.entries(LITERARY_MODE_LABELS).map(([value,label])=>`<option value="${value}"${current===value?' selected':''}>${label}</option>`).join('');
@@ -8,6 +8,6 @@ export function guideLiteraryModeControlHtml(passage,override) {
 }
 
 
-export function observationPromptCategoryLabel(category,mode) {
+export function promptLabel(category,mode) {
   return category==='literary' ? `${LITERARY_MODE_LABELS[mode]} lens` : category;
 }
