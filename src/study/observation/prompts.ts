@@ -102,7 +102,7 @@ export function buildObservationPrompts(scripture:ScripturePassage,mode:Literary
       };
     });
 
-  const logic=analyzeStructuralMarkers(scripture).slice(0,2).map((marker)=>({
+  const logic=analyzeStructuralMarkers(scripture).slice(0,3).map((marker)=>({
     id:`logic:${marker.key}`,
     category:'logic' as const,
     prompt:markerQuestion(marker),
