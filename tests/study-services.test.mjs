@@ -35,3 +35,26 @@ test('studies can be renamed and archived without changing their primary passage
   assert.equal(archived.archived,true);
   assert.equal((await service.recent()).length,0);
 });
+
+
+test('study metadata normalizes topics atomically',async()=>{
+  const repo=new MemorySelahRepository();
+  const service=new StudyService(repo,{idFactory:()=> 'meta-1',now:()=>30});
+  const study=await service.create(p('Col 1:15-20'));
+  const updated=await service.updateMetadata(study.id,{
+    title:'Supremacy of Christ',
+    tags:[' Christology ','Worship','#christology','  cosmic   Christ  '],
+  });
+  assert.equal(updated.title,'Supremacy of Christ');
+  assert.deepEqual(updated.tags,['Christology','Worship','cosmic Christ']);
+});
+
+test('invalid topics do not partially rename a study',async()=>{
+  const repo=new MemorySelahRepository();
+  const service=new StudyService(repo,{idFactory:()=> 'meta-2',now:()=>40});
+  const study=await service.create(p('John 1:1-18'),'The Word');
+  await assert.rejects(()=>service.updateMetadata(study.id,{title:'Changed title',tags:['x'.repeat(41)]}),/40 characters/);
+  const unchanged=await repo.getStudy(study.id);
+  assert.equal(unchanged.title,'The Word');
+  assert.deepEqual(unchanged.tags,[]);
+});
