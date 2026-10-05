@@ -15,7 +15,7 @@
 - deployable Scripture reader/workspace
 - durable annotation anchors, including translation-scoped multi-verse text ranges
 - multi-verse notes and highlights, including cross-chapter selections
-- Study / Study Document / Synthesis / Workspace separation
+- Study / Study Document / Passage Outline / Synthesis / Workspace separation
 - Research Trail back/forward behavior and reference Peek
 - explicit previous/next Bible chapter navigation
 - visible chapter boundaries inside cross-chapter passage studies
@@ -24,6 +24,9 @@
 
 - repeated English-word and Strong's pattern analysis
 - high-confidence textual discourse-marker observation aids
+- deterministic text-derived observation questions for repetition, logic, structure, explicit claims, and anti-assumption checks
+- observation prompts can highlight their source tokens and be saved as passage-anchored study questions
+- study questions preserve separate multiline responses that remain searchable and exportable
 - token-preserving Phrasing tree model, clause splitting/merging, indentation, labels, and persistence
 - bidirectional cross-reference engine (outgoing references + incoming backlinks)
 - contextual Lens
@@ -50,8 +53,9 @@
 - resizable keyboard-operable desktop panes
 - semantic, arrow-key-operable study tablist
 - keyboard-first Scripture annotation shortcuts that stay disabled while editing
+- durable Passage Outline with validated in-passage, non-overlapping verse units; manual creation, selection-to-outline, editorial-heading seeding, Guide/Synthesis handoff, and visible Bible-pane boundaries
 - structured Synthesis workflow: Main idea → Explain → Evidence → Confidence → Apply → Pray
-- deterministic study-derived review cards with 1d / 7d / 30d / 90d / 180d scheduling
+- deterministic study-derived review cards with 1d / 7d / 30d / 90d / 180d scheduling, including a completed passage-outline retrieval card
 - review-card history embedded per card and searchable with personal study content
 
 ## Production data pipeline
@@ -75,7 +79,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **51/51 passing** on the current head
+- automated Node test suite: **59/59 passing** on the current head
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -92,7 +96,7 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **153.14 MiB / 3,668 files**
-- current application code remains small relative to data: about **71 KiB app JS + 105 KiB core JS + 26 KiB CSS** before compression
+- current application code remains small relative to data: about **84 KiB app JS + 114 KiB core JS + 30 KiB CSS** before compression
 
 ## Open qualification work
 
@@ -104,4 +108,4 @@
 
 ## Product boundaries still enforced
 
-Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Review exists only as a retention layer for conclusions the user deliberately wrote in Synthesis. The default experience remains Scripture first, with study tools operating contextually around the passage.
+Selah intentionally has no Today/dashboard surface, streak system, prayer manager, reading-plan layer, social feed, sermon manager, or built-in AI dependency. Observation prompts ask text-grounded questions but do not generate interpretation. Review exists only as a retention layer for conclusions and structure the user deliberately created. The default experience remains Scripture first, with study tools operating contextually around the passage.
