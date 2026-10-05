@@ -1,7 +1,8 @@
 import { formatPassage } from '../domain/references/reference.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis } from '../domain/studies/types.js';
+import type { ReviewCard } from '../review/types.js';
 
-export type PersonalSearchKind = 'study' | 'document' | 'synthesis' | 'annotation';
+export type PersonalSearchKind = 'study' | 'document' | 'synthesis' | 'review' | 'annotation';
 export interface PersonalSearchResult {
   kind: PersonalSearchKind;
   studyId?: string;
@@ -19,7 +20,7 @@ interface IndexedItem extends PersonalSearchResult { normalized: string; }
 export class PersonalStudySearchIndex {
   #items: IndexedItem[] = [];
 
-  rebuild(input: { studies: Study[]; documents: StudyDocument[]; syntheses?: StudySynthesis[]; annotations: Annotation[] }): void {
+  rebuild(input: { studies: Study[]; documents: StudyDocument[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
     const studies = new Map(input.studies.map((study)=>[study.id,study]));
     this.#items = [];
     for (const study of input.studies) {
@@ -38,6 +39,11 @@ export class PersonalStudySearchIndex {
       const text=[synthesis.mainIdea,synthesis.explanation,synthesis.evidence,synthesis.application,synthesis.prayer,synthesis.confidence].filter(Boolean).join(' ');
       const excerpt=synthesis.mainIdea||synthesis.explanation||synthesis.application||synthesis.prayer;
       this.#items.push({kind:'synthesis',studyId:synthesis.studyId,title,excerpt:excerpt.slice(0,240),score:0,normalized:normalize(`${title} ${text}`)});
+    }
+    for (const card of input.reviewCards ?? []) {
+      const study=studies.get(card.studyId);
+      const title=study?.title??(study?formatPassage(study.primaryPassage):'Review card');
+      this.#items.push({kind:'review',studyId:card.studyId,title,excerpt:card.prompt,score:0,normalized:normalize(`${title} ${card.prompt} ${card.answer}`)});
     }
     for (const annotation of input.annotations) {
       const study=annotation.studyId?studies.get(annotation.studyId):undefined;
