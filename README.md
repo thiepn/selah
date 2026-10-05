@@ -39,6 +39,7 @@ Implemented and wired into the deployable static application:
 - text-derived observation questions that highlight their evidence without supplying interpretations
 - genre-aware observation calibration across Narrative, Gospel, Law, Poetry, Wisdom, Prophecy, Epistle, and Apocalyptic lenses, with reversible per-study overrides
 - interpretation Claims workspace with Explicit / Strong inference / Tentative / Disputed support levels and exact in-passage Scripture evidence
+- Claims remain visible inside Synthesis so final explanations stay traceable to explicit user-authored reasoning
 - structured Synthesis for main idea, explanation, evidence, confidence, application, and prayer
 - study-derived Review cards with Forgot / Difficult / Good scheduling, including completed passage structure
 - custom review cards that remain independent from Synthesis-derived cards
@@ -50,7 +51,7 @@ Implemented and wired into the deployable static application:
 - contextual Lens and Passage Guide
 - lexicon, morphology, concordance, and original-language composition layer
 - real local verse-aligned translation comparison between primary BSB and public-domain WEB, with explicit missing-verse handling
-- Scripture search and personal-study search
+- Scripture search and source-aware personal search that returns Claims, Outline, Synthesis, Notes, and book understanding to their originating study surface
 - Books / Topics archive views with manually curated, normalized study topics
 - personal Book Overviews derived from actual passage studies, recurring topics, main ideas, and unresolved questions
 - one autosaved, searchable personal understanding field per canonical Bible book
@@ -58,6 +59,7 @@ Implemented and wired into the deployable static application:
 - copyable external-AI study context with no API dependency, plus optional Copy & open ChatGPT handoff
 - study title/topic metadata editing with topic-aware search and Markdown export
 - interpretation claims included in personal search, Markdown/AI export, backup/migration, and study-deletion lifecycle
+- new claims default to Tentative; Explicit and Strong inference require at least one exact textual-evidence reference
 - version-aware full backup/restore
 - PWA shell with network-first freshness and offline fallback
 - responsive Bible-first desktop/mobile workspace
