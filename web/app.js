@@ -16,7 +16,7 @@ import { ReviewService } from './core/review/index.js';
 import { bookOverviewContentHtml } from './book-overview.js';
 import { modeControlHtml, promptLabel } from './guide-literary-mode.js';
 import { createTranslationRegistry, comparisonPanelHtml } from './translation-compare.js';
-import { claimsUI } from './interpretation-claims.js';
+import { claimsUI, claimsSummaryHtml } from './interpretation-claims.js';
 
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
@@ -695,10 +695,11 @@ function synthesisHasContent(value) {
 }
 
 async function renderSynthesis() {
-  const [saved,outline,studyAnnotations]=await Promise.all([
+  const [saved,outline,studyAnnotations,claims]=await Promise.all([
     currentStudy ? repo.getStudySynthesis(currentStudy.id) : Promise.resolve(undefined),
     currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
     currentStudy ? annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id) : Promise.resolve([]),
+    currentStudy ? repo.listInterpretationClaims(currentStudy.id) : Promise.resolve([]),
   ]);
   const unresolvedQuestions=studyAnnotations.filter((annotation)=>annotation.kind==='question'&&!annotation.response?.trim());
   const synthesis=saved??emptySynthesis(currentStudy?.id);
@@ -708,7 +709,7 @@ async function renderSynthesis() {
   const unresolvedHtml=unresolvedQuestions.length
     ? `<section class="synthesis-unresolved"><div><span class="mini-label">UNRESOLVED QUESTIONS · ${unresolvedQuestions.length}</span>${unresolvedQuestions.slice(0,4).map((question)=>`<p>${escapeHtml(question.body??'Question')}</p>`).join('')}</div><button class="text-button" id="synthesisQuestionsBtn" type="button">Open in Notes</button></section>`
     : '';
-  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>${structureSummary}${unresolvedHtml}
+  elements.studyContent.innerHTML=`<section class="panel synthesis-panel"><span class="eyebrow">SYNTHESIS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">State what the passage means after observation and investigation. Keep conclusions tied to textual evidence.</p>${structureSummary}${claimsSummaryHtml(claims)}${unresolvedHtml}
     <label class="synthesis-field synthesis-main"><span>Main idea</span><small>One sentence: what is the author saying here?</small><textarea id="synthesisMainIdea" rows="2" placeholder="The main point of this passage is…">${escapeHtml(synthesis.mainIdea)}</textarea></label>
     <label class="synthesis-field"><span>Explain it</span><small>Explain the passage in your own words as if teaching someone else.</small><textarea id="synthesisExplanation" rows="7" placeholder="In context, the author is arguing…">${escapeHtml(synthesis.explanation)}</textarea></label>
     <label class="synthesis-field"><span>Textual evidence</span><small>Which verses, words, structure, or connections support your reading?</small><textarea id="synthesisEvidence" rows="4" placeholder="v. 6…; the therefore in v. 9…">${escapeHtml(synthesis.evidence)}</textarea></label>
@@ -725,6 +726,7 @@ async function renderSynthesis() {
   queryAll('.synthesis-field textarea').forEach((field)=>field.addEventListener('input',()=>scheduleSynthesisSave(readSynthesisForm())));
   $('#synthesisConfidence')?.addEventListener('change',()=>scheduleSynthesisSave(readSynthesisForm(),0));
   $('#synthesisOutlineBtn')?.addEventListener('click',async()=>{activeTab='outline';await renderActiveTab();});
+  $('#synthesisClaimsBtn')?.addEventListener('click',()=>$('#tab-claims').click());
   $('#synthesisQuestionsBtn')?.addEventListener('click',async()=>{activeTab='notes';await renderActiveTab();});
   $('#addCustomReviewCard')?.addEventListener('click',async()=>{const study=await ensureStudy();await openReviewCardEditor(study.id);});
   $('#syncReviewCards')?.addEventListener('click',async()=>{
@@ -801,7 +803,7 @@ async function renderReferences() {
 async function renderWords() {
   const strongs = selectedToken?.strongs ?? selectedLexicalKey;
   if (!strongs) {
-    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY</span><h2>Select an aligned word</h2><p class="panel-lede">Tap a word in Scripture that has original-language alignment, or choose an important lexical key from the Guide. Selah shows lexical, morphology, and concordance evidence without treating a gloss as the meaning of the whole verse.</p><p class="quiet">Select an aligned word in Scripture or choose an important lexical item from the Guide. Some English words intentionally have no direct lexical alignment.</p></section>`;
+    elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">WORD STUDY</span><h2>Select an aligned word</h2><p class="panel-lede">Select an aligned word in Scripture or an important lexical item from the Guide. Selah shows lexical, morphology, and concordance evidence without treating a gloss as the meaning of the whole verse.</p></section>`;
     return;
   }
   elements.studyContent.innerHTML='<div class="loading">Loading original-language data…</div>';
