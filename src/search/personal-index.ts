@@ -1,13 +1,16 @@
 import { formatPassage } from '../domain/references/reference.js';
+import { BOOK_BY_ID } from '../domain/references/books.js';
 import type { Annotation, Study, StudyDocument, StudySynthesis } from '../domain/studies/types.js';
 import type { ReviewCard } from '../review/types.js';
 import type { StudyOutline } from '../study/outline/types.js';
+import type { BookSynthesis } from '../study/book-synthesis/types.js';
 
-export type PersonalSearchKind = 'study' | 'document' | 'outline' | 'synthesis' | 'review' | 'annotation';
+export type PersonalSearchKind = 'study' | 'document' | 'outline' | 'book-synthesis' | 'synthesis' | 'review' | 'annotation';
 export interface PersonalSearchResult {
   kind: PersonalSearchKind;
   studyId?: string;
   annotationId?: string;
+  bookId?: string;
   title: string;
   excerpt: string;
   score: number;
@@ -21,7 +24,7 @@ interface IndexedItem extends PersonalSearchResult { normalized: string; }
 export class PersonalStudySearchIndex {
   #items: IndexedItem[] = [];
 
-  rebuild(input: { studies: Study[]; documents: StudyDocument[]; outlines?: StudyOutline[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
+  rebuild(input: { studies: Study[]; documents: StudyDocument[]; outlines?: StudyOutline[]; bookSyntheses?: BookSynthesis[]; syntheses?: StudySynthesis[]; reviewCards?: ReviewCard[]; annotations: Annotation[] }): void {
     const studies = new Map(input.studies.map((study)=>[study.id,study]));
     this.#items = [];
     for (const study of input.studies) {
@@ -40,6 +43,12 @@ export class PersonalStudySearchIndex {
       const parts=outline.sections.map((section)=>`${formatPassage(section.passage)} ${section.label}`);
       const excerpt=outline.sections.slice(0,3).map((section)=>`${formatPassage(section.passage)} — ${section.label||'Untitled section'}`).join(' · ');
       this.#items.push({kind:'outline',studyId:outline.studyId,title,excerpt,score:0,normalized:normalize(`${title} ${parts.join(' ')}`)});
+    }
+    for (const book of input.bookSyntheses ?? []) {
+      if(!book.understanding.trim())continue;
+      const name=BOOK_BY_ID.get(book.bookId)?.name??book.bookId;
+      const title=`${name} — book understanding`;
+      this.#items.push({kind:'book-synthesis',bookId:book.bookId,title,excerpt:book.understanding.slice(0,240),score:0,normalized:normalize(`${title} ${book.understanding}`)});
     }
     for (const synthesis of input.syntheses ?? []) {
       const study=studies.get(synthesis.studyId);
