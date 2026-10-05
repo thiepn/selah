@@ -114,7 +114,27 @@ export class IndexedDbSelahRepository implements SelahRepository {
   async listStudies() { return this.#all<Study>(STORES.studies); }
   async getStudy(id: string) { return this.#get<Study>(STORES.studies, id); }
   async putStudy(v: Study) { await this.#put(STORES.studies, v); }
-  async deleteStudy(id: string) { await this.#delete(STORES.studies, id); }
+  async deleteStudy(id: string) {
+    const [claims,review,annotations,phrasing,workspaces]=await Promise.all([
+      this.listInterpretationClaims(id),
+      this.listReviewCards(id),
+      this.listAnnotations(id),
+      this.listPhrasingDocuments(id),
+      this.listWorkspaces(),
+    ]);
+    const stores=[STORES.studies,STORES.documents,STORES.syntheses,STORES.outlines,STORES.claims,STORES.review,STORES.annotations,STORES.phrasing,STORES.workspaces];
+    const tx=this.#requireDb().transaction(stores,'readwrite');
+    tx.objectStore(STORES.studies).delete(id);
+    tx.objectStore(STORES.documents).delete(id);
+    tx.objectStore(STORES.syntheses).delete(id);
+    tx.objectStore(STORES.outlines).delete(id);
+    for(const item of claims)tx.objectStore(STORES.claims).delete(item.id);
+    for(const item of review)tx.objectStore(STORES.review).delete(item.id);
+    for(const item of annotations)tx.objectStore(STORES.annotations).delete(item.id);
+    for(const item of phrasing)tx.objectStore(STORES.phrasing).delete(item.id);
+    for(const item of workspaces)if(item.studyId===id)tx.objectStore(STORES.workspaces).delete(item.id);
+    await transactionDone(tx);
+  }
   async getStudyDocument(id: string) { return this.#get<StudyDocument>(STORES.documents, id); }
   async putStudyDocument(v: StudyDocument) { await this.#put(STORES.documents, v); }
   async getStudySynthesis(id: string) { return this.#get<StudySynthesis>(STORES.syntheses, id); }
