@@ -916,6 +916,16 @@ async function refreshReviewBadge() {
   $('#reviewBtn')?.setAttribute('aria-label',due.length?`Review, ${due.length} card${due.length===1?'':'s'} due`:'Review, nothing due');
 }
 
+function reviewSourceLabel(source) {
+  return {
+    'main-idea':'Main idea',
+    outline:'Passage structure',
+    explanation:'Explain it',
+    evidence:'Textual evidence',
+    application:'Application',
+  }[source]??'Study recall';
+}
+
 async function renderReview(studyId=reviewStudyFilter) {
   const due=studyId?await reviewService.dueForStudy(studyId):await reviewService.due();
   if(!due.length) {
@@ -927,9 +937,10 @@ async function renderReview(studyId=reviewStudyFilter) {
   }
   const card=due[0];
   const study=await repo.getStudy(card.studyId);
-  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due${studyId?' in this study':''}</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></section>`;
+  elements.reviewContent.innerHTML=`<section class="review-session" data-review-card="${escapeHtml(card.id)}"><div class="review-progress">${due.length} due${studyId?' in this study':''}</div><span class="eyebrow">${study?escapeHtml(formatPassage(study.primaryPassage)):'STUDY REVIEW'}</span><span class="review-source">${escapeHtml(reviewSourceLabel(card.source))}</span><h2>${escapeHtml(card.prompt)}</h2><button class="primary-button review-reveal" id="reviewReveal" type="button">Show answer</button><div class="review-answer" id="reviewAnswer" hidden><p>${escapeHtml(card.answer)}</p><div class="review-ratings"><button type="button" data-review-rating="forgot">Forgot</button><button type="button" data-review-rating="difficult">Difficult</button><button type="button" data-review-rating="good">Good</button></div><div class="review-answer-actions">${study?'<button class="text-button" id="reviewOpenStudy" type="button">Open study</button>':''}<button class="text-button review-delete" id="reviewDelete" type="button">Delete card</button></div></div></section>`;
   $('#reviewReveal')?.addEventListener('click',(event)=>{event.currentTarget.hidden=true;$('#reviewAnswer').hidden=false;});
   queryAll('[data-review-rating]').forEach((button)=>button.addEventListener('click',async()=>{await reviewService.rate(card.id,button.dataset.reviewRating);await refreshReviewBadge();await renderReview(studyId);}));
+  $('#reviewOpenStudy')?.addEventListener('click',async()=>{if(!study)return;elements.reviewDrawer.hidden=true;reviewStudyFilter=undefined;await openStudyById(study.id);});
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
 
