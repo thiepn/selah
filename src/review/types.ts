@@ -3,7 +3,7 @@ import { formatPassage } from '../domain/references/reference.js';
 import type { StudyOutline } from '../study/outline/types.js';
 
 export type ReviewRating = 'forgot' | 'difficult' | 'good';
-export type ReviewCardSource = 'main-idea' | 'outline' | 'explanation' | 'evidence' | 'application';
+export type ReviewCardSource = 'main-idea' | 'outline' | 'explanation' | 'evidence' | 'application' | 'custom';
 
 export interface ReviewAttempt {
   at: number;
