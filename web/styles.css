@@ -274,7 +274,9 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .review-ratings{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:24px}
 .review-ratings button{border:1px solid var(--line);background:var(--surface-2);padding:9px 6px;border-radius:4px;font-size:11px}
 .review-ratings button[data-review-rating="good"]{border-color:var(--accent)}
-.review-delete{margin-top:18px;padding-left:0}
+.review-source{margin-top:6px;font-size:10px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
+.review-answer-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}
+.review-answer-actions .text-button{padding-left:0}
 .synthesis-review-action{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:20px;padding:18px 0;border-top:1px solid var(--line)}
 .synthesis-review-action strong{font-size:12px}
 .synthesis-review-action p{margin:4px 0 0;max-width:48ch;color:var(--muted);font-size:10px;line-height:1.5}
