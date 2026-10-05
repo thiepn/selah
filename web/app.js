@@ -533,7 +533,7 @@ async function renderResources() {
 }
 
 async function renderActiveTab() {
-  $('.tab').forEach((tab)=>{
+  queryAll('.tab').forEach((tab)=>{
     const active=tab.dataset.tab===activeTab;
     tab.classList.toggle('active',active);
     tab.setAttribute('aria-selected',String(active));
