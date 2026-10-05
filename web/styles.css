@@ -529,3 +529,10 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .snapshot-claims p{margin:0;font-size:11px;line-height:1.5}
 .snapshot-claims small{grid-column:2;color:var(--muted);font-size:9px}
 @media(max-width:760px){.snapshot-claims>div{grid-template-columns:1fr}.snapshot-claims small{grid-column:1}}
+
+
+:where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
