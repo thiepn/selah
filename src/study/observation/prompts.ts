@@ -90,7 +90,7 @@ export function buildObservationPrompts(scripture:ScripturePassage,mode:Literary
 
   const repetitions=analyzePatterns(scripture)
     .filter((pattern)=>pattern.type==='word')
-    .slice(0,2)
+    .slice(0,3)
     .map((pattern)=>{
       const verses=pattern.occurrences.map((occurrence)=>occurrence.verse);
       return {
