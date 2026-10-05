@@ -244,3 +244,18 @@ body.launcher-mode .study-pane{display:none}
 body.launcher-mode .passage-meta{visibility:hidden}
 body.launcher-mode .scripture{width:min(760px,calc(100% - 40px));padding-top:0}
 body.launcher-mode .study-bar .study-actions{display:none}
+
+
+.synthesis-panel{max-width:760px}
+.synthesis-field{display:grid;gap:6px;padding:16px 0;border-top:1px solid var(--line)}
+.synthesis-field:first-of-type{border-top:0}
+.synthesis-field>span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.synthesis-field>small{font-size:10px;line-height:1.5;color:var(--muted)}
+.synthesis-field textarea,.synthesis-field select{width:100%;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);padding:10px 11px;outline:0;line-height:1.55}
+.synthesis-field textarea{resize:vertical;font-size:13px}
+.synthesis-field textarea:focus,.synthesis-field select:focus{border-color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent)}
+.synthesis-main textarea{font:16px/1.55 Georgia,"Times New Roman",serif}
+.synthesis-confidence{grid-template-columns:minmax(0,1fr) minmax(150px,220px);align-items:center}
+.synthesis-confidence>small{grid-column:1}
+.synthesis-confidence select{grid-column:2;grid-row:1 / span 2}
+@media(max-width:760px){.synthesis-confidence{grid-template-columns:1fr}.synthesis-confidence select{grid-column:1;grid-row:auto}}
