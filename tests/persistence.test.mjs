@@ -12,7 +12,7 @@ test('snapshot export/import round-trips durable study state', async () => {
   await repo.putStudySynthesis({studyId:'study-1',mainIdea:'Christ moves from humiliation to exaltation.',explanation:'Paul presents Christ as the pattern for humble obedience.',evidence:'Philippians 2:6-11',application:'Choose humble service.',prayer:'Form this mind in me.',confidence:'clear',updatedAt:now});
   await repo.putStudyOutline({studyId:'study-1',sections:[{id:'o1',passage:parseReference('Phil 2:5-8').passage,label:'Christ humbles himself'},{id:'o2',passage:parseReference('Phil 2:9-11').passage,label:'God exalts Christ'}],updatedAt:now});
   await repo.putBookSynthesis({bookId:'PHP',understanding:'Philippians presents Christ-shaped humility and joy in gospel partnership.',updatedAt:now});
-  await repo.putInterpretationClaim({id:'claim-1',studyId:'study-1',claim:'Christ’s humiliation grounds the church’s call to humility.',confidence:'clear',evidence:[{id:'e1',passage:parseReference('Phil 2:5-8').passage,note:'The appeal points to the mind of Christ.'}],createdAt:now,updatedAt:now});
+  await repo.putInterpretationClaim({id:'claim-1',studyId:'study-1',statement:'Christ’s humiliation grounds the church’s call to humility.',confidence:'strong-inference',evidence:[{passage:parseReference('Phil 2:5-8').passage,note:'The appeal points to the mind of Christ.'}],createdAt:now,updatedAt:now});
   await repo.putReviewCard({id:'r1',studyId:'study-1',source:'main-idea',prompt:'What is the main idea?',answer:'Christ moves from humiliation to exaltation.',stage:0,dueAt:now,history:[],createdAt:now,updatedAt:now});
   await repo.putAnnotation({
     id: 'note-1', studyId: 'study-1', kind: 'note',
