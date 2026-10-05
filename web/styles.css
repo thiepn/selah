@@ -400,3 +400,15 @@ body.launcher-mode .study-bar .study-actions{display:none}
 
 .export-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:560px){.export-dialog footer{align-items:stretch}.export-actions{display:grid;grid-template-columns:1fr}.export-actions button{width:100%}}
+
+
+.synthesis-review-buttons{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.review-card-dialog{width:min(520px,calc(100vw - 28px));border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:0;box-shadow:var(--shadow)}
+.review-card-dialog::backdrop{background:rgba(0,0,0,.35)}
+.review-card-dialog form{display:grid;gap:14px;padding:18px}
+.review-card-dialog header,.review-card-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.review-card-dialog label{display:grid;gap:6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.review-card-dialog textarea{width:100%;resize:vertical;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);padding:10px 11px;font:12px/1.55 ui-sans-serif,system-ui;outline:0;text-transform:none;letter-spacing:normal;font-weight:400}
+.review-card-dialog textarea:focus{border-color:var(--accent)}
+.review-answer-actions>div{display:flex;align-items:center;gap:10px}
+@media(max-width:760px){.synthesis-review-buttons{justify-content:flex-start}.synthesis-review-buttons button{width:100%}}
