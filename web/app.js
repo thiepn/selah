@@ -965,66 +965,37 @@ async function renderReview(studyId=reviewStudyFilter) {
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
 
-async function persistBookUnderstanding(bookId,value) {
+async function persistBookUnderstanding(bookId,value){
   await bookSynthesisService.save(bookId,value);
   if(activeBookId===bookId)$('#bookOverviewSaveState').textContent='saved locally';
 }
-
-function scheduleBookUnderstandingSave(bookId,value,delay=350) {
+function scheduleBookUnderstandingSave(bookId,value){
   pendingBookUnderstandingSave={bookId,value};
   $('#bookOverviewSaveState').textContent='saving…';
   clearTimeout(bookOverviewSaveTimer);
   bookOverviewSaveTimer=setTimeout(async()=>{
-    const pending=pendingBookUnderstandingSave;
-    pendingBookUnderstandingSave=undefined;
+    const pending=pendingBookUnderstandingSave; pendingBookUnderstandingSave=undefined;
     if(!pending)return;
     try{await persistBookUnderstanding(pending.bookId,pending.value);}catch{if(activeBookId===pending.bookId)$('#bookOverviewSaveState').textContent='not saved';}
-  },delay);
+  },350);
 }
-
-async function flushBookUnderstandingSave() {
+async function flushBookUnderstandingSave(){
   clearTimeout(bookOverviewSaveTimer);
-  const pending=pendingBookUnderstandingSave;
-  pendingBookUnderstandingSave=undefined;
-  if(!pending)return;
-  await persistBookUnderstanding(pending.bookId,pending.value);
+  const pending=pendingBookUnderstandingSave; pendingBookUnderstandingSave=undefined;
+  if(pending)await persistBookUnderstanding(pending.bookId,pending.value);
 }
-
-async function openBookOverview(bookId) {
-  const book=BOOK_BY_ID.get(bookId);
-  if(!book)return;
+async function openBookOverview(bookId){
+  const book=BOOK_BY_ID.get(bookId); if(!book)return;
   await flushBookUnderstandingSave().catch(()=>{});
   activeBookId=bookId;
-  const studies=(await repo.listStudies()).filter((study)=>!study.archived&&study.primaryPassage.start.book===bookId);
-  const [saved,synthesisEntries,annotationEntries]=await Promise.all([
-    bookSynthesisService.get(bookId),
-    Promise.all(studies.map(async(study)=>({study,synthesis:await repo.getStudySynthesis(study.id)}))),
-    Promise.all(studies.map(async(study)=>({study,annotations:await repo.listAnnotations(study.id)}))),
-  ]);
-  const synthesisByStudy=new Map(synthesisEntries.map((entry)=>[entry.study.id,entry.synthesis]));
-  const topicCounts=new Map();
-  for(const study of studies)for(const tag of study.tags){
-    const key=tag.toLocaleLowerCase('en');
-    const current=topicCounts.get(key)??{label:tag,count:0};
-    current.count+=1;
-    topicCounts.set(key,current);
-  }
-  const unresolved=[];
-  for(const entry of annotationEntries)for(const annotation of entry.annotations){
-    if(annotation.kind==='question'&&!annotation.response?.trim())unresolved.push({study:entry.study,question:annotation});
-  }
-  const topics=[...topicCounts.values()].sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,undefined,{sensitivity:'base'}));
-  const topicHtml=topics.length?`<div class="book-topic-summary">${topics.map((topic)=>`<span>${escapeHtml(topic.label)}${topic.count>1?` × ${topic.count}`:''}</span>`).join('')}</div>`:'<p class="quiet">No study topics assigned in this book yet.</p>';
-  const studiesHtml=studies.length?studies.sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)||compareVerseRefs(a.primaryPassage.end,b.primaryPassage.end)).map((study)=>{
-    const synthesis=synthesisByStudy.get(study.id);
-    const mainIdea=synthesis?.mainIdea?.trim();
-    return `<button class="book-study-card" data-book-study-id="${escapeHtml(study.id)}" type="button"><span>${escapeHtml(formatPassage(study.primaryPassage))}</span><strong>${escapeHtml(study.title??formatPassage(study.primaryPassage))}</strong>${mainIdea?`<p>${escapeHtml(mainIdea)}</p>`:''}</button>`;
-  }).join(''):'<p class="quiet">No active passage studies in this book yet.</p>';
-  const unresolvedHtml=unresolved.length?unresolved.slice(0,8).map(({study,question})=>`<div class="book-question"><span>${escapeHtml(formatPassage(study.primaryPassage))}</span><p>${escapeHtml(question.body??'Question')}</p></div>`).join(''):'<p class="quiet">No unresolved saved questions in this book.</p>';
+  const overview=await bookSynthesisService.overview(bookId);
+  const topics=overview.topics.length?`<div class="book-topic-summary">${overview.topics.map((x)=>`<span>${escapeHtml(x.label)}${x.count>1?` × ${x.count}`:''}</span>`).join('')}</div>`:'<p class="quiet">No study topics assigned in this book yet.</p>';
+  const studies=overview.studies.length?overview.studies.map((x)=>`<button class="book-study-card" data-book-study-id="${escapeHtml(x.id)}" type="button"><span>${escapeHtml(formatPassage(x.passage))}</span><strong>${escapeHtml(x.title)}</strong>${x.mainIdea?`<p>${escapeHtml(x.mainIdea)}</p>`:''}</button>`).join(''):'<p class="quiet">No active passage studies in this book yet.</p>';
+  const questions=overview.unresolvedQuestions.length?overview.unresolvedQuestions.slice(0,8).map((x)=>`<div class="book-question"><span>${escapeHtml(formatPassage(x.passage))}</span><p>${escapeHtml(x.body)}</p></div>`).join(''):'<p class="quiet">No unresolved saved questions in this book.</p>';
   $('#bookOverviewTitle').textContent=book.name;
-  $('#bookUnderstanding').value=saved?.understanding??'';
+  $('#bookUnderstanding').value=overview.understanding;
   $('#bookOverviewSaveState').textContent='saved locally';
-  $('#bookOverviewContent').innerHTML=`<div class="book-overview-meta">${studies.length} passage ${studies.length===1?'study':'studies'} · ${unresolved.length} unresolved ${unresolved.length===1?'question':'questions'}</div><section><span class="mini-label">YOUR TOPICS</span>${topicHtml}</section><section><span class="mini-label">STUDIED PASSAGES</span><div class="book-study-list">${studiesHtml}</div></section><section><span class="mini-label">UNRESOLVED QUESTIONS · ${unresolved.length}</span><div class="book-question-list">${unresolvedHtml}</div></section>`;
+  $('#bookOverviewContent').innerHTML=`<div class="book-overview-meta">${overview.studies.length} passage ${overview.studies.length===1?'study':'studies'} · ${overview.unresolvedQuestions.length} unresolved ${overview.unresolvedQuestions.length===1?'question':'questions'}</div><section><span class="mini-label">YOUR TOPICS</span>${topics}</section><section><span class="mini-label">STUDIED PASSAGES</span><div class="book-study-list">${studies}</div></section><section><span class="mini-label">UNRESOLVED QUESTIONS · ${overview.unresolvedQuestions.length}</span><div class="book-question-list">${questions}</div></section>`;
   queryAll('#bookOverviewContent [data-book-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const id=button.dataset.bookStudyId;await flushBookUnderstandingSave().catch(()=>{});$('#bookOverviewDialog').close();await openStudyById(id);}));
   $('#bookOverviewDialog').showModal();
 }
