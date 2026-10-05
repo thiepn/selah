@@ -393,3 +393,5 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .snapshot-questions small{color:var(--muted);font-size:10px}
 .snapshot-review p{margin:0;color:var(--muted);font-size:11px}
 @media(max-width:760px){.study-snapshot-dialog{width:calc(100vw - 18px)}.snapshot-outline>div{grid-template-columns:1fr}.study-snapshot-dialog footer{position:sticky;bottom:0;background:var(--surface)}}
+
+.snapshot-footer-actions{display:flex;align-items:center;gap:8px}
