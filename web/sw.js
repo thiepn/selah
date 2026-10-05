@@ -1,5 +1,5 @@
-const CACHE = 'selah-shell-v5';
-const SHELL = ['./','./index.html','./styles.css','./app.js','./book-overview.js','./guide-literary-mode.js','./translation-compare.js','./search-worker.js','./manifest.webmanifest'];
+const CACHE = 'selah-shell-v6';
+const SHELL = ['./','./index.html','./styles.css','./app.js','./book-overview.js','./guide-literary-mode.js','./interpretation-claims.js','./translation-compare.js','./search-worker.js','./manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache)=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
