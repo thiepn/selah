@@ -10,6 +10,7 @@
   <title>Selah</title>
 </head>
 <body>
+  <nav class="skip-links" aria-label="Skip navigation"><a href="#biblePane">Skip to Scripture</a><a href="#studyPane">Skip to study tools</a></nav>
   <header class="topbar">
     <button class="wordmark" id="wordmark" type="button" aria-label="Selah">SELAH</button>
     <form class="reference-form" id="referenceForm" autocomplete="off">
@@ -27,7 +28,8 @@
   </header>
 
   <main class="workspace" id="workspace">
-    <section class="bible-pane" id="biblePane" aria-label="Scripture">
+    <h1 class="sr-only">Selah Bible study workspace</h1>
+    <section class="bible-pane" id="biblePane" aria-label="Scripture" tabindex="-1">
       <div class="passage-meta">
         <button class="chapter-nav" id="prevChapterBtn" type="button" aria-label="Previous chapter">‹</button>
         <span class="translation">BSB</span>
@@ -37,7 +39,7 @@
       <article class="scripture" id="scripture"></article>
     </section>
     <div class="divider" id="divider" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Scripture and study panes" aria-valuemin="38" aria-valuemax="72" aria-valuenow="56"></div>
-    <aside class="study-pane" id="studyPane" aria-label="Study tools">
+    <aside class="study-pane" id="studyPane" aria-label="Study tools" tabindex="-1">
       <button class="mobile-study-handle" id="mobileStudyToggle" data-mobile-study-handle type="button" aria-controls="studyPane" aria-expanded="false"><span>Study</span><span class="mobile-study-chevron" aria-hidden="true">⌃</span></button>
       <nav class="study-tabs" id="studyTabs" aria-label="Study tools" role="tablist" aria-orientation="horizontal">
         <button class="tab active" id="tab-guide" data-tab="guide" type="button" role="tab" aria-selected="true" aria-controls="studyContent" tabindex="0">Guide</button>
