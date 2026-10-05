@@ -173,3 +173,22 @@ test('guide derives lexical signals from original-language tokens when English a
   assert.equal(result.importantLexicalItems[0].strongs,'G3444');
   assert.equal(result.importantLexicalItems[0].count,2);
 });
+
+
+test('Passage Guide applies an explicit literary-mode override to observation prompts', async () => {
+  const repo=new MemorySelahRepository();
+  const annotations=new AnnotationService(repo);
+  const refs=new BsbPdCrossReferenceProvider('');
+  const guide=new PassageGuideService(annotations,refs);
+  const scripture={translationId:'BSB',passage:p('Dan 7:1-3'),verses:[
+    {ref:p('Dan 7:1').start,tokens:[{id:'a',text:'I saw ',language:'en'}]},
+    {ref:p('Dan 7:2').start,tokens:[{id:'b',text:'in my vision ',language:'en'}]},
+    {ref:p('Dan 7:3').start,tokens:[{id:'c',text:'four great beasts ',language:'en'}]},
+  ]};
+  const automatic=await guide.build(scripture);
+  assert.equal(automatic.literaryMode,'prophecy');
+  const overridden=await guide.build(scripture,'apocalyptic');
+  assert.equal(overridden.literaryMode,'apocalyptic');
+  assert.equal(overridden.observationPrompts.some((prompt)=>prompt.category==='literary'&&/seen, heard, said, or explained/i.test(prompt.prompt)),true);
+  assert.equal(overridden.observationPrompts.at(-1).category,'limits');
+});
