@@ -46,3 +46,21 @@ export function regionController(region,{initialFocus}={}){
   };
   return {open,close};
 }
+
+
+export function mobileSheetController(sheet,toggle,{media='(max-width:760px)'}={}){
+  const query=matchMedia(media);
+  const sync=()=>{
+    const mobile=query.matches;
+    const open=mobile&&sheet.classList.contains('open');
+    toggle.setAttribute('aria-expanded',String(open));
+    toggle.setAttribute('aria-label',open?'Collapse study tools':'Expand study tools');
+  };
+  const open=()=>{if(!query.matches)return;sheet.classList.add('open');sync();};
+  const close=(focus=false)=>{if(!query.matches)return false;const wasOpen=sheet.classList.contains('open');sheet.classList.remove('open');sync();if(wasOpen&&focus)requestAnimationFrame(()=>toggle.focus());return wasOpen;};
+  const toggleSheet=()=>sheet.classList.contains('open')?close():open();
+  toggle.addEventListener('click',toggleSheet);
+  query.addEventListener?.('change',()=>{if(!query.matches)sheet.classList.remove('open');sync();});
+  sync();
+  return {open,close,sync,isOpen:()=>query.matches&&sheet.classList.contains('open')};
+}
