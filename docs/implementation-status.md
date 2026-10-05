@@ -152,6 +152,18 @@
 - static release guards cover accessibility semantics, mobile-sheet control/inertness, touch targets, and skip navigation
 - this phase is implementation hardening, **not** a claim of completed real-device or full screen-reader certification
 
+### P32 — personal knowledge interlinking & cross-passage recall
+
+- active saved Studies are matched to Scripture references through canonical passage-overlap logic rather than string equality
+- archived studies are excluded from contextual personal-study matches
+- outgoing cross-references and incoming backlinks surface a compact **Studied · [title]** marker when the referenced passage overlaps prior personal work
+- Reference Peek also surfaces prior-study context for the passage being peeked itself
+- the personal-study marker opens the existing Study Snapshot, which remains the single recall gateway to main idea, outline, claims, unresolved questions, application, review state, and Open study
+- no duplicate graph or relationship persistence is introduced; contextual links are derived live from Study passage ownership
+- personal-reference rendering is isolated in a focused UI module, syntax checked, offline precached, statically deployment-guarded, and counted inside the existing 20 KB focused-UI budget
+- core overlap behavior has dedicated regression coverage
+- exact P32 head qualification is pending the current GitHub Actions queue; the last fully executed P31-qualified head remains green
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -173,7 +185,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite: **85/85 passing** on the current P29-qualified head
+- automated Node test suite: **85/85 passing** on the last fully executed P31-qualified head; P32 adds an overlap regression test pending exact-head CI
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
