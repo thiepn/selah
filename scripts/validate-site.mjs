@@ -9,6 +9,7 @@ try { await access(join(site,'data/bsb/display/PHP/PHP2.json')); } catch { await
 await access(join(site,'data/web/display/PHP/PHP2.json'));
 const html=await readFile(join(site,'index.html'),'utf8');
 const app=await readFile(join(site,'app.js'),'utf8');
+const css=await readFile(join(site,'styles.css'),'utf8');
 const bookOverview=await readFile(join(site,'book-overview.js'),'utf8');
 const literaryModeUi=await readFile(join(site,'guide-literary-mode.js'),'utf8');
 const claimsUi=await readFile(join(site,'interpretation-claims.js'),'utf8');
