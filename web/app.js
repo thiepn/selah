@@ -4,7 +4,7 @@ import { createResearchTrail, extractStudyDocumentScriptureLinks } from './core/
 import { IndexedDbSelahRepository, createBackup, parseBackup } from './core/persistence/index.js';
 import { BsbScriptureProvider, FetchTextAssetLoader, BsbResearchProvider } from './core/data/bsb/index.js';
 import { AnnotationService, annotationMatchesPassage } from './core/annotations/index.js';
-import { StudyService, WorkspaceService, OutlineService } from './core/study/index.js';
+import { StudyService, WorkspaceService, OutlineService, BookSynthesisService } from './core/study/index.js';
 import { LensService } from './core/study/lens/index.js';
 import { PassageGuideService } from './core/study/guide/index.js';
 import { OriginalLanguageService } from './core/research/original-language/index.js';
@@ -36,6 +36,7 @@ const annotationService = new AnnotationService(repo);
 const studyService = new StudyService(repo);
 const workspaceService = new WorkspaceService(repo);
 const outlineService = new OutlineService(repo);
+const bookSynthesisService = new BookSynthesisService(repo);
 const reviewService = new ReviewService(repo);
 const guideService = new PassageGuideService(annotationService, researchProvider, scriptureProvider, researchProvider);
 const lensService = new LensService(annotationService, researchProvider);
@@ -65,6 +66,7 @@ let phrasingSplitNodeId;
 let noteSaveTimer;
 let synthesisSaveTimer;
 let reviewReconcileTimer;
+let bookOverviewSaveTimer;
 let outlineDraftPassage;
 let focusedObservationPromptId;
 let pendingAnnotationKind='note';
@@ -77,6 +79,7 @@ let snapshotStudyId;
 let reviewStudyFilter;
 let reviewCardStudyId;
 let editingReviewCardId;
+let activeBookId;
 let scriptureSearchIndexPromise;
 let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
@@ -179,11 +182,12 @@ async function searchScripture(query,limit=30) {
 async function renderSearchResults(query) {
   elements.studyContent.innerHTML='<div class="loading">Searching Scripture and studies…</div>';
   const [scriptureResults,snapshot]=await Promise.all([searchScripture(query,30).catch(()=>[]),repo.exportSnapshot()]);
-  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,outlines:snapshot.studyOutlines,syntheses:snapshot.studySyntheses,reviewCards:snapshot.reviewCards,annotations:snapshot.annotations});
+  const personal=new PersonalStudySearchIndex(); personal.rebuild({studies:snapshot.studies,documents:snapshot.studyDocuments,outlines:snapshot.studyOutlines,bookSyntheses:snapshot.bookSyntheses,syntheses:snapshot.studySyntheses,reviewCards:snapshot.reviewCards,annotations:snapshot.annotations});
   const personalResults=personal.search(query,30);
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SEARCH</span><h2>${escapeHtml(query)}</h2><p class="panel-lede">Search is part of the study workspace: Scripture and your own material, not a separate dashboard.</p><section class="panel-section"><h3>Scripture</h3>${scriptureResults.map((result)=>`<button class="reference-card search-scripture" type="button" data-reference="${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}"><strong>${escapeHtml(formatPassage({start:result.ref,end:result.ref}))}</strong><span>${escapeHtml(result.text)}</span></button>`).join('')||'<p class="quiet">No Scripture matches.</p>'}</section><section class="panel-section"><h3>Your studies</h3>${personalResults.map((result)=>`<button class="reference-card search-personal" type="button"${result.studyId?` data-study-id="${escapeHtml(result.studyId)}"`:''}${result.bookId?` data-book-id="${escapeHtml(result.bookId)}"`:''}><strong>${escapeHtml(result.title)}</strong><span>${escapeHtml(result.excerpt)}</span></button>`).join('')||'<p class="quiet">No personal-study matches.</p>'}</section></section>`;
   queryAll('.search-scripture').forEach((button)=>button.addEventListener('click',async()=>{const scripture=await resolveReferenceInput(button.dataset.reference);await switchPrimaryPassage(scripture);}));
-  queryAll('.search-personal[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{const study=await repo.getStudy(button.dataset.studyId);if(!study)return;currentStudy=study;const existing=(await repo.listWorkspaces()).find((x)=>x.studyId===study.id);workspace=existing??await workspaceService.create(study.primaryPassage,'BSB',study.id);await workspaceService.markLastOpened(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));}));
+  queryAll('.search-personal[data-study-id]').forEach((button)=>button.addEventListener('click',async()=>{await openStudyById(button.dataset.studyId);}));
+  queryAll('.search-personal[data-book-id]').forEach((button)=>button.addEventListener('click',async()=>{await openBookOverview(button.dataset.bookId);}));
 }
 
 async function resolveReferenceInput(input) {
