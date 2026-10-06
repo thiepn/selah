@@ -584,3 +584,9 @@ body.launcher-mode .study-bar .study-actions{display:none}
 .topic-question span{font-size:9px;color:var(--muted)}
 .topic-question p{margin:0;font-size:11px;line-height:1.5}
 @media(max-width:760px){.topic-claim-head,.topic-question{grid-template-columns:1fr;display:grid}.topic-claim-head small{text-align:left}}
+
+@media(max-width:760px){
+  .top-actions #reviewBtn,.top-actions #studiesBtn{min-height:44px}
+  .chapter-nav{min-width:44px;min-height:44px}
+  .passage-meta{padding-inline:10px;gap:6px}
+}
