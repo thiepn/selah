@@ -22,8 +22,9 @@ export class ReviewService {
   }
 
   async due(now=this.#now()): Promise<ReviewCard[]> {
+    const activeStudyIds=new Set((await this.repository.listStudies()).filter((study)=>!study.archived).map((study)=>study.id));
     return (await this.repository.listReviewCards())
-      .filter((card)=>card.dueAt<=now)
+      .filter((card)=>activeStudyIds.has(card.studyId)&&card.dueAt<=now)
       .sort((a,b)=>a.dueAt-b.dueAt||a.createdAt-b.createdAt);
   }
 
