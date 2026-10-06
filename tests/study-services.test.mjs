@@ -83,5 +83,5 @@ test('personal passage overlap finds active studies intersecting a reference tar
   const related=studiesOverlappingPassage(studies,p('Rom 8:4'));
   assert.deepEqual(related.map((study)=>study.id),['a','b']);
   assert.deepEqual(studiesOverlappingPassage(studies,p('Rom 8:12-17')),[]);
-  assert.deepEqual(studiesOverlappingPassage(studies,p('Rom 9:3')),['c']);
+  assert.deepEqual(studiesOverlappingPassage(studies,p('Rom 9:3')).map((study)=>study.id),['c']);
 });
