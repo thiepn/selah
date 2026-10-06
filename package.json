@@ -9,7 +9,7 @@
     "build:core": "tsc -p tsconfig.core.json",
     "test:core": "npm run build:core && node --test tests/*.test.mjs",
     "validate:data": "node scripts/data/validate-manifest.mjs",
-    "check": "npm run typecheck:core && npm run check:web-syntax && npm run validate:data && npm run test:core",
+    "check": "npm run validate:p10 && npm run typecheck:core && npm run check:web-syntax && npm run validate:data && npm run test:core",
     "check:web-syntax": "node --check web/app.js && node --check web/book-overview.js && node --check web/topic-overview.js && node --check web/guide-literary-mode.js && node --check web/personal-reference-ui.js && node --check web/interpretation-claims.js && node --check web/search-workspace.js && node --check web/a11y-overlays.js && node --check web/translation-compare.js && node --check web/search-worker.js && node --check web/sw.js",
     "data:fetch:bsb": "npm run build:core && node scripts/data/fetch-bsb.mjs",
     "data:validate:vendored": "node scripts/data/validate-vendored-bsb.mjs",
@@ -26,7 +26,8 @@
     "data:build:concordance": "npm run build:core && node scripts/data/build-concordance.mjs",
     "data:measure": "node scripts/data/measure-production-data.mjs",
     "data:vendor:web": "npm run build:core && node scripts/data/vendor-web-git.mjs",
-    "data:validate:web": "node scripts/data/validate-vendored-web.mjs"
+    "data:validate:web": "node scripts/data/validate-vendored-web.mjs",
+    "validate:p10": "node scripts/validate-platform-p10.mjs"
   },
   "engines": {
     "node": ">=22"
