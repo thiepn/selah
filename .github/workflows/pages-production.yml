@@ -47,3 +47,11 @@ jobs:
       - name: Deploy tested production site
         id: deployment
         uses: actions/deploy-pages@v5
+      - name: Smoke live production
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          test -n "$PAGE_URL"
+          curl --fail --location --retry 6 --retry-delay 3 --retry-all-errors "$PAGE_URL" -o /tmp/selah-index.html
+          grep -q '<title>Selah' /tmp/selah-index.html
