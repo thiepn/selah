@@ -191,6 +191,20 @@
 - the focused-UI budget is expanded to 30 KB to reflect deliberately extracted feature modules while retaining the 100 KB main-controller ceiling
 - no schema migration, network dependency, or built-in AI behavior is introduced
 
+### P35 — real-study workflow qualification & friction hardening
+
+- added a scenario-level workflow harness that exercises a complete passage study through Study creation, normalized topics, notes/questions, Passage Outline, Interpretation Claims with evidence, Synthesis, review opt-in, Topic Overview recall, backup, and restore
+- qualification matrix covers all eight literary defaults with representative passages: Narrative, Gospel, Law, Poetry, Wisdom, Prophecy, Epistle, and Apocalyptic
+- exact active-study lookup is now a core StudyService capability rather than ad-hoc browser logic
+- research navigation, Reference Peek → Open as main, and Back/Forward now re-resolve study ownership for the passage actually displayed; study tools can no longer remain silently attached to the previous passage
+- global Review excludes archived Studies so archived work no longer keeps surfacing in the active due queue; deliberate study-scoped review remains available when revisiting archived work
+- topic input normalization now accepts whitespace before optional hashtag prefixes, removing a small but recurring metadata-entry trap
+- Topic Overview display casing is stable: when case variants exist, the most recently edited matching topic supplies the visible label while membership remains case-insensitive
+- an older P32 overlap regression assertion was corrected, and the latent P33 Reference Peek template-syntax defect discovered during qualification was repaired
+- static release validation now guards passage-to-study ownership rebinding
+- **app.js** remains below the 100 KB controller ceiling; P35 did not relax the main-controller budget
+- this phase qualifies automated real-workflow state transitions and cross-feature integration; it does **not** claim completed live-browser, real-device, or screen-reader certification because no Selah Vercel deployment is currently available in the connected account
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -212,7 +226,7 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite includes dedicated overlap, personal-reference renderer, and Topic Overview domain regression coverage; exact P34 head qualification is pending GitHub Actions
+- automated Node test suite now includes scenario-level P35 workflow qualification across the full study lifecycle and all eight literary defaults, alongside focused domain/UI regressions
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
