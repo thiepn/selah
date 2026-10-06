@@ -205,6 +205,20 @@
 - **app.js** remains below the 100 KB controller ceiling; P35 did not relax the main-controller budget
 - this phase qualifies automated real-workflow state transitions and cross-feature integration; it does **not** claim completed live-browser, real-device, or screen-reader certification because no Selah Vercel deployment is currently available in the connected account
 
+### P36 — live browser, mobile & PWA acceptance + defect-only hardening
+
+- Chromium acceptance is now a required CI gate through Playwright rather than a manual/static-only qualification claim
+- desktop acceptance opens Philippians 2:5–11, saves an observation question into a durable Study, verifies archive visibility, reloads the app, and verifies the saved study state remains reachable
+- mobile Chromium uses Pixel-class emulation to check viewport overflow, the collapsible Study sheet, tab interaction, and touch reachability
+- PWA acceptance verifies manifest metadata, service-worker registration/control, and an offline reload of the previously opened passage
+- PWA packaging now includes explicit app identity/scope plus 192px and 512px install icons; the service-worker shell cache was advanced and precaches the install assets
+- live Chromium exposed and P36 fixed a Guide runtime crash caused by passing `referenceButtonHtml` / `backlinkButtonHtml` directly to `Array.map`, which accidentally supplied the array index as the renderer's `studies` argument
+- mobile Chromium exposed and P36 fixed hidden drawers that still intercepted pointer input because authored `display:grid` overrode native `hidden` rendering; global `[hidden]` semantics are now enforced
+- browser acceptance also verifies the compiled overlap helper contract so browser/runtime module behavior is checked in addition to Node source tests
+- the existing 100 KB main-controller ceiling remains unchanged; exact qualified app size is 99,987 B
+- a Vercel project was created for Selah and a production-target deployment was attempted; that deployment failed, while connector log inspection is currently blocked by missing authorization to the `thiepn-project` scope, so P36 does not falsely claim a green hosted-production deployment
+- remaining human qualification is real physical-device touch/installation, full screen-reader certification, and extended multi-genre study sessions
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -226,7 +240,8 @@
 
 - strict TypeScript core compilation
 - source manifest/license validation
-- automated Node test suite now includes scenario-level P35 workflow qualification across the full study lifecycle and all eight literary defaults, alongside focused domain/UI regressions
+- automated Node suite: **95/95 passing**, including scenario-level full-study workflow qualification across all eight literary defaults
+- Playwright Chromium acceptance is required in CI: **4 applicable scenarios passing** across desktop and mobile projects (the opposite-project variants are intentionally skipped)
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -244,12 +259,11 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **157.43 MiB / 4,879 files**
-- current application code remains small relative to data: **98,006 B app JS + 16,737 B focused UI modules + 46,538 B CSS + 140,348 B core JS** before compression
+- current application code remains small relative to data: **99,987 B app JS + 26,059 B focused UI modules + 50,812 B CSS + 144,693 B core JS** before compression
 
 ## Open qualification work
 
-- browser rendering automation remains blocked by administrator browser policy in the implementation environment
-- full real-device mobile study qualification
+- full physical-device mobile/PWA installation and touch qualification
 - full screen-reader certification beyond the implemented semantic/keyboard improvements
 - additional translation providers where redistribution terms permit
 - V1 human multi-genre real-study certification
