@@ -450,9 +450,9 @@ async function renderNotes() {
   if(recoveredDraft)elements.saveState.textContent='recovered unsaved draft';
   const links=extractStudyDocumentScriptureLinks(documentText);
   const linkedHtml=links.length?`<section class="panel-section linked-scripture"><h3>Linked Scripture</h3><div class="metric-row">${links.map((link)=>`<button class="metric" type="button" data-reference="${escapeHtml(formatPassage(link.passage))}">${escapeHtml(link.label)}</button>`).join('')}</div><p class="quiet">Type references as <code>[[Romans 8:1-4]]</code>. Links remain ordinary plaintext and open as Peeks.</p></section>`:'';
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Capture freeform observations, questions, context, and connections here; keep final conclusions in Synthesis.</p>
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">STUDY DOCUMENT</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Capture observations, questions, context, and connections; keep conclusions in Synthesis.</p>
     <section class="panel-section"><h3>Anchored material</h3><div class="annotation-list">${annotations.map(annotationHtml).join('')||'<p class="quiet">Select Scripture and add a note, question, or highlight.</p>'}</div></section>
-    <textarea class="study-document" id="studyDocument" placeholder="Observations\n\nQuestions\n\nContext\n\nConnections\n\nUnresolved issues">${escapeHtml(documentText)}</textarea>${linkedHtml}</section>`;
+    <textarea class="study-document" id="studyDocument" aria-label="Study document" placeholder="Observations\n\nQuestions\n\nContext\n\nConnections\n\nUnresolved issues">${escapeHtml(documentText)}</textarea>${linkedHtml}</section>`;
   $('#studyDocument').addEventListener('input',(event)=>{scheduleDocumentSave(event.target.value);renderStudyDocumentLinks(event.target.value);});
   wireAnnotationActions(); wireReferenceButtons();
 }
@@ -509,7 +509,7 @@ function scheduleDocumentSave(value) {
   clearTimeout(noteSaveTimer);
   noteSaveTimer=setTimeout(async()=>{
     try {
-      let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await getStudyForPassage(passage);
+      let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await studyService.forPassage(passage);
       if(!study)study=await studyService.create(passage);
       const updatedAt=Date.now();
       await repo.putStudyDocument({studyId:study.id,format:'plaintext',document:null,plainText:value,updatedAt});
@@ -708,7 +708,7 @@ function scheduleReviewReconcile(study,synthesis,delay=750) {
 async function persistSynthesis(value,passage,studyIdAtEdit) {
   try {
     if(!synthesisHasContent(value)&&!studyIdAtEdit) { setSaving(false); return undefined; }
-    let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await getStudyForPassage(passage);
+    let study=studyIdAtEdit ? await repo.getStudy(studyIdAtEdit) : await studyService.forPassage(passage);
     if(!study)study=await studyService.create(passage);
     const updatedAt=Date.now();
     const synthesis={studyId:study.id,...value,updatedAt};
