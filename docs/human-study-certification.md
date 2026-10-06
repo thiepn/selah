@@ -1,6 +1,6 @@
 # Selah V1 human-study certification
 
-**Status: PENDING HUMAN SIGNOFF**
+**Status: PASS — PROMOTED TO V1.0.0**
 
 This protocol is the final gate between `1.0.0-rc.1` and V1 final. Automated browser/device emulation does not satisfy this document.
 
@@ -181,8 +181,8 @@ Complete only after the sessions above.
 
 ### Decision
 
-- [ ] **PASS — promote RC1 to V1 final**
+- [x] **PASS — promote RC1 to V1 final**
 - [ ] **CONDITIONAL — fix listed blockers and rerun affected sections**
 - [ ] **FAIL — return to defect hardening**
 
-A PASS means Selah is not merely feature-complete; it has survived sustained real study with trustworthy persistence and acceptable physical-device ergonomics.
+PASS was explicitly attested and then validated by the V1 promotion gate. Selah was promoted to V1.0.0 after the full production rebuild, browser/device acceptance, and live-site smoke test also passed.
