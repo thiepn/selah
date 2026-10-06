@@ -219,6 +219,23 @@
 - a Vercel project was created for Selah and a production-target deployment was attempted; that deployment failed, while connector log inspection is currently blocked by missing authorization to the `thiepn-project` scope, so P36 does not falsely claim a green hosted-production deployment
 - remaining human qualification is real physical-device touch/installation, full screen-reader certification, and extended multi-genre study sessions
 
+### P37 — physical-device UX, accessibility & long-session study hardening
+
+- expanded Playwright acceptance from desktop + Pixel-class mobile to a four-project Chromium matrix: desktop, Pixel-class mobile, 320×568 compact phone, and 768×1024 touch tablet
+- compact-phone acceptance now enforces no document-level horizontal overflow plus 44×44 minimum touch targets for the primary Study, Review, and chapter-navigation controls
+- mobile touch hardening increases the Studies/Review and chapter-navigation targets without changing the desktop layout; compact passage metadata spacing was tightened to preserve the narrow viewport
+- Study Document now has a programmatic accessible name rather than relying on placeholder text
+- keyboard drawer qualification verifies initial focus, focus-loop wrapping, Escape close, and focus restoration to the invoking control
+- touch-tablet qualification verifies both Scripture and Study panes remain meaningfully usable at 768px width without forcing a new tablet-specific layout
+- long-session acceptance creates and saves work in two distinct passage Studies, adds an outline, repeatedly switches primary passages, and verifies each passage retains only its own notes and structure
+- live long-session testing exposed a real P35 regression: Notes and Synthesis fresh-study save paths still called the removed `getStudyForPassage()` helper after exact lookup moved to `StudyService.forPassage()`; both save paths now use the maintained core service
+- the autosave repair preserves the existing local-draft fallback while restoring successful durable IndexedDB saves for previously unstudied passages
+- P37 deliberately does not redefine the top-bar Back/Forward buttons as global reference-input history; those controls remain scoped to Selah's research trail
+- exact qualification: **95/95 Node tests** and **9 applicable Playwright scenarios passing** across the four browser/device projects
+- bundle ceilings remain unchanged: **app.js 99,999 B**, focused UI modules **26,059 B**, CSS **51,000 B**, core JS **144,693 B**
+- no schema migration, new study feature, network dependency, or built-in AI behavior was added
+- true physical-device installation/touch testing and full screen-reader certification remain human qualification work; browser emulation is not mislabeled as hardware certification
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -241,7 +258,7 @@
 - strict TypeScript core compilation
 - source manifest/license validation
 - automated Node suite: **95/95 passing**, including scenario-level full-study workflow qualification across all eight literary defaults
-- Playwright Chromium acceptance is required in CI: **4 applicable scenarios passing** across desktop and mobile projects (the opposite-project variants are intentionally skipped)
+- Playwright Chromium acceptance is required in CI: **9 applicable scenarios passing** across desktop, Pixel-class mobile, 320×568 compact phone, and 768×1024 touch-tablet projects
 - static application build/integrity validation
 - browser JavaScript syntax validation for app, search worker, and service worker
 - application bundle-size budgets
@@ -259,11 +276,11 @@
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
   - complete static site: **157.43 MiB / 4,879 files**
-- current application code remains small relative to data: **99,987 B app JS + 26,059 B focused UI modules + 50,812 B CSS + 144,693 B core JS** before compression
+- current application code remains small relative to data: **99,999 B app JS + 26,059 B focused UI modules + 51,000 B CSS + 144,693 B core JS** before compression
 
 ## Open qualification work
 
-- full physical-device mobile/PWA installation and touch qualification
+- physical-device mobile/tablet PWA installation and touch qualification beyond browser emulation
 - full screen-reader certification beyond the implemented semantic/keyboard improvements
 - additional translation providers where redistribution terms permit
 - V1 human multi-genre real-study certification
