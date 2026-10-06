@@ -21,24 +21,20 @@ import { createTranslationRegistry, comparisonPanelHtml } from './translation-co
 import { claimsUI, claimsSummaryHtml, claimsSnapshotHtml } from './interpretation-claims.js';
 import { searchWorkspaceUI } from './search-workspace.js';
 import { drawerController, regionController, mobileSheetController } from './a11y-overlays.js';
-
 const $ = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
 const escapeHtml = (value='') => value.replace(/[&<>'"]/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[c]));
 const sleep = (ms) => new Promise((resolve)=>setTimeout(resolve,ms));
-
 const elements = {
   scripture: $('#scripture'), studyContent: $('#studyContent'), referenceInput: $('#referenceInput'), passageStatus: $('#passageStatus'),
   selectionMenu: $('#selectionMenu'), noteDialog: $('#noteDialog'), noteForm: $('#noteForm'), noteBody: $('#noteBody'), noteAnchorLabel: $('#noteAnchorLabel'),
   saveState: $('#saveState'), peek: $('#peek'), peekTitle: $('#peekTitle'), peekText: $('#peekText'), peekOpen: $('#peekOpen'),
   studiesDrawer: $('#studiesDrawer'), studiesList: $('#studiesList'), studySearch: $('#studySearch'), reviewDrawer: $('#reviewDrawer'), reviewContent: $('#reviewContent'), exportDialog: $('#exportDialog'), toast: $('#toast')
 };
-
 const studiesDrawerCtl=drawerController(elements.studiesDrawer,{initialFocus:()=>elements.studySearch});
 const reviewDrawerCtl=drawerController(elements.reviewDrawer,{initialFocus:()=>$('#reviewClose')});
 const peekCtl=regionController(elements.peek,{initialFocus:()=>$('#peekClose')});
 const mobileStudyCtl=mobileSheetController($('#studyPane'),$('#mobileStudyToggle'));
-
 const repo = new IndexedDbSelahRepository();
 await repo.initialize();
 const loader = new FetchTextAssetLoader('./data/bsb');
@@ -55,7 +51,6 @@ const lensService = new LensService(annotationService, researchProvider);
 const originalLanguage = new OriginalLanguageService(scriptureProvider, researchProvider, researchProvider, researchProvider);
 const translations = createTranslationRegistry(scriptureProvider);
 createTopicOverviewController({repo,openSnapshot:openStudySnapshot,openReference:openPeek});
-
 function syncTranslationComparisonAvailability() {
   const available=translations.list().length>1;
   const compareTab=$('[data-tab="compare"]');
@@ -64,7 +59,6 @@ function syncTranslationComparisonAvailability() {
   if(compareAction)compareAction.hidden=!available;
   if(!available&&activeTab==='compare')activeTab='guide';
 }
-
 let currentScripture;
 let currentStudy;
 let workspace;
@@ -99,31 +93,25 @@ let scriptureSearchWorker;
 let scriptureSearchRequestId=0;
 const scriptureSearchPending=new Map();
 let verseBoundsPromise;
-
 const contextSeedPassage = parseReference('Phil 2:5-11').passage;
 workspace = await workspaceService.restoreLast();
 const context = new PassageContextStore({
   primaryPassage: workspace?.primaryPassage ?? contextSeedPassage,
   translationId: workspace?.translationId ?? 'BSB',
 });
-
 function toast(message) {
   elements.toast.textContent = message;
   elements.toast.hidden = false;
   clearTimeout(toast.timer);
   toast.timer = setTimeout(()=>elements.toast.hidden = true, 1800);
 }
-
 function setSaving(saving) {
   elements.saveState.textContent = saving ? 'saving…' : 'saved locally';
 }
-
 function samePassage(a,b) { return canonicalPassageId(a) === canonicalPassageId(b); }
-
 function studyDraftKey(passage) {
   return `selah.study-document-draft.${canonicalPassageId(passage)}`;
 }
-
 function readStudyDraft(passage) {
   try {
     const raw=localStorage.getItem(studyDraftKey(passage));
@@ -132,13 +120,11 @@ function readStudyDraft(passage) {
     return typeof parsed?.value==='string'&&Number.isFinite(parsed?.updatedAt)?parsed:undefined;
   } catch { return undefined; }
 }
-
 function writeStudyDraft(passage,value) {
   const revision=crypto.randomUUID();
   try { localStorage.setItem(studyDraftKey(passage),JSON.stringify({value,updatedAt:Date.now(),revision})); } catch {}
   return revision;
 }
-
 function clearStudyDraft(passage,revision) {
   try {
     const key=studyDraftKey(passage);
@@ -148,7 +134,6 @@ function clearStudyDraft(passage,revision) {
     if(current?.revision===revision)localStorage.removeItem(key);
   } catch {}
 }
-
 async function loadVerseBounds() {
   verseBoundsPromise ??= Promise.all([
     fetch('./data/bsb/max-verses.json').then(async(response)=>response.ok?response.json():undefined),
@@ -156,12 +141,10 @@ async function loadVerseBounds() {
   ]).then(([bounds,presence])=>bounds?new VerseBoundsIndex(bounds,presence):undefined).catch(()=>undefined);
   return verseBoundsPromise;
 }
-
 async function loadScriptureSearchIndex() {
   scriptureSearchIndexPromise ??= fetch('./data/selah/scripture-search.json').then(async(response)=>{if(!response.ok)throw new Error('Scripture search index is not installed');return ScriptureSearchIndex.fromSerialized(await response.json());});
   return scriptureSearchIndexPromise;
 }
-
 function getScriptureSearchWorker() {
   if (typeof Worker === 'undefined') return undefined;
   if (scriptureSearchWorker) return scriptureSearchWorker;
@@ -182,7 +165,6 @@ function getScriptureSearchWorker() {
   });
   return scriptureSearchWorker;
 }
-
 async function searchScripture(query,limit=30) {
   const worker=getScriptureSearchWorker();
   if(!worker) return (await loadScriptureSearchIndex()).search(query,limit);
@@ -192,11 +174,9 @@ async function searchScripture(query,limit=30) {
     worker.postMessage({id,query,limit});
   });
 }
-
 async function renderSearchResults(query){
   return searchWorkspaceUI(elements.studyContent,query,{searchScripture,repo,resolveReference:resolveReferenceInput,switchPassage:switchPrimaryPassage,openStudy:openStudyById,openBook:openBookOverview});
 }
-
 async function resolveReferenceInput(input) {
   const parsed = parseReference(input);
   if (parsed.kind === 'passage') {
@@ -214,7 +194,6 @@ async function resolveReferenceInput(input) {
   scripture.passage = { start: scripture.verses[0].ref, end: scripture.verses.at(-1).ref };
   return scripture;
 }
-
 async function switchPrimaryPassage(scripture) {
   currentStudy = await studyService.forPassage(scripture.passage);
   const workspaces = currentStudy ? (await repo.listWorkspaces()).filter((x)=>x.studyId === currentStudy.id) : [];
@@ -232,7 +211,6 @@ async function switchPrimaryPassage(scripture) {
   await workspaceService.markLastOpened(workspace);
   await setCurrentScripture(scripture);
 }
-
 async function setCurrentScripture(scripture) {
   if(!currentStudy||canonicalPassageId(currentStudy.primaryPassage)!==canonicalPassageId(scripture.passage))currentStudy=await studyService.forPassage(scripture.passage);
   if(workspace&&workspace.studyId!==currentStudy?.id){workspace={...workspace,studyId:currentStudy?.id,updatedAt:Date.now()};if(!currentStudy)delete workspace.studyId;await repo.putWorkspace(workspace);}
@@ -253,7 +231,6 @@ async function setCurrentScripture(scripture) {
   updateHistoryButtons();
   updateChapterButtons();
 }
-
 function renderPassageLauncher(message='Enter a Bible reference above to begin.') {
   document.body.classList.add('launcher-mode');
   currentScripture=undefined;
@@ -275,7 +252,6 @@ function renderPassageLauncher(message='Enter a Bible reference above to begin.'
   $('#launcherStudies')?.addEventListener('click',()=>$('#studiesBtn').click());
   requestAnimationFrame(()=>elements.referenceInput.focus());
 }
-
 async function loadInitial() {
   if (!workspace) {
     renderPassageLauncher();
@@ -290,11 +266,9 @@ async function loadInitial() {
     renderPassageLauncher('The previous passage is not available in this installed Scripture data. Choose another passage or open a saved study.');
   }
 }
-
 function scriptureTokens() { return currentScripture?.verses.flatMap((verse)=>verse.tokens) ?? []; }
 function tokenById(id) { return scriptureTokens().find((token)=>token.id===id); }
 function verseByTokenId(id) { return currentScripture?.verses.find((verse)=>verse.tokens.some((token)=>token.id===id)); }
-
 async function renderScripture() {
   if (!currentScripture) return;
   const [annotations,outline] = await Promise.all([
@@ -347,7 +321,6 @@ async function renderScripture() {
     if(matchMedia('(max-width:760px)').matches)$('#studyPane').classList.add('open');
   }));
 }
-
 function applyAnnotationHighlights(annotations) {
   const tokenEls = queryAll('.token');
   for (const annotation of annotations) {
@@ -360,12 +333,10 @@ function applyAnnotationHighlights(annotations) {
     for (let i=Math.min(start,end);i<=Math.max(start,end);i++) tokenEls[i].classList.add('annotation-highlight');
   }
 }
-
 function tokenElementFromNode(node) {
   const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
   return el?.closest?.('[data-token-id]');
 }
-
 function selectedTokenRange() {
   const selection = getSelection();
   if (!selection || selection.rangeCount===0 || selection.isCollapsed || !elements.scripture.contains(selection.anchorNode) || !elements.scripture.contains(selection.focusNode)) return undefined;
@@ -383,7 +354,6 @@ function selectedTokenRange() {
   };
   return { startTokenId:first.dataset.tokenId, endTokenId:last.dataset.tokenId, passage, quotedText:selection.toString().trim(), sameVerse:passage.start.book===passage.end.book&&passage.start.chapter===passage.end.chapter&&passage.start.verse===passage.end.verse };
 }
-
 async function ensureStudy() {
   if (currentStudy) return currentStudy;
   currentStudy = await studyService.create(currentScripture.passage);
@@ -392,7 +362,6 @@ async function ensureStudy() {
   await workspaceService.markLastOpened(workspace);
   return currentStudy;
 }
-
 async function renderGuide() {
   elements.studyContent.innerHTML='<div class="loading">Building passage guide…</div>';
   try {
@@ -462,7 +431,6 @@ async function renderGuide() {
     }));
   } catch (error) { renderToolError('Guide unavailable',error); }
 }
-
 function referenceButtonHtml(ref,studies=[]) {
   const target=formatPassage(ref.target);
   return connectedReferenceCardHtml({label:target,detail:'Referenced from this passage',reference:target,studies});
@@ -473,7 +441,6 @@ function backlinkButtonHtml(ref,studies=[]) {
 }
 const wirePersonalStudyReferences=(r=document)=>wireRef(r,openStudySnapshot);
 function resourceLinkHtml(resource,url) { return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${escapeHtml(resource.name)}</span><small>${escapeHtml(resource.category)} ↗</small></a>`; }
-
 async function renderNotes() {
   const annotations = await annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy?.id);
   const document = currentStudy ? await repo.getStudyDocument(currentStudy.id) : undefined;
@@ -489,7 +456,6 @@ async function renderNotes() {
   $('#studyDocument').addEventListener('input',(event)=>{scheduleDocumentSave(event.target.value);renderStudyDocumentLinks(event.target.value);});
   wireAnnotationActions(); wireReferenceButtons();
 }
-
 function annotationHtml(annotation) {
   const anchor = annotation.anchor.type==='reference' ? formatPassage(annotation.anchor.passage) : (annotation.anchor.type==='text'||annotation.anchor.type==='text-range') ? annotation.anchor.quotedText : 'original-language token';
   const body = annotation.body || (annotation.kind==='highlight' ? `Highlight (${annotation.highlightStyle??'default'})` : '');
@@ -502,7 +468,6 @@ function annotationHtml(annotation) {
     : '';
   return `<article class="annotation-item ${annotation.kind==='question'?'question-item':''}" data-annotation-id="${escapeHtml(annotation.id)}"><div class="annotation-heading"><div><span class="annotation-kind">${escapeHtml(annotation.kind)}</span><span class="annotation-anchor">${escapeHtml(anchor)}</span></div><div class="annotation-actions">${editable?'<button type="button" data-annotation-action="edit-body">Edit</button>':''}${questionAction}<button type="button" data-annotation-action="delete">Delete</button></div></div>${body?`<p>${escapeHtml(body)}</p>`:''}${response}</article>`;
 }
-
 function renderStudyDocumentLinks(text) {
   const links=extractStudyDocumentScriptureLinks(text);
   let section=$('.linked-scripture');
@@ -511,7 +476,6 @@ function renderStudyDocumentLinks(text) {
   if(!section){section=document.createElement('section');section.className='panel-section linked-scripture';$('#studyDocument').insertAdjacentElement('afterend',section);}
   section.innerHTML=html; wireReferenceButtons();
 }
-
 async function openAnnotationEditor(annotation,field) {
   editingAnnotationId=annotation.id;
   editingAnnotationField=field;
@@ -522,7 +486,6 @@ async function openAnnotationEditor(annotation,field) {
   await sleep(0);
   elements.noteBody.focus();
 }
-
 function wireAnnotationActions() {
   queryAll('[data-annotation-action]').forEach((button)=>button.addEventListener('click',async()=>{
     const item=button.closest('[data-annotation-id]'); const id=item?.dataset.annotationId; if(!id)return;
@@ -537,7 +500,6 @@ function wireAnnotationActions() {
     }
   }));
 }
-
 function scheduleDocumentSave(value) {
   if(!currentScripture)return;
   const passage=structuredClone(currentScripture.passage);
@@ -567,11 +529,9 @@ function scheduleDocumentSave(value) {
     }
   },300);
 }
-
 function outlineSectionHtml(section) {
   return `<article class="outline-section" data-outline-id="${escapeHtml(section.id)}"><label><span>Verses</span><input data-outline-field="reference" value="${escapeHtml(formatPassage(section.passage))}" aria-label="Outline section verses"></label><label class="outline-label"><span>Section</span><input data-outline-field="label" value="${escapeHtml(section.label)}" placeholder="What is happening here?" aria-label="Outline section label"></label><button class="icon-button outline-delete" data-outline-action="delete" type="button" aria-label="Delete outline section">×</button></article>`;
 }
-
 async function parseOutlineReference(raw) {
   const parsed=parseReference(raw);
   if(parsed.kind!=='passage')throw new Error('Outline sections need verse ranges, for example Philippians 2:5–8.');
@@ -579,7 +539,6 @@ async function parseOutlineReference(raw) {
   bounds?.validatePassage(parsed.passage);
   return parsed.passage;
 }
-
 function outlineSectionsFromHeadings() {
   const verses=currentScripture?.verses??[];
   const headingIndexes=verses.map((verse,index)=>verse.heading?index:-1).filter((index)=>index>=0);
@@ -596,7 +555,6 @@ function outlineSectionsFromHeadings() {
     };
   });
 }
-
 async function saveOutlineSections(sections) {
   const study=await ensureStudy();
   setSaving(true);
@@ -618,7 +576,6 @@ async function saveOutlineSections(sections) {
     throw error;
   }
 }
-
 async function collectOutlineRows() {
   const rows=queryAll('.outline-section');
   const sections=[];
@@ -632,7 +589,6 @@ async function collectOutlineRows() {
   }
   return sections;
 }
-
 async function renderOutline() {
   const outline=currentStudy ? await outlineService.get(currentStudy.id) : undefined;
   const sections=outline?.sections??[];
@@ -643,7 +599,6 @@ async function renderOutline() {
     <section class="outline-add"><label><span>Verses</span><input id="outlineNewReference" value="${escapeHtml(draftReference)}" placeholder="${escapeHtml(formatPassage(currentScripture.passage))}"></label><label><span>Section</span><input id="outlineNewLabel" placeholder="Name this unit"></label><button class="primary-button" id="outlineAdd" type="button">Add section</button></section>
     ${hasHeadings?`<section class="outline-seed"><div><strong>Use BSB headings as a draft</strong><p>Translation headings are editorial aids, not part of the biblical text. Use them only as a starting point and change them freely.</p></div><button class="text-button" id="outlineSeed" type="button">Seed from headings</button></section>`:''}
   </section>`;
-
   queryAll('.outline-section input').forEach((input)=>input.addEventListener('change',async()=>{
     try {
       await saveOutlineSections(await collectOutlineRows());
@@ -675,11 +630,9 @@ async function renderOutline() {
   });
   if(outlineDraftPassage)requestAnimationFrame(()=>$('#outlineNewLabel')?.focus());
 }
-
 function emptySynthesis(studyId='') {
   return { studyId, mainIdea:'', explanation:'', evidence:'', application:'', prayer:'', confidence:'needs-study', updatedAt:0 };
 }
-
 function readSynthesisForm() {
   return {
     mainIdea:$('#synthesisMainIdea')?.value??'',
@@ -690,11 +643,9 @@ function readSynthesisForm() {
     confidence:$('#synthesisConfidence')?.value??'needs-study',
   };
 }
-
 function synthesisHasContent(value) {
   return [value.mainIdea,value.explanation,value.evidence,value.application,value.prayer].some((item)=>item.trim());
 }
-
 async function renderSynthesis() {
   const [saved,outline,studyAnnotations,claims]=await Promise.all([
     currentStudy ? repo.getStudySynthesis(currentStudy.id) : Promise.resolve(undefined),
@@ -741,7 +692,6 @@ async function renderSynthesis() {
     toast(result.created||result.updated||result.deleted?`${result.created} created · ${result.updated} updated · ${result.deleted} removed`:'Review cards are already up to date.');
   });
 }
-
 async function reconcileReviewCardsNow(study,synthesis,outline=undefined) {
   const resolvedOutline=outline??await outlineService.get(study.id);
   const result=await reviewService.reconcileExisting(study,synthesis,resolvedOutline);
@@ -751,12 +701,10 @@ async function reconcileReviewCardsNow(study,synthesis,outline=undefined) {
   }
   return result;
 }
-
 function scheduleReviewReconcile(study,synthesis,delay=750) {
   clearTimeout(reviewReconcileTimer);
   reviewReconcileTimer=setTimeout(()=>reconcileReviewCardsNow(study,synthesis).catch(()=>{}),delay);
 }
-
 async function persistSynthesis(value,passage,studyIdAtEdit) {
   try {
     if(!synthesisHasContent(value)&&!studyIdAtEdit) { setSaving(false); return undefined; }
@@ -782,7 +730,6 @@ async function persistSynthesis(value,passage,studyIdAtEdit) {
     return undefined;
   }
 }
-
 function scheduleSynthesisSave(value,delay=250) {
   if(!currentScripture)return;
   const passage=structuredClone(currentScripture.passage);
@@ -791,7 +738,6 @@ function scheduleSynthesisSave(value,delay=250) {
   clearTimeout(synthesisSaveTimer);
   synthesisSaveTimer=setTimeout(()=>persistSynthesis(value,passage,studyIdAtEdit),delay);
 }
-
 async function renderReferences() {
   elements.studyContent.innerHTML='<div class="loading">Loading references…</div>';
   try {
@@ -800,7 +746,6 @@ async function renderReferences() {
     wireReferenceButtons(); wirePersonalStudyReferences();
   } catch(error){ renderToolError('References unavailable',error); }
 }
-
 async function renderWords() {
   const strongs = selectedToken?.strongs ?? selectedLexicalKey;
   if (!strongs) {
@@ -822,11 +767,9 @@ async function renderWords() {
     wireReferenceButtons();
   } catch(error){ renderToolError('Word study unavailable',error); }
 }
-
 async function renderCompare() {
   elements.studyContent.innerHTML=await comparisonPanelHtml(translations,currentScripture.passage);
 }
-
 function defaultPhrasingDocument(study) {
   return { id:crypto.randomUUID(),studyId:study.id,passage:structuredClone(currentScripture.passage),roots:currentScripture.verses.map((verse)=>({id:crypto.randomUUID(),tokenIds:verse.tokens.map((t)=>t.id),label:`v.${verse.ref.verse}`,children:[]})),updatedAt:Date.now() };
 }
@@ -836,7 +779,6 @@ function phraseSplitHtml(node){
   return `<div class="phrase-text phrase-split-mode">${node.tokenIds.map((id,index)=>{const token=tokenById(id);const marker=index<node.tokenIds.length-1?`<button class="phrase-split-marker" data-phrase-action="split-after" data-id="${node.id}" data-token-id="${escapeHtml(id)}" type="button" title="Split here" aria-label="Split phrase after ${escapeHtml(token?.text??'token')}">│</button>`:'';return `<span>${escapeHtml(token?.text??'')}</span>${marker}`;}).join('')}</div>`;
 }
 function phraseNodeHtml(node,depth=0){return `<div class="phrase-node" style="margin-left:${Math.min(depth,5)*14}px" data-phrase-id="${node.id}"><input class="phrase-label" data-label-id="${node.id}" value="${escapeHtml(node.label??'')}" placeholder="Label">${phraseSplitHtml(node)}<div class="phrase-toolbar"><button data-phrase-action="split-mode" data-id="${node.id}" type="button">${phrasingSplitNodeId===node.id?'Cancel split':'Split'}</button><button data-phrase-action="merge-prev" data-id="${node.id}" type="button">Merge ↑</button><button data-phrase-action="indent" data-id="${node.id}" type="button">Indent</button><button data-phrase-action="outdent" data-id="${node.id}" type="button">Outdent</button></div>${node.children.map((x)=>phraseNodeHtml(x,depth+1)).join('')}</div>`;}
-
 async function renderPhrasing() {
   if (currentStudy) phrasingDocument=(await repo.listPhrasingDocuments(currentStudy.id)).find((x)=>samePassage(x.passage,currentScripture.passage));
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">PHRASING</span><h2>See the argument</h2><p class="panel-lede">Indent clauses or verse units to make relationships visible. This structure is your analysis; Scripture tokens themselves are never modified.</p>${phrasingDocument?`<div class="phrase-tree">${phrasingDocument.roots.map((x)=>phraseNodeHtml(x)).join('')}</div>`:'<button class="primary-button" id="startPhrasing" type="button">Start phrasing this passage</button>'}</section>`;
@@ -854,12 +796,10 @@ async function renderPhrasing() {
   }));
   queryAll('[data-label-id]').forEach((input)=>input.addEventListener('change',async()=>{if(!phrasingDocument)return;phrasingDocument={...phrasingDocument,roots:updatePhraseNode(phrasingDocument.roots,input.dataset.labelId,{label:input.value}),updatedAt:Date.now()};await repo.putPhrasingDocument(phrasingDocument);}));
 }
-
 async function renderResources() {
   const guide=await guideService.build(currentScripture);
   elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">EXTERNAL RESOURCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Open trusted external tools only when you deliberately want them. Selah keeps commentary secondary to your own observation of the text.</p>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}<section class="resource-attribution"><h3>Data & licenses</h3><a class="resource-link" href="./data/bsb/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer"><span><strong>Bundled Scripture & research data</strong><small>View source attribution and licenses</small></span><span aria-hidden="true">↗</span></a></section></section>`;
 }
-
 async function renderActiveTab() {
   queryAll('.tab').forEach((tab)=>{
     const active=tab.dataset.tab===activeTab;
@@ -880,12 +820,10 @@ async function renderActiveTab() {
   if(activeTab==='phrasing')return renderPhrasing();
   if(activeTab==='resources')return renderResources();
 }
-
 function renderToolError(title,error){elements.studyContent.innerHTML=`<div class="error-state"><strong>${escapeHtml(title)}</strong>${escapeHtml(error instanceof Error?error.message:String(error))}</div>`;}
 function wireReferenceButtons(root=document){[...root.querySelectorAll('[data-reference]')].forEach((button)=>button.addEventListener('click',()=>openPeek(parseReference(button.dataset.reference).passage)));}
 function wireLexicalButtons(){queryAll('.lexical-key').forEach((button)=>button.addEventListener('click',async()=>{selectedLexicalKey=button.dataset.strongs;selectedToken=undefined;activeTab='words';await renderActiveTab();}));}
 function wireSectionJumps(){queryAll('.section-jump').forEach((button)=>button.addEventListener('click',()=>{$(`.verse[data-book="${currentScripture.passage.start.book}"][data-chapter="${currentScripture.passage.start.chapter}"][data-verse="${button.dataset.verse}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});}));}
-
 async function openPeek(passage) {
   activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); peekCtl.open(document.activeElement); elements.peekText.textContent='Loading…';
   try {
@@ -901,14 +839,11 @@ async function openPeek(passage) {
   }
   catch { elements.peekText.textContent='This reference is unavailable in the current Scripture dataset.'; }
 }
-
 async function navigateResearch(passage) {
   try { workspace=await workspaceService.navigate(workspace,passage); await setCurrentScripture(await scriptureProvider.getPassage(passage)); }
   catch(error){toast(error instanceof Error?error.message:'Unable to open passage');}
 }
-
 function updateHistoryButtons(){ if(!workspace){$('#backBtn').disabled=true;$('#forwardBtn').disabled=true;return;} $('#backBtn').disabled=workspace.researchTrail.index<=0; $('#forwardBtn').disabled=workspace.researchTrail.index>=workspace.researchTrail.entries.length-1; }
-
 function adjacentChapter(direction) {
   if (!currentScripture) return undefined;
   const currentBook=BOOK_BY_ID.get(currentScripture.passage.start.book);
@@ -918,18 +853,15 @@ function adjacentChapter(direction) {
   else if(chapter>currentBook.chapters){book=BOOKS[currentBook.order];if(!book)return undefined;chapter=1;}
   return {book:book.id,chapter};
 }
-
 function updateChapterButtons(){
   $('#prevChapterBtn').disabled=!adjacentChapter(-1);
   $('#nextChapterBtn').disabled=!adjacentChapter(1);
 }
-
 async function openAdjacentChapter(direction){
   const target=adjacentChapter(direction);if(!target)return;
   try{const verses=await scriptureProvider.getChapter(target.book,target.chapter);if(!verses.length)throw new Error('Chapter is unavailable');await switchPrimaryPassage({translationId:scriptureProvider.translation.id,passage:{start:verses[0].ref,end:verses.at(-1).ref},verses});}
   catch(error){toast(error instanceof Error?error.message:'Unable to open chapter');}
 }
-
 async function refreshReviewBadge() {
   const due=await reviewService.due();
   const badge=$('#reviewDueCount');
@@ -938,7 +870,6 @@ async function refreshReviewBadge() {
   badge.hidden=due.length===0;
   $('#reviewBtn')?.setAttribute('aria-label',due.length?`Review, ${due.length} card${due.length===1?'':'s'} due`:'Review, nothing due');
 }
-
 function reviewSourceLabel(source) {
   return {
     'main-idea':'Main idea',
@@ -949,7 +880,6 @@ function reviewSourceLabel(source) {
     custom:'Custom question',
   }[source]??'Study recall';
 }
-
 async function openReviewCardEditor(studyId,card=undefined) {
   reviewCardStudyId=studyId;
   editingReviewCardId=card?.id;
@@ -960,7 +890,6 @@ async function openReviewCardEditor(studyId,card=undefined) {
   await sleep(0);
   $('#reviewCardQuestion').focus();
 }
-
 async function renderReview(studyId=reviewStudyFilter) {
   const due=studyId?await reviewService.dueForStudy(studyId):await reviewService.due();
   if(!due.length) {
@@ -979,7 +908,6 @@ async function renderReview(studyId=reviewStudyFilter) {
   $('#reviewEditCard')?.addEventListener('click',async()=>{if(!study||card.source!=='custom')return;await openReviewCardEditor(study.id,card);});
   $('#reviewDelete')?.addEventListener('click',async()=>{if(!confirm('Delete this review card?'))return;await reviewService.remove(card.id);await refreshReviewBadge();await renderReview(studyId);});
 }
-
 async function persistBookUnderstanding(bookId,value){
   await bookSynthesisService.save(bookId,value);
   if(activeBookId===bookId)$('#bookOverviewSaveState').textContent='saved locally';
@@ -1022,7 +950,6 @@ async function openStudyById(id,tab) {
   await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));
   studiesDrawerCtl.close(false);
 }
-
 async function openStudySnapshot(id) {
   const study=await repo.getStudy(id);
   if(!study)return;
@@ -1066,7 +993,6 @@ function studyTopicsHtml(study) {
   if(!study.tags.length)return '';
   return `<div class="study-topic-chips">${study.tags.map((tag)=>`<button type="button" data-topic-search="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join('')}</div>`;
 }
-
 async function openStudyMetadata(id) {
   const study=await repo.getStudy(id);
   if(!study)return;
@@ -1078,7 +1004,6 @@ async function openStudyMetadata(id) {
   $('#studyMetaTitle').focus();
   $('#studyMetaTitle').select();
 }
-
 async function renderStudies(filter='') {
   const q=filter.trim().toLocaleLowerCase('en');
   const all=(await repo.listStudies()).filter((study)=>study.archived===showArchivedStudies);
@@ -1126,7 +1051,6 @@ async function renderStudies(filter='') {
   } else {
     html=`<p class="quiet">${showArchivedStudies?'No archived studies.':'No saved studies yet. Selah creates one when you first write or annotate.'}</p>`;
   }
-
   elements.studiesList.innerHTML=html;
   queryAll('[data-book-overview]').forEach((button)=>button.addEventListener('click',async()=>{await openBookOverview(button.dataset.bookOverview);}));
   queryAll('.study-open').forEach((button)=>button.addEventListener('click',async()=>{
@@ -1161,7 +1085,6 @@ async function renderStudies(filter='') {
 function downloadTextFile(name,text,type='application/json') {
   const blob=new Blob([text],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-
 async function togglePatterns() {
   const button=$('#patternsBtn'); button.classList.toggle('active'); button.setAttribute('aria-pressed',String(button.classList.contains('active'))); patternTokenIds.clear();
   if(button.classList.contains('active')) {
@@ -1170,13 +1093,11 @@ async function togglePatterns() {
   }
   await renderScripture();
 }
-
 async function updateSelectionLens() {
   if(!selectedRangeInfo)return;
   const verses=currentScripture.verses.filter((verse)=>compareVerseRefs(verse.ref,selectedRangeInfo.passage.start)>=0&&compareVerseRefs(verse.ref,selectedRangeInfo.passage.end)<=0);
   try { const lens=await lensService.forPassage({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,verses}); const lexical=lens.lexicalKeys.slice(0,2).join(' · '); $('#selectionLensMeta').textContent=`${lens.crossReferenceCount} refs · ${lens.backlinkCount} linked here · ${lens.annotationCount} notes${lexical?` · ${lexical}`:''}`; } catch { $('#selectionLensMeta').textContent='Selection'; }
 }
-
 async function createAnnotationFromSelection(body) {
   if(!selectedRangeInfo)return; const study=await ensureStudy(); setSaving(true);
   if(pendingAnnotationKind==='question') await annotationService.createQuestion(selectedRangeInfo.passage,body,study.id);
@@ -1184,7 +1105,6 @@ async function createAnnotationFromSelection(body) {
   else await annotationService.createRangeTextNote({translationId:currentScripture.translationId,passage:selectedRangeInfo.passage,startTokenId:selectedRangeInfo.startTokenId,endTokenId:selectedRangeInfo.endTokenId,quotedText:selectedRangeInfo.quotedText,body,studyId:study.id});
   await studyService.touch(study.id);setSaving(false);await renderScripture();if(activeTab==='notes'||activeTab==='guide')await renderActiveTab();
 }
-
 async function highlightSelection() {
   if(!selectedRangeInfo)return;
   const study=await ensureStudy();
@@ -1195,7 +1115,6 @@ async function highlightSelection() {
   }
   await studyService.touch(study.id); await renderScripture();
 }
-
 $('#referenceForm').addEventListener('submit',async(event)=>{event.preventDefault();const query=elements.referenceInput.value.trim();try{const scripture=await resolveReferenceInput(query);await switchPrimaryPassage(scripture);}catch(error){if(/Unknown Bible book|Could not parse reference|Reference is empty/.test(error instanceof Error?error.message:'')){await renderSearchResults(query);return;}toast(error instanceof Error?error.message:'Unable to open passage');}});
 $('#backBtn').addEventListener('click',async()=>{workspace=await workspaceService.back(workspace);await setCurrentScripture(await scriptureProvider.getPassage(workspace.primaryPassage));});
 $('#prevChapterBtn').addEventListener('click',()=>openAdjacentChapter(-1));
@@ -1333,16 +1252,12 @@ $('#openChatGPTBtn').addEventListener('click',async()=>{
     toast(opened?'Study context copied. Paste it into ChatGPT.':'Study context copied. If ChatGPT did not open, open it and paste.');
   }catch(error){toast(error instanceof Error?error.message:'Unable to hand off study context');}
 });
-
 elements.scripture.addEventListener('click',async(event)=>{
   const verseButton=event.target.closest('.verse-number');if(verseButton){const verse=verseButton.closest('.verse');context.patch({activeVerse:{book:verse.dataset.book,chapter:Number(verse.dataset.chapter),verse:Number(verse.dataset.verse)}});return;}
   const tokenEl=event.target.closest('[data-token-id]');if(tokenEl){selectedToken=tokenById(tokenEl.dataset.tokenId); selectedLexicalKey=selectedToken?.strongs;const verse=verseByTokenId(tokenEl.dataset.tokenId);if(verse)context.patch({activeVerse:verse.ref,selection:{range:{start:verse.ref,end:verse.ref},text:selectedToken.text,tokenIds:[selectedToken.id]}});}
 });
-
 elements.scripture.addEventListener('pointerup',()=>{setTimeout(()=>{selectedRangeInfo=selectedTokenRange();if(!selectedRangeInfo){elements.selectionMenu.hidden=true;return;}const selection=getSelection();const rect=selection.getRangeAt(0).getBoundingClientRect();elements.selectionMenu.style.left=`${Math.max(8,Math.min(innerWidth-290,rect.left+rect.width/2-120))}px`;elements.selectionMenu.style.top=`${Math.max(60,rect.top-68)}px`;elements.selectionMenu.hidden=false;$('#selectionLensMeta').textContent='Loading context…';context.patch({selection:{range:selectedRangeInfo.passage,text:selectedRangeInfo.quotedText,tokenIds:[selectedRangeInfo.startTokenId,selectedRangeInfo.endTokenId]}});updateSelectionLens();},0);});
-
 elements.selectionMenu.addEventListener('click',async(event)=>{const action=event.target.closest('[data-action]')?.dataset.action;if(!action)return;elements.selectionMenu.hidden=true;if(action==='note'||action==='question'){editingAnnotationId=undefined;editingAnnotationField=undefined;pendingAnnotationKind=action;$('#noteDialogTitle').textContent=action==='question'?'Add question':'Add note';elements.noteAnchorLabel.textContent=selectedRangeInfo?.quotedText?`“${selectedRangeInfo.quotedText}”`:formatPassage(selectedRangeInfo.passage);elements.noteBody.value='';elements.noteDialog.showModal();await sleep(0);elements.noteBody.focus();}if(action==='highlight')await highlightSelection();if(action==='outline'&&selectedRangeInfo){outlineDraftPassage=structuredClone(selectedRangeInfo.passage);activeTab='outline';await renderActiveTab();}if(action==='word'){const id=selectedRangeInfo?.startTokenId;selectedToken=tokenById(id);activeTab='words';await renderActiveTab();}if(action==='compare'){activeTab='compare';await renderActiveTab();}if(action==='copy'&&selectedRangeInfo)await navigator.clipboard.writeText(selectedRangeInfo.quotedText);});
-
 elements.noteForm.addEventListener('submit',async(event)=>{
   if(event.submitter?.value==='cancel'){editingAnnotationId=undefined;editingAnnotationField=undefined;return;}
   event.preventDefault();
@@ -1360,7 +1275,6 @@ elements.noteForm.addEventListener('submit',async(event)=>{
   await createAnnotationFromSelection(body);
   elements.noteDialog.close();
 });
-
 document.addEventListener('pointerdown',(event)=>{if(!elements.selectionMenu.hidden&&!elements.selectionMenu.contains(event.target)&&!elements.scripture.contains(event.target))elements.selectionMenu.hidden=true;});
 document.addEventListener('keydown',async(event)=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();elements.referenceInput.focus();elements.referenceInput.select();return;}
@@ -1380,7 +1294,6 @@ document.addEventListener('keydown',async(event)=>{
   const action=$(`[data-action="${shortcut}"]`);
   if(action&&!action.hidden)action.click();
 });
-
 const divider=$('#divider');let dragging=false;let bibleWidth=56;
 function setBibleWidth(value){bibleWidth=Math.max(38,Math.min(72,value));document.documentElement.style.setProperty('--bible-width',`${bibleWidth}%`);divider.setAttribute('aria-valuenow',String(Math.round(bibleWidth)));}
 divider.addEventListener('pointerdown',(event)=>{dragging=true;divider.setPointerCapture(event.pointerId);});
@@ -1388,7 +1301,6 @@ divider.addEventListener('pointermove',(event)=>{if(!dragging||innerWidth<=760)r
 divider.addEventListener('pointerup',()=>dragging=false);
 divider.addEventListener('keydown',(event)=>{if(innerWidth<=760)return;if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setBibleWidth(bibleWidth+(event.key==='ArrowRight'?2:-2));}else if(event.key==='Home'){event.preventDefault();setBibleWidth(38);}else if(event.key==='End'){event.preventDefault();setBibleWidth(72);}});
 if(matchMedia('(max-width:760px)').matches) elements.scripture.addEventListener('click',(event)=>{if(!event.target.closest('[data-token-id],.verse-number')&&$('#studyPane').classList.contains('open'))$('#studyPane').classList.remove('open');});
-
 const settings=await repo.getSettings();
 const preferredTheme=settings.theme==='system'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):settings.theme;
 document.documentElement.dataset.theme=preferredTheme;
