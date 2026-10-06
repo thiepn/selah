@@ -4,13 +4,13 @@ Selah is a local-first, passage-centered Bible study workspace for close reading
 
 It intentionally has no Today page, dashboard, streaks, reading-plan layer, prayer manager, social feed, or built-in AI dependency. The primary UI is the Scripture study workspace.
 
-## V1 release candidate
+## V1.0 release
 
-Current release candidate: **1.0.0-rc.1**.
+Current release: **1.0.0**.
 
-The tested production build is deployed through GitHub Pages at `thiepn.dev/selah/`. Every production deployment rebuilds the full BSB/WEB data pack and must pass the browser/device acceptance matrix before the exact `site/` artifact is published. V1 final remains gated on the human-study certification checklist in `docs/human-study-certification.md`.
+The tested production build is deployed through GitHub Pages at `thiepn.dev/selah/`. Every production deployment rebuilds the full BSB/WEB data pack and must pass the browser/device acceptance matrix before the exact `site/` artifact is published. V1.0 was promoted only after the human-study certification and final promotion gate passed.
 
-**P39 promotion gate:** human results are recorded in `docs/v1-human-certification.json`; `npm run release:v1:check` must pass before RC1 can be promoted to V1 final.
+Human release evidence is retained in `docs/v1-human-certification.json`; the final V1 promotion gate rebuilt production, reran browser/device acceptance, and verified the live host before promotion.
 
 ## Product model
 
@@ -96,7 +96,7 @@ The production build shallow-clones the public BSB data output repository plus t
 npm run build:production
 ```
 
-GitHub Pages is the canonical V1 production target and runs this command before deployment. `vercel.json` is retained as a secondary hosting configuration, but Vercel is not the release authority for RC1.
+GitHub Pages is the canonical V1 production target and runs this command before deployment. `vercel.json` is retained as a secondary hosting configuration, but Vercel is not the release authority for V1.0.
 
 Generated Bible data lives under `.generated/` and is deliberately not committed.
 
