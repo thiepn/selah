@@ -75,5 +75,6 @@
   "defects": [],
   "decision": "pass",
   "signoffNotes": "User explicitly returned PASS for the complete P39 RC1 human field trial and V1 promotion decision. Minimum numeric release thresholds are recorded because no separate numeric ratings were supplied.",
-  "attestationNote": "User explicitly attested PASS for the full P39 human certification in chat. Exact durations and ratings were not separately supplied, so minimum release thresholds are recorded as met rather than independently measured."
+  "attestationNote": "User explicitly attested PASS for the full P39 human certification in chat. Exact durations and ratings were not separately supplied, so minimum release thresholds are recorded as met rather than independently measured.",
+  "promotionRequestedAt": "2026-10-06T21:05:00+02:00"
 }
