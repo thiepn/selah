@@ -2,6 +2,9 @@ name: Selah V1 Final Promotion Gate
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - docs/v1-human-certification.json
 
 permissions:
   contents: read
