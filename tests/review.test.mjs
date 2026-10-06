@@ -214,3 +214,16 @@ test('custom review-card validation rejects empty and oversized content',async()
   await assert.rejects(()=>service.createCustom('s1','question',''),/answer cannot be empty/i);
   await assert.rejects(()=>service.createCustom('s1','x'.repeat(301),'answer'),/300 characters/);
 });
+
+
+test('global review excludes archived studies while deliberate study-scoped recall remains available',async()=>{
+  const repo=new MemorySelahRepository();
+  await repo.initialize();
+  await repo.putStudy(study);
+  const service=new ReviewService(repo,{now:()=>100,idFactory:(()=>{let n=0;return()=>`archive-r${++n}`;})()});
+  await service.syncFromSynthesis(study,synthesis);
+  assert.equal((await service.due(100)).length,4);
+  await repo.putStudy({...study,archived:true,updatedAt:2});
+  assert.equal((await service.due(100)).length,0);
+  assert.equal((await service.dueForStudy(study.id,100)).length,4);
+});
