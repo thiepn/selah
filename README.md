@@ -10,6 +10,8 @@ Current release candidate: **1.0.0-rc.1**.
 
 The tested production build is deployed through GitHub Pages at `thiepn.dev/selah/`. Every production deployment rebuilds the full BSB/WEB data pack and must pass the browser/device acceptance matrix before the exact `site/` artifact is published. V1 final remains gated on the human-study certification checklist in `docs/human-study-certification.md`.
 
+**P39 promotion gate:** human results are recorded in `docs/v1-human-certification.json`; `npm run release:v1:check` must pass before RC1 can be promoted to V1 final.
+
 ## Product model
 
 Selah is built around eleven primitives:
