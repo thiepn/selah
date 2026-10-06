@@ -6,9 +6,9 @@
 - Product: local-first, passage-centered Bible study workspace
 - Canonical production host: **GitHub Pages**
 - Pages environment URL reported by deployment: **http://thiepn.dev/selah/**
-- Release status: **RC — automated and hosted qualification passed; human certification pending**
+- Release status: **SUPERSEDED — promoted to V1.0.0 after human certification PASS and a green final promotion gate**
 
-V1 final must not be declared until the human-study certification in `docs/human-study-certification.md` has been completed and blocking defects are closed.
+This RC1 is preserved as the immutable promotion candidate that was certified and promoted to V1.0.0.
 
 ## Automated release evidence
 
@@ -71,6 +71,6 @@ Cosmetic preferences and feature requests that do not break the existing study w
 
 ## Release decision
 
-**Current decision: RC1 accepted for human certification.**
+**Final decision: RC1 passed human certification and was promoted to V1.0.0.**
 
-Automated qualification and hosted deployment are green. Human certification is intentionally pending.
+Automated qualification, hosted deployment, human certification, and the final promotion gate all passed.
