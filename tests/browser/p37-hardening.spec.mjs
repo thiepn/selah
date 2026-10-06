@@ -70,11 +70,11 @@ test('visible study textareas have programmatic accessible names',async({page},t
 
 test('long study session preserves passage-owned work through repeated navigation',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='desktop-chromium');
-  await openPassage(page,'Phil 2:5-11');
+  await openPassage(page,'Phil 2:5-8');
 
   await page.getByRole('tab',{name:'Notes'}).click();
   const doc=page.locator('#studyDocument');
-  await doc.fill('Observe humility and obedience. [[Philippians 2:12-18]]');
+  await doc.fill('Observe humility and obedience. [[Philippians 2:9-11]]');
   await expect(page.locator('#saveState')).toContainText(/saved locally|saving/);
   await expect.poll(()=>page.locator('#saveState').textContent()).toContain('saved locally');
 
@@ -85,9 +85,9 @@ test('long study session preserves passage-owned work through repeated navigatio
   await expect(page.locator('.outline-section')).toHaveCount(1);
 
   const reference=page.getByLabel('Bible reference');
-  await reference.fill('Phil 2:12-18');
+  await reference.fill('Phil 2:9-11');
   await reference.press('Enter');
-  await expect(page.locator('#passageStatus')).toContainText(/Philippians 2:12/);
+  await expect(page.locator('#passageStatus')).toContainText(/Philippians 2:9/);
 
   await page.getByRole('tab',{name:'Notes'}).click();
   await page.locator('#studyDocument').fill('Work out the implications with care.');
@@ -102,7 +102,7 @@ test('long study session preserves passage-owned work through repeated navigatio
   await expect(page.locator('.outline-section')).toHaveCount(1);
 
   await page.locator('#forwardBtn').click();
-  await expect(page.locator('#passageStatus')).toContainText(/Philippians 2:12/);
+  await expect(page.locator('#passageStatus')).toContainText(/Philippians 2:9/);
   await page.getByRole('tab',{name:'Notes'}).click();
   await expect(page.locator('#studyDocument')).toHaveValue(/implications with care/);
 });
