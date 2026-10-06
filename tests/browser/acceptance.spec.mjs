@@ -28,7 +28,7 @@ test('desktop study flow persists a saved observation and exposes the resulting 
   await page.locator('[data-observation-save]').first().click();
   await expect(page.locator('#toast')).toContainText('Observation question saved');
 
-  await page.getByRole('button',{name:'Studies'}).click();
+  await page.getByRole('button',{name:'Studies',exact:true}).click();
   await expect(page.locator('#studiesDrawer')).toBeVisible();
   await expect(page.locator('#studiesList')).toContainText(/Philippians 2:5/);
   await page.getByRole('button',{name:'Close studies'}).click();
