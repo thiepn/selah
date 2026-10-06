@@ -7,7 +7,7 @@ export function normalizeStudyTags(tags: string[]): string[] {
   const cleaned: string[] = [];
   const seen = new Set<string>();
   for (const raw of tags) {
-    const tag=raw.replace(/^#+/,'').trim().replace(/\s+/g,' ');
+    const tag=raw.trim().replace(/^#+/,'').trim().replace(/\s+/g,' ');
     if (!tag) continue;
     if (tag.length > 40) throw new Error('Study topics must be 40 characters or fewer');
     const key=tag.toLocaleLowerCase('en');
