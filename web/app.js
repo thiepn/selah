@@ -212,7 +212,7 @@ async function switchPrimaryPassage(scripture) {
   await setCurrentScripture(scripture);
 }
 async function setCurrentScripture(scripture) {
-  if(!currentStudy||canonicalPassageId(currentStudy.primaryPassage)!==canonicalPassageId(scripture.passage))currentStudy=await studyService.forPassage(scripture.passage);
+  if(!currentStudy||!samePassage(currentStudy.primaryPassage,scripture.passage))currentStudy=await studyService.forPassage(scripture.passage);
   if(workspace&&workspace.studyId!==currentStudy?.id){workspace={...workspace,studyId:currentStudy?.id,updatedAt:Date.now()};if(!currentStudy)delete workspace.studyId;await repo.putWorkspace(workspace);}
   document.body.classList.remove('launcher-mode');
   currentScripture = scripture;
@@ -242,7 +242,7 @@ function renderPassageLauncher(message='Enter a Bible reference above to begin.'
   elements.passageStatus.textContent='No passage open';
   document.title='Selah';
   elements.scripture.innerHTML=`<div class="passage-launcher"><span class="launcher-wordmark">SELAH</span><h1>What are you studying?</h1><p>${escapeHtml(message)}</p><button class="primary-button" id="launcherReference" type="button">Choose a passage</button></div>`;
-  elements.studyContent.innerHTML=`<section class="study-empty"><span class="eyebrow">STUDY WORKSPACE</span><p>Study tools follow the passage you open. Your saved studies remain available under <strong>Studies</strong>.</p><button class="text-button" id="launcherStudies" type="button">Open saved studies</button></section>`;
+  elements.studyContent.innerHTML=`<section class="study-empty"><span class="eyebrow">STUDY WORKSPACE</span><p>Study tools follow the open passage. Saved studies remain under <strong>Studies</strong>.</p><button class="text-button" id="launcherStudies" type="button">Open saved studies</button></section>`;
   $('#backBtn').disabled=true;
   $('#forwardBtn').disabled=true;
   $('#prevChapterBtn').disabled=true;
@@ -384,7 +384,7 @@ async function renderGuide() {
       : '<p class="quiet">You have not outlined this passage yet.</p>';
     elements.studyContent.innerHTML = `<section class="panel">
       <span class="eyebrow">PASSAGE GUIDE</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2>
-      <p class="panel-lede">A compact map of study directions. The Guide points to evidence; it does not replace reading the passage.</p>
+      <p class="panel-lede">A compact map of study directions. It points to evidence without replacing close reading.</p>
       ${modeControlHtml(currentScripture.passage,currentStudy?.literaryMode)}
       <section class="panel-section observation-guide"><h3>Observe the text</h3><p class="quiet">These questions come from visible textual signals. Selah asks; it does not supply the interpretation.</p><div class="observation-prompts">${guide.observationPrompts.map((prompt,index)=>`<article class="observation-prompt"><span class="observation-category">${escapeHtml(promptLabel(prompt.category,guide.literaryMode))}</span><p>${escapeHtml(prompt.prompt)}</p><div class="observation-actions">${prompt.tokenIds.length?`<button class="text-button" type="button" data-observation-focus="${index}">Show in text</button>`:''}<button class="text-button" type="button" data-observation-save="${index}">Save question</button></div></article>`).join('')}</div></section>
       <section class="panel-section"><h3>Context</h3><dl class="facts"><div><dt>Book</dt><dd>${escapeHtml(book?.name??'')}</dd></div><div><dt>Canon</dt><dd>${book?.testament==='NT'?'New Testament':'Old Testament'}</dd></div><div><dt>Your annotations</dt><dd>${guide.annotations.length}</dd></div></dl>${priorStudiesHtml?`<div class="guide-prior-studies"><span class="mini-label">Prior studies overlapping this passage</span>${priorStudiesHtml}</div>`:''}${guide.literaryContext.length?`<div class="literary-context"><span class="mini-label">Literary context</span>${guide.literaryContext.map((section)=>`<button type="button" class="context-section ${section.role}" data-reference="${escapeHtml(formatPassage(section.passage))}"><span>${section.role}</span><strong>${escapeHtml(section.heading)}</strong><small>${escapeHtml(formatPassage(section.passage))}</small></button>`).join('')}</div>`:''}${guide.sections.length?`<div class="passage-sections"><span class="mini-label">Headings inside selection</span>${guide.sections.map((section)=>`<button type="button" class="section-jump" data-verse="${section.verse}"><span>v.${section.verse}</span>${escapeHtml(section.heading)}</button>`).join('')}</div>`:''}</section>
@@ -798,7 +798,7 @@ async function renderPhrasing() {
 }
 async function renderResources() {
   const guide=await guideService.build(currentScripture);
-  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">EXTERNAL RESOURCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Open trusted external tools only when you deliberately want them. Selah keeps commentary secondary to your own observation of the text.</p>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}<section class="resource-attribution"><h3>Data & licenses</h3><a class="resource-link" href="./data/bsb/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer"><span><strong>Bundled Scripture & research data</strong><small>View source attribution and licenses</small></span><span aria-hidden="true">↗</span></a></section></section>`;
+  elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">EXTERNAL RESOURCES</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Open external tools deliberately. Selah keeps commentary secondary to your own observation.</p>${guide.resources.map(({resource,url})=>resourceLinkHtml(resource,url)).join('')}<section class="resource-attribution"><h3>Data & licenses</h3><a class="resource-link" href="./data/bsb/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer"><span><strong>Bundled Scripture & research data</strong><small>View source attribution and licenses</small></span><span aria-hidden="true">↗</span></a></section></section>`;
 }
 async function renderActiveTab() {
   queryAll('.tab').forEach((tab)=>{
