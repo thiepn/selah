@@ -215,14 +215,8 @@ async function resolveReferenceInput(input) {
   return scripture;
 }
 
-async function getStudyForPassage(passage) {
-  const id = canonicalPassageId(passage);
-  const studies = await repo.listStudies();
-  return studies.find((study)=>canonicalPassageId(study.primaryPassage) === id && !study.archived);
-}
-
 async function switchPrimaryPassage(scripture) {
-  currentStudy = await getStudyForPassage(scripture.passage);
+  currentStudy = await studyService.forPassage(scripture.passage);
   const workspaces = currentStudy ? (await repo.listWorkspaces()).filter((x)=>x.studyId === currentStudy.id) : [];
   if (workspaces.length) {
     workspace = workspaces.sort((a,b)=>b.updatedAt-a.updatedAt)[0];
@@ -240,6 +234,8 @@ async function switchPrimaryPassage(scripture) {
 }
 
 async function setCurrentScripture(scripture) {
+  if(!currentStudy||canonicalPassageId(currentStudy.primaryPassage)!==canonicalPassageId(scripture.passage))currentStudy=await studyService.forPassage(scripture.passage);
+  if(workspace&&workspace.studyId!==currentStudy?.id){workspace={...workspace,studyId:currentStudy?.id,updatedAt:Date.now()};if(!currentStudy)delete workspace.studyId;await repo.putWorkspace(workspace);}
   document.body.classList.remove('launcher-mode');
   currentScripture = scripture;
   selectedToken = undefined;
@@ -287,7 +283,7 @@ async function loadInitial() {
   }
   try {
     const scripture = await scriptureProvider.getPassage(workspace.primaryPassage);
-    currentStudy = workspace.studyId ? await repo.getStudy(workspace.studyId) : await getStudyForPassage(scripture.passage);
+    currentStudy = workspace.studyId ? await repo.getStudy(workspace.studyId) : await studyService.forPassage(scripture.passage);
     await setCurrentScripture(scripture);
   } catch (error) {
     workspace=undefined;
@@ -571,8 +567,6 @@ function scheduleDocumentSave(value) {
     }
   },300);
 }
-
-
 
 function outlineSectionHtml(section) {
   return `<article class="outline-section" data-outline-id="${escapeHtml(section.id)}"><label><span>Verses</span><input data-outline-field="reference" value="${escapeHtml(formatPassage(section.passage))}" aria-label="Outline section verses"></label><label class="outline-label"><span>Section</span><input data-outline-field="label" value="${escapeHtml(section.label)}" placeholder="What is happening here?" aria-label="Outline section label"></label><button class="icon-button outline-delete" data-outline-action="delete" type="button" aria-label="Delete outline section">×</button></article>`;
@@ -935,7 +929,6 @@ async function openAdjacentChapter(direction){
   try{const verses=await scriptureProvider.getChapter(target.book,target.chapter);if(!verses.length)throw new Error('Chapter is unavailable');await switchPrimaryPassage({translationId:scriptureProvider.translation.id,passage:{start:verses[0].ref,end:verses.at(-1).ref},verses});}
   catch(error){toast(error instanceof Error?error.message:'Unable to open chapter');}
 }
-
 
 async function refreshReviewBadge() {
   const due=await reviewService.due();
