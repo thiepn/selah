@@ -109,6 +109,7 @@ function setSaving(saving) {
   elements.saveState.textContent = saving ? 'saving…' : 'saved locally';
 }
 function samePassage(a,b) { return canonicalPassageId(a) === canonicalPassageId(b); }
+async function listStudiesForUi(){const studies=await listStudiesForUi();if(!Array.isArray(studies))throw new Error('Study storage returned invalid data');return studies;}
 function studyDraftKey(passage) {
   return `selah.study-document-draft.${canonicalPassageId(passage)}`;
 }
@@ -369,7 +370,7 @@ async function renderGuide() {
       guideService.build(currentScripture,currentStudy?.literaryMode),
       currentStudy ? outlineService.get(currentStudy.id) : Promise.resolve(undefined),
       currentStudy ? annotationService.forPassage(currentScripture.passage,currentScripture.translationId,currentStudy.id) : Promise.resolve([]),
-      repo.listStudies(),
+      listStudiesForUi(),
     ]);
     const priorStudies=studiesOverlappingPassage(studies,currentScripture.passage).filter((study)=>study.id!==currentStudy?.id);
     const priorStudiesHtml=personalStudyLinksHtml(priorStudies,formatPassage(currentScripture.passage));
@@ -741,7 +742,7 @@ function scheduleSynthesisSave(value,delay=250) {
 async function renderReferences() {
   elements.studyContent.innerHTML='<div class="loading">Loading references…</div>';
   try {
-    const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(currentScripture.passage),researchProvider.backlinksForPassage(currentScripture.passage),repo.listStudies()]);
+    const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(currentScripture.passage),researchProvider.backlinksForPassage(currentScripture.passage),listStudiesForUi()]);
     elements.studyContent.innerHTML=`<section class="panel"><span class="eyebrow">SCRIPTURE CONNECTIONS</span><h2>${escapeHtml(formatPassage(currentScripture.passage))}</h2><p class="panel-lede">Explore both directions of the reference network while the primary passage stays fixed. Selah also surfaces related passages you have already studied.</p><section class="panel-section"><h3>From this passage</h3><div>${refs.map((ref)=>referenceButtonHtml(ref,studiesOverlappingPassage(studies,ref.target))).join('')||'<p class="quiet">No outgoing references available.</p>'}</div></section><section class="panel-section"><h3>Referenced by</h3><div>${backlinks.map((ref)=>backlinkButtonHtml(ref,studiesOverlappingPassage(studies,ref.source))).join('')||'<p class="quiet">No incoming references are indexed for this passage.</p>'}</div></section></section>`;
     wireReferenceButtons(); wirePersonalStudyReferences();
   } catch(error){ renderToolError('References unavailable',error); }
@@ -828,7 +829,7 @@ async function openPeek(passage) {
   activePeekPassage=passage; elements.peekTitle.textContent=formatPassage(passage); peekCtl.open(document.activeElement); elements.peekText.textContent='Loading…';
   try {
     const scripture=await scriptureProvider.getPassage(passage);
-    const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage),repo.listStudies()]);
+    const [refs,backlinks,studies]=await Promise.all([researchProvider.forPassage(passage),researchProvider.backlinksForPassage(passage),listStudiesForUi()]);
     const text=scripture.verses.map((v)=>`<p class="peek-verse"><sup>${v.ref.verse}</sup> ${escapeHtml(v.tokens.map((t)=>t.text).join(''))}</p>`).join('');
     const priorStudies=studiesOverlappingPassage(studies,passage);
     const studied=personalStudyLinksHtml(priorStudies,formatPassage(passage));
