@@ -29,7 +29,8 @@
     "data:validate:web": "node scripts/data/validate-vendored-web.mjs",
     "validate:p10": "node scripts/validate-platform-p10.mjs",
     "test:browser": "playwright test",
-    "test:browser:ci": "playwright test --reporter=line"
+    "test:browser:ci": "playwright test --reporter=line",
+    "release:v1:check": "node scripts/check-v1-human-certification.mjs"
   },
   "engines": {
     "node": ">=22"
