@@ -1,0 +1,30 @@
+name: Selah Production Qualification
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: selah-production-qualification
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Build full production site
+        run: npm run build:production
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run release browser acceptance
+        run: npm run test:browser:ci
