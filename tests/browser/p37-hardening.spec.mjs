@@ -43,10 +43,12 @@ test('keyboard drawers trap focus, escape closes, and focus returns to opener',a
   await expect(page.locator('#studiesDrawer')).toBeVisible();
   await expect(page.locator('#studySearch')).toBeFocused();
 
+  const close=page.getByRole('button',{name:'Close studies'});
+  await close.focus();
   await page.keyboard.press('Shift+Tab');
   await expect(page.locator('#restoreBtn')).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button',{name:'Close studies'})).toBeFocused();
+  await expect(close).toBeFocused();
 
   await page.keyboard.press('Escape');
   await expect(page.locator('#studiesDrawer')).toBeHidden();
