@@ -4,6 +4,12 @@ Selah is a local-first, passage-centered Bible study workspace for close reading
 
 It intentionally has no Today page, dashboard, streaks, reading-plan layer, prayer manager, social feed, or built-in AI dependency. The primary UI is the Scripture study workspace.
 
+## V1 release candidate
+
+Current release candidate: **1.0.0-rc.1**.
+
+The tested production build is deployed through GitHub Pages at `thiepn.dev/selah/`. Every production deployment rebuilds the full BSB/WEB data pack and must pass the browser/device acceptance matrix before the exact `site/` artifact is published. V1 final remains gated on the human-study certification checklist in `docs/human-study-certification.md`.
+
 ## Product model
 
 Selah is built around eleven primitives:
@@ -88,7 +94,7 @@ The production build shallow-clones the public BSB data output repository plus t
 npm run build:production
 ```
 
-Vercel is configured to use this production command automatically.
+GitHub Pages is the canonical V1 production target and runs this command before deployment. `vercel.json` is retained as a secondary hosting configuration, but Vercel is not the release authority for RC1.
 
 Generated Bible data lives under `.generated/` and is deliberately not committed.
 
@@ -108,3 +114,5 @@ The critical domain logic is tested independently from the browser UI because an
 ## Release guards
 
 `npm run build` type-checks the core, validates source licensing metadata, runs the automated test suite, validates the static study workspace, and enforces bundle budgets. Backup import rejects malformed data and backups created by a newer unsupported Selah schema before touching IndexedDB.
+
+Production release adds a second gate: `npm run build:production`, the 4-project Chromium/device matrix, and publication of that already-tested artifact through GitHub Pages. Human V1 certification is intentionally separate from automated qualification.

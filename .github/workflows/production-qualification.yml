@@ -1,13 +1,7 @@
 name: Selah Production Qualification
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
-
-concurrency:
-  group: selah-production-qualification
-  cancel-in-progress: true
 
 permissions:
   contents: read

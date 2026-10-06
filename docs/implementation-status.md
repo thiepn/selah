@@ -236,6 +236,21 @@
 - no schema migration, new study feature, network dependency, or built-in AI behavior was added
 - true physical-device installation/touch testing and full screen-reader certification remain human qualification work; browser emulation is not mislabeled as hardware certification
 
+### P38 — V1 release candidate, hosted deployment recovery & human-study certification gate
+
+- Selah is versioned as **1.0.0-rc.1**; RC status is deliberate and remains below V1 final until human study certification is signed
+- a dedicated full-production GitHub Actions qualification proved `npm run build:production` succeeds outside Vercel with the complete upstream data pipeline and the same browser acceptance suite
+- exact production qualification: **95/95 Node tests**, **9 applicable Playwright scenarios**, all eight literary-mode production research smoke cases, BSB/WEB comparison, original-language research, concordance, and bidirectional references
+- measured RC1 static payload: **157.48 MiB / 4,893 files**, including BSB **135.84 MiB / 3,600 files** and WEB **4.09 MiB / 1,192 files**
+- this isolates the earlier Vercel `ERROR` deployments from Selah's build: the same production command is green in GitHub Actions, while Vercel project/log inspection remains blocked by a 403 authorization error for the `thiepn-project` scope
+- hosted deployment was recovered through **GitHub Pages**, which now rebuilds production data, reruns Chromium acceptance, uploads the already-tested `site/` artifact, and deploys that exact artifact
+- first Pages production deployment completed successfully and reported the environment URL **http://thiepn.dev/selah/**
+- GitHub Pages is therefore the canonical RC1 production host; Vercel remains an optional secondary target until its scope is reauthorized and separately qualified
+- the temporary duplicate production-qualification workflow is retained as **manual-only**; normal `main` pushes use Selah CI plus the Pages production pipeline
+- added an explicit human-study certification protocol covering sustained multi-genre study, physical-device/PWA behavior, data ownership/persistence, offline return, backup/restore, ergonomics, and accessibility
+- automated/browser qualification is not mislabeled as human certification: **human signoff remains pending**, so RC1 is not yet declared V1 final
+- no study-domain feature, schema migration, or new network runtime dependency was introduced in P38
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
@@ -275,7 +290,7 @@
   - Scripture search index: **17.22 MiB**
   - reverse-reference index: **5.00 MiB**
   - Strong's concordance: **4.14 MiB**
-  - complete static site: **157.43 MiB / 4,879 files**
+  - complete RC1 static site: **157.48 MiB / 4,893 files**
 - current application code remains small relative to data: **99,999 B app JS + 26,059 B focused UI modules + 51,000 B CSS + 144,693 B core JS** before compression
 
 ## Open qualification work
@@ -283,7 +298,7 @@
 - physical-device mobile/tablet PWA installation and touch qualification beyond browser emulation
 - full screen-reader certification beyond the implemented semantic/keyboard improvements
 - additional translation providers where redistribution terms permit
-- V1 human multi-genre real-study certification
+- V1 human multi-genre real-study certification (protocol prepared; signoff pending)
 
 ## Product boundaries still enforced
 
