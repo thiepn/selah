@@ -7,7 +7,7 @@ export function validateHumanCertification(cert){
   required(/^[0-9a-f]{40}$/.test(cert.candidateSha??''),'candidateSha must be an exact 40-character Git SHA');
   required(cert.certificationStatus==='pass','certificationStatus must be pass');
   required(typeof cert.tester==='string'&&cert.tester.trim().length>=2,'tester is required');
-  required(/^\\d{4}-\\d{2}-\\d{2}$/.test(cert.date??''),'date must use YYYY-MM-DD');
+  required(/^\d{4}-\d{2}-\d{2}$/.test(cert.date??''),'date must use YYYY-MM-DD');
   try {
     const url=new URL(cert.productionUrl);
     required(url.protocol==='https:','productionUrl must use HTTPS');
