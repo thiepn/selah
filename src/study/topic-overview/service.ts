@@ -14,7 +14,7 @@ export class TopicOverviewService {
     const studies=(await this.repository.listStudies())
       .filter((study)=>!study.archived&&study.tags.some((tag)=>tag.toLocaleLowerCase('en')===key))
       .sort((a,b)=>compareVerseRefs(a.primaryPassage.start,b.primaryPassage.start)||compareVerseRefs(a.primaryPassage.end,b.primaryPassage.end)||b.updatedAt-a.updatedAt);
-    const label=studies.flatMap((study)=>study.tags).find((tag)=>tag.toLocaleLowerCase('en')===key)??topic;
+    const label=[...studies].sort((a,b)=>b.updatedAt-a.updatedAt).flatMap((study)=>study.tags).find((tag)=>tag.toLocaleLowerCase('en')===key)??topic;
     const rows=await Promise.all(studies.map(async(study)=>({
       study,
       synthesis:await this.repository.getStudySynthesis(study.id),
