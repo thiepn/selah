@@ -1,0 +1,39 @@
+name: Selah V1 Final Promotion Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Verify human field-trial certification
+        run: npm run release:v1:check
+      - name: Verify RC1 reference is the certified candidate
+        run: |
+          set -euo pipefail
+          rc_sha="$(git rev-parse origin/release/v1.0.0-rc.1)"
+          cert_sha="$(node -e "const c=require('./docs/v1-human-certification.json');process.stdout.write(c.candidateSha)")"
+          test "$rc_sha" = "$cert_sha"
+      - name: Rebuild exact full production product
+        run: npm run build:production
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Re-run release browser acceptance
+        run: npm run test:browser:ci
+      - name: Verify current production endpoint
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 6 --retry-delay 3 --retry-all-errors https://thiepn.dev/selah/ -o /tmp/selah-index.html
+          grep -q '<title>Selah' /tmp/selah-index.html
