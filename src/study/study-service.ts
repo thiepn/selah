@@ -1,4 +1,4 @@
-import { compareVerseRefs, formatPassage } from '../domain/references/reference.js';
+import { canonicalPassageId, compareVerseRefs, formatPassage } from '../domain/references/reference.js';
 import type { PassageRef } from '../domain/references/types.js';
 import type { Study } from '../domain/studies/types.js';
 import type { SelahRepository } from '../persistence/types.js';
@@ -108,6 +108,11 @@ export class StudyService {
     const updated: Study = { ...existing, archived, updatedAt: this.#now() };
     await this.repository.putStudy(updated);
     return updated;
+  }
+
+  async forPassage(passage: PassageRef): Promise<Study | undefined> {
+    const id=canonicalPassageId(passage);
+    return (await this.repository.listStudies()).find((study)=>!study.archived&&canonicalPassageId(study.primaryPassage)===id);
   }
 
   async recent(limit = 20): Promise<Study[]> {
