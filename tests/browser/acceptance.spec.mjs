@@ -10,6 +10,17 @@ async function openPhilippians(page){
   await expect(page.locator('#studyContent')).toContainText('PASSAGE GUIDE');
 }
 
+test('compiled overlap helper keeps its browser contract',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='desktop-chromium');
+  await page.goto('/');
+  const result=await page.evaluate(async()=>{
+    const study=await import('./core/study/index.js');
+    const refs=await import('./core/domain/references/index.js');
+    return study.studiesOverlappingPassage([],refs.parseReference('Phil 2:5-11').passage);
+  });
+  expect(Array.isArray(result)).toBe(true);
+});
+
 test('desktop study flow persists a saved observation and exposes the resulting study',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='desktop-chromium');
   await openPhilippians(page);
