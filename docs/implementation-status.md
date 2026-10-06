@@ -251,6 +251,18 @@
 - automated/browser qualification is not mislabeled as human certification: **human signoff remains pending**, so RC1 is not yet declared V1 final
 - no study-domain feature, schema migration, or new network runtime dependency was introduced in P38
 
+### P39 — RC1 human field trial, defect triage & V1 final promotion
+
+- P39 adds no product feature and does not manufacture a human PASS; RC1 remains the release state until real field-trial evidence is recorded
+- human certification now has a machine-checkable source of truth at `docs/v1-human-certification.json`, initialized to **pending**
+- validation covers all four multi-genre sessions, minimum field-use durations, desktop keyboard/200% zoom, physical-phone PWA installation, software-keyboard usability, offline return, close/reopen restoration, backup/restore/writability, ratings, and final signoff
+- severity policy is enforced: open S0/S1 defects block V1; S2 must be fixed or explicitly accepted with a written rationale; S3 may be deferred
+- regression tests prove pending evidence cannot accidentally pass and that S0/S1/S2 policy is enforced
+- added a structured GitHub issue form for RC1 field-trial defects
+- added manual-only **Selah V1 Final Promotion Gate**: validates human evidence against the stable RC1 SHA, rebuilds full production data, reruns Chromium/device acceptance, and smoke-tests the live production URL
+- V1 version promotion is deliberately not automatic; once the manual gate is genuinely green, a final version/tag/deployment commit can promote `1.0.0-rc.1` to `1.0.0`
+- current release decision: **HOLD AT RC1 — human field-trial signoff pending**
+
 ## Production data pipeline
 
 - full BSB data vendoring via shallow Git clone
