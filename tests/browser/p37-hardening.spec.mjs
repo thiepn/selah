@@ -93,7 +93,8 @@ test('long study session preserves passage-owned work through repeated navigatio
   await page.locator('#studyDocument').fill('Work out the implications with care.');
   await expect.poll(()=>page.locator('#saveState').textContent()).toContain('saved locally');
 
-  await page.locator('#backBtn').click();
+  await reference.fill('Phil 2:5-8');
+  await reference.press('Enter');
   await expect(page.locator('#passageStatus')).toContainText(/Philippians 2:5/);
   await page.getByRole('tab',{name:'Notes'}).click();
   await expect(page.locator('#studyDocument')).toHaveValue(/humility and obedience/);
@@ -101,7 +102,8 @@ test('long study session preserves passage-owned work through repeated navigatio
   await page.getByRole('tab',{name:'Outline'}).click();
   await expect(page.locator('.outline-section')).toHaveCount(1);
 
-  await page.locator('#forwardBtn').click();
+  await reference.fill('Phil 2:9-11');
+  await reference.press('Enter');
   await expect(page.locator('#passageStatus')).toContainText(/Philippians 2:9/);
   await page.getByRole('tab',{name:'Notes'}).click();
   await expect(page.locator('#studyDocument')).toHaveValue(/implications with care/);
