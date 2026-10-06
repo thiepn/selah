@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "phase": "P10",
+  "contractId": "bible-family-boundary-v1",
+  "product": "bible",
+  "defaultModule": "study",
+  "registryState": "staged",
+  "migrationMode": "federated-gradual",
+  "shell": {
+    "repo": "thiepn/selah",
+    "module": "bible/study",
+    "launchUrl": null,
+    "role": "study-provider-and-future-family-home",
+    "mayProxyExternalWrites": false
+  },
+  "compatibility": {
+    "preserveLegacyUrls": true,
+    "preserveLegacyStores": true,
+    "preserveLegacyIds": true,
+    "legacyAliases": {
+      "bible": "bible/study",
+      "selah": "bible/study",
+      "mdd": "bible/devotion",
+      "tms60": "bible/tms60",
+      "greek": "bible/greek"
+    }
+  },
+  "modules": [
+    {
+      "id": "study",
+      "canonicalRef": "bible/study",
+      "registryState": "staged",
+      "provider": {
+        "repo": "thiepn/selah",
+        "launchUrl": null,
+        "runtime": "vercel-static",
+        "storage": "provider-owned-local-first"
+      },
+      "owns": [
+        "passage-studies",
+        "study-documents",
+        "annotations",
+        "outlines",
+        "interpretation-claims",
+        "synthesis",
+        "study-review",
+        "book-overviews",
+        "topic-overviews"
+      ],
+      "writePolicy": "provider-only",
+      "migration": "retain-store"
+    },
+    {
+      "id": "devotion",
+      "canonicalRef": "bible/devotion",
+      "registryState": "staged",
+      "provider": {
+        "repo": "thiepn/my-daily-devotion",
+        "launchUrl": null,
+        "runtime": "provider-owned",
+        "storage": "provider-owned-local-first"
+      },
+      "owns": [
+        "devotional-reading",
+        "reflections",
+        "verse-notes",
+        "prayers",
+        "devotional-history",
+        "scripture-collections"
+      ],
+      "writePolicy": "provider-only",
+      "migration": "federate-first"
+    },
+    {
+      "id": "tms60",
+      "canonicalRef": "bible/tms60",
+      "registryState": "active",
+      "provider": {
+        "repo": "thiepn/tms60",
+        "launchUrl": "https://tms60.thiepn.dev/",
+        "runtime": "github-pages",
+        "storage": "provider-owned-local-first"
+      },
+      "owns": [
+        "scripture-memory-progress",
+        "verse-recall-state",
+        "memorization-review"
+      ],
+      "writePolicy": "provider-only",
+      "migration": "federate-first"
+    },
+    {
+      "id": "greek",
+      "canonicalRef": "bible/greek",
+      "registryState": "active",
+      "provider": {
+        "repo": "thiepn/greek",
+        "launchUrl": "https://thiepn.dev/greek/",
+        "runtime": "github-pages",
+        "storage": "provider-owned-local-first"
+      },
+      "owns": [
+        "biblical-greek-learning",
+        "vocabulary-progress",
+        "grammar-progress",
+        "reading-progress"
+      ],
+      "writePolicy": "provider-only",
+      "migration": "federate-first"
+    }
+  ],
+  "sharedScriptureRule": {
+    "sharedReferenceIdentity": true,
+    "sharedStorage": false,
+    "copyProviderRecords": false,
+    "note": "Scripture references may be shared as stable references; annotations, reflections, studies, prayers, memorization state and course progress remain provider-owned."
+  },
+  "nonGoals": [
+    "merge repositories",
+    "merge indexeddb databases",
+    "make Selah a devotional app",
+    "move MDD prayer or reflection data into Selah",
+    "move TMS60 progress into Selah",
+    "move Greek course progress into Selah",
+    "centralize Bible product data in Core",
+    "change existing production URLs",
+    "retire legacy app IDs",
+    "invent a public Bible family URL before one exists"
+  ]
+}
