@@ -1,0 +1,69 @@
+name: Selah RC field-trial defect
+description: Record a defect discovered while using the V1 release candidate.
+title: "[RC1] "
+labels: []
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - S0 — data loss, corruption, security
+        - S1 — core study cannot reasonably continue
+        - S2 — significant repeated friction
+        - S3 — minor polish or rare inconvenience
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device / browser
+      placeholder: "Phone / Chrome PWA, Firefox desktop, iPad Safari…"
+    validations:
+      required: true
+  - type: input
+    id: passage
+    attributes:
+      label: Passage
+      placeholder: "Philippians 2:5–11"
+  - type: input
+    id: surface
+    attributes:
+      label: Selah surface
+      placeholder: "Notes, Claims, Study drawer, PWA offline…"
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior, including whether study data was affected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: "1. Open…\n2. Tap…\n3. Observe…"
+    validations:
+      required: true
+  - type: dropdown
+    id: reproducible
+    attributes:
+      label: Reproducible?
+      options:
+        - Yes, consistently
+        - Sometimes
+        - Not yet
+    validations:
+      required: true
+  - type: dropdown
+    id: blocking
+    attributes:
+      label: Blocks V1?
+      options:
+        - Yes
+        - No
+        - Unsure
+    validations:
+      required: true
